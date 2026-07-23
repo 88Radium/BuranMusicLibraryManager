@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
+using Buran.Interfaces;
 using BuranUI.ViewModels;
 
 namespace BuranUI;

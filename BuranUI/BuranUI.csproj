@@ -20,6 +20,15 @@
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+        <PackageReference Include="System.Composition" Version="10.0.10" />
         <PackageReference Include="Tmds.DBus.Protocol" Version="0.94.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="ViewModels\ViewModelBase.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Buran.Interfaces\Buran.Interfaces.csproj" />
     </ItemGroup>
 </Project>
