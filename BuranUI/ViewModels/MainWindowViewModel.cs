@@ -1,6 +1,8 @@
-﻿namespace BuranUI.ViewModels;
+﻿using System.Collections.Generic;
+using Avalonia.Controls;
 
-public partial class MainWindowViewModel : ViewModelBase
-{
-    public string Greeting { get; } = "Welcome to Avalonia!";
+namespace BuranUI.ViewModels;
+
+public class MainWindowViewModel : ViewModelBase {
+    public static ICollection<TabItem>? Tabs { get; set; }
 }

@@ -1,0 +1,158 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:Buran.ID3Editor.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="Buran.ID3Editor.Views.Id3EditorTab">
+    
+    <UserControl.DataContext>
+        <viewModels:Id3EditorTabViewModel x:Uid="VM"/>
+    </UserControl.DataContext>
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanVisConverter"/>
+    </UserControl.Resources>
+    
+    <TabItem x:Name="ID3EditorTabControl" Header="ID3 Editor">
+
+        <Grid Name="ID3EditorGrid">
+            <Grid.RowDefinitions>
+                <RowDefinition x:Name="HeadRow" Height="Auto" />
+                <RowDefinition x:Name="FunctionRow" Height="Auto" />
+                <RowDefinition x:Name="ContentRow" Height="*" />
+                
+            </Grid.RowDefinitions>
+
+
+            <StackPanel x:Name="OutsideStackPanel" Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
+                <StackPanel x:Name="InsideStackPanel" Orientation="Vertical" >
+                    <TextBlock VerticalAlignment="Bottom" Text="Pfad der umzubenennenden Musikdateien:" />
+                    <TextBox VerticalAlignment="Center" x:Name="DirPath" Width="350" Text="{Binding SelectedPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextChanged="DirPath_TextChanged" Height="20" />
+                    <TextBox VerticalAlignment="Center" x:Name="DirPath" Width="350" Text="{Binding SelectedPath, Mode=TwoWay}" TextChanged="DirPath_TextChanged" Height="20" />
+                </StackPanel>
+                <Button x:Name="OFD" Content="Open directory" Command="{Binding OFDCommand}" VerticalAlignment="Bottom" Height="20" Margin="5,0,0,0" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" Visibility="{Binding HasMusicFiles, Converter={StaticResource BooleanVisConverter}, Mode=OneWay}">
+                <TextBlock Text="{Binding SelectedFilesCount, StringFormat='{}Ausgewählt: {0}'}"/>
+                <Button Content="Künstler zu ID3-Tag hinzufügen" Height="20" Margin="8,0,0,0" IsEnabled="{Binding HasSelectedFiles}" Command="{Binding OpenAddArtistDialogCommand}"/>
+            </StackPanel>
+            
+            
+            <ListView x:Name="ItemsListView" Grid.Row="2" ItemsSource="{Binding MusicFiles, Mode=TwoWay, Delay=333, UpdateSourceTrigger=PropertyChanged}" BorderThickness="1" >
+                <!--Mode=TwoWay, Delay=333,-->
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderThickness="1" BorderBrush="Black" Margin="5" Padding="5" >
+                            <Grid x:Name="ItemsGrid">
+
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="auto" />
+                                    <RowDefinition Height="auto" />
+                                </Grid.RowDefinitions>
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="50" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="160" />
+                                    <!--<ColumnDefinition Width="160" />-->
+                                </Grid.ColumnDefinitions>
+
+
+                                <StackPanel Grid.RowSpan="3"  Grid.Column="0" VerticalAlignment="Center" >
+                                    <Label Content="Select" HorizontalAlignment="Center"/>
+                                    <CheckBox x:Name="ItemSelected" HorizontalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                </StackPanel>
+                                                                
+
+                                <Grid x:Name="ID3TopGrid" Grid.Row="0" Grid.Column="1" >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="200" />
+                                        <ColumnDefinition Width="150" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="72" />
+                                        <ColumnDefinition Width="100" />
+                                        <ColumnDefinition Width="60" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Margin="0,0,0,5">
+                                        <TextBlock Text="Artist: "/>
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" CanContentScroll="True">
+                                            <ListView ItemsSource="{Binding ID3Artists}" MinHeight="18"/>
+                                        </ScrollViewer>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Margin="5,0,0,5">
+                                        <TextBlock Text="Title: "/>
+                                        <!--<TextBox Text="{Binding ID3Title}" MinHeight="18"/>-->
+                                        <TextBox Text="{Binding ID3Title, Delay=333, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="18"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="2" Margin="5,0,0,5">
+                                        <TextBlock Text="Album: "/>
+                                        <TextBox Text="{Bindi}" MinHeight="18"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="3" Margin="5,0,0,5">
+                                        <TextBlock Text="Genre: "/>
+                                        <TextBox Text="{Binding ID3GenresAsString, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="18"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="4" Margin="5,0,0,5">
+                                        <TextBlock Text="ReleaseYear: "/>
+                                        <TextBox Text="{Binding ID3ReleaseYear}" MinHeight="18"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="5" Margin="5,0,0,5">
+                                        <TextBlock Text="Comment: "/>
+                                        <TextBox Text="{Binding ID3Comment}" MinHeight="18"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="6" Margin="5,0,0,5">
+                                        <TextBlock Text="Bitrate: "/>
+                                        <TextBox Text="{Binding Bitrate}" MinHeight="18" IsReadOnly="True"/>
+                                    </StackPanel>
+
+                                </Grid>
+
+
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding FileName}" Margin="0,0,0,5" MinHeight="18"/>
+
+                                <Button Grid.Row="0" Grid.Column="2" x:Name="Btn_ID3ToFile" Command="{Binding Path=DataContext.FileNameFromId3Command, RelativeSource={RelativeSource AncestorType=ListView}}" CommandParameter="{Binding .}" Margin="5,16,0,5" Height="auto">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Margin="10,4,-15,0" FontSize="13">
+                                            <TextBlock.RenderTransform>
+                                                <RotateTransform Angle="90"/>
+                                            </TextBlock.RenderTransform>
+                                            <Run Text="↷"/>
+                                        </TextBlock>
+                                        <TextBlock Text="From ID3 to Filename"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Grid.Row="1" Grid.Column="2" x:Name="Btn_FileToID3" Command="{Binding Path=DataContext.Id3FromFileNameCommand, RelativeSource={RelativeSource AncestorType=ListView}}" CommandParameter="{Binding .}" Margin="5,0,0,5" Height="auto">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Margin="10,4,-15,0" FontSize="13">
+                                            <TextBlock.RenderTransform>
+                                                <RotateTransform Angle="90"/>
+                                            </TextBlock.RenderTransform>
+                                            <Run Text="↶"/>
+                                        </TextBlock>
+                                        <TextBlock Text="From Filename to ID3"/>
+                                    </StackPanel>
+                                </Button>
+                                
+                                <Button Grid.Row="2" Grid.Column="2" x:Name="Btn_Reset" Content="Reset ID3 to default" Command="{Binding Path=DataContext.ResetID3ToDefaultCommand, RelativeSource={RelativeSource AncestorType=ListView}}" CommandParameter="{Binding .}" Margin="5,0,0,5" Height="auto"/>
+
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+
+        </Grid>
+    </TabItem>
+</UserControl>

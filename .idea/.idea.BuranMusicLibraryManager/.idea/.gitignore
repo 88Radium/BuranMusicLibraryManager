@@ -1,15 +1,15 @@
 # Default ignored files
 /shelf/
 /workspace.xml
+# Editor-based HTTP Client requests
+/httpRequests/
 # Rider ignored files
-/.idea.BuranMusicLibraryManager.iml
-/contentModel.xml
 /modules.xml
+/contentModel.xml
 /projectSettingsUpdater.xml
+/.idea.BuranMusicLibraryManager.iml
 # Ignored default folder with query files
 /queries/
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
-# Editor-based HTTP Client requests
-/httpRequests/
