@@ -1,3 +1,7 @@
+using Buran.Types;
+using System.Text.RegularExpressions;
+using System.Diagnostics;
+
 namespace Buran.SQLite;
 
 public class FileNameParser {
@@ -164,13 +168,13 @@ public class FileNameParser {
         /// <summary>
         /// Wende geparste Metadaten auf ein MP3FileObject an
         /// </summary>
-        public void ApplyToMP3FileObject(MP3FileObject mp3File, ParsedMetadata metadata) {
+        public void ApplyToMP3FileObject(Mp3FileObject mp3File, ParsedMetadata metadata) {
             if(mp3File == null || metadata == null)
                 return;
 
             // Titel setzen
             if(!string.IsNullOrEmpty(metadata.Title))
-                mp3File.ID3Title = metadata.Title;
+                mp3File.Id3Title = metadata.Title;
 
             // Künstler setzen (als Liste!)
             if(metadata.Artists != null && metadata.Artists.Any()) {
@@ -182,19 +186,19 @@ public class FileNameParser {
                     dbArtistNames.Add(artistEvent.PreferredArtistName);
 
                     // Neuen Künstler in DB eintragen, falls unbekannt
-                    if(artistEvent.ArtistNameStatus == ArtistNameStatus.IsNonExistant) {
+                    if(artistEvent.ArtistNameStatus == ArtistNameStatus.IsNonExistent) {
                         DBConnector.InsertInto_ArtistNames(artistEvent.PreferredArtistName, "");
                     }
                 }
 
                 // MP3FileObject aktualisieren
                 //mp3File.Artists = dbArtistNames;
-                mp3File.ID3Artists = dbArtistNames.ToArray();
+                mp3File.Id3Artists = dbArtistNames.ToArray();
             }
 
             // Album setzen
             if(!string.IsNullOrEmpty(metadata.Album))
-                mp3File.ID3Title = metadata.Album;
+                mp3File.Id3Title = metadata.Album;
 
             // Tracknummer setzen
             if(!string.IsNullOrEmpty(metadata.TrackNumber) &&
@@ -206,7 +210,7 @@ public class FileNameParser {
             // Jahr setzen
             if(!string.IsNullOrEmpty(metadata.Year) &&
                 uint.TryParse(metadata.Year, out uint year)) {
-                mp3File.ID3ReleaseYear = year;
+                mp3File.Id3ReleaseYear = (int?)year;
             }
         }
 

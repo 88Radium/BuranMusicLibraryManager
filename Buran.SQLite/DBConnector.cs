@@ -1,3 +1,9 @@
+using System.Collections.ObjectModel;
+using System.Data;
+using System.Runtime.CompilerServices;
+using Buran.Types;
+using Microsoft.Data.Sqlite;
+
 namespace Buran.SQLite;
 
 public class DBConnector {
@@ -103,7 +109,7 @@ public class DBConnector {
             //TODO: Hier aufgehört zu gucken, ob der neue Typ denn überhaupt den Anforderungen entspricht. Zu besoffen hierfür. Mache morgen weiter!
             NewArtistEvent incommingName = CheckForPreferredName(pArtistName);
 
-            if(incommingName.ArtistNameStatus.Equals(ArtistNameStatus.IsNonExistant)) {
+            if(incommingName.ArtistNameStatus.Equals(ArtistNameStatus.IsNonExistent)) {
                 string ArtistNameString = "'" + incommingName.PreferredArtistName + "'";
                 string realNameString = "'" + pRealName + "'";
                 queryExecutor($"INSERT INTO ArtistNames (PreferredArtistName, RealName) VALUES ({ArtistNameString}, {realNameString})");
@@ -142,7 +148,7 @@ public class DBConnector {
                 }
                 return new NewArtistEvent(isAlreadyExisting.PreferredArtistName, "", ArtistNameStatus.IsAlternativeName);
             } else {
-                return new NewArtistEvent(pArtistName, "", ArtistNameStatus.IsNonExistant);
+                return new NewArtistEvent(pArtistName, "", ArtistNameStatus.IsNonExistent);
             }
 
 
@@ -196,12 +202,10 @@ public class DBConnector {
                 SqliteDataReader dataReader = command.ExecuteReader();
                 dataTable.Load(dataReader);
 
-
                 foreach(DataRow r in dataTable.Rows) {
                     var a = new DatabaseTable_AlternativeArtistNameVariants(r);
                     tableContent_AlternativeArtistNameVariants.Add(a);
-                }
-                ;
+                };
             }
             return tableContent_AlternativeArtistNameVariants;
         }
@@ -219,7 +223,7 @@ public class DBConnector {
                     cmd.ExecuteNonQuery();
                 } catch(Exception e) {
                     var a = e.Message;
-                    MessageBox.Show(a + " " + e.StackTrace);
+                    BuranMessageBox.Show(a + " " + e.StackTrace);
                 }
             }
         }

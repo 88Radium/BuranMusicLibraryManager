@@ -1,10 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <OutputType>WinExe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <OutputPath>..\BuranUI\bin\Debug\net10.0\</OutputPath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -30,6 +32,8 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Buran.Interfaces\Buran.Interfaces.csproj" />
+      <ProjectReference Include="..\Buran.SQLite\Buran.SQLite.csproj" />
       <ProjectReference Include="..\Buran.Types\Buran.Types.csproj" />
     </ItemGroup>
 </Project>

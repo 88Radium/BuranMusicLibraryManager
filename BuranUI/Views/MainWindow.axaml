@@ -18,13 +18,12 @@
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         
         <vm:MainWindowViewModel />
-        <!-- <local:MainWindowViewModel x:Uid="VM"/> -->
     </Design.DataContext>
 
 
     <Grid>
         <!-- <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/> -->
         <TabControl ItemsSource="{Binding Tabs}" />
-        <TextBlock Text="Hallo Stefan und Thomas Wunder!" FontSize="56" />
+        <!-- <TextBlock Text="Hallo Stefan und Thomas Wunder!" FontSize="56" /> -->
     </Grid>
 </Window>

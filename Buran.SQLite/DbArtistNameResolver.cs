@@ -1,3 +1,4 @@
+using Buran.Interfaces;
 namespace Buran.SQLite;
 
 public class DbArtistNameResolver : IArtistNameResolver {

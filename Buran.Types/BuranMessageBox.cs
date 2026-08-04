@@ -4,9 +4,8 @@ using System.Threading.Tasks;
 
 namespace Buran.Types {
     public static class BuranMessageBox {
-        public static async Task Show(string message) {
-            var box = MessageBoxManager
-                .GetMessageBoxStandard("Information", message, ButtonEnum.Ok);
+        public static async Task Show(string message, string? caption = null) {
+            var box = MessageBoxManager.GetMessageBoxStandard(caption?? "Informaiton", message, ButtonEnum.Ok);
 
             await box.ShowAsync();
         }

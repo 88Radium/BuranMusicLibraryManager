@@ -1,3 +1,7 @@
+using System.ComponentModel;
+using System.Data;
+using System.Runtime.CompilerServices;
+
 namespace Buran.SQLite;
 
 public class DatabaseTable_ArtistNames : INotifyPropertyChanged {
