@@ -12,6 +12,7 @@ using System.Reflection;
 using System.IO;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Buran.Types;
 using MsBox.Avalonia;
@@ -35,15 +36,15 @@ public class App : Application {
         ExtensionsDirectory = Assembly.GetExecutingAssembly().Location;
         ExtensionsDirectory = ExtensionsDirectory.Substring(0, ExtensionsDirectory.LastIndexOf(separatorChar));
 
-        if (LoadExtensions(ExtensionsDirectory)) return;
-         BuranMessageBox.Show(
-            "Es konnten keine Komponenten geladen werden. Bitte stellen Sie sicher, dass sich die Komponenten im Pfad " +
-            ExtensionsDirectory.ToString() + "befinden.", "Achtung!").Wait();
-
-        // Shutdown in Avalonia korrekt durchführen
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
-            desktop.Shutdown();
-        }
+        // if (LoadExtensions(ExtensionsDirectory)) return;
+        //  BuranMessageBox.Show(
+        //     "Es konnten keine Komponenten geladen werden. Bitte stellen Sie sicher, dass sich die Komponenten im Pfad " +
+        //     ExtensionsDirectory.ToString() + "befinden.", "Achtung!").Wait();
+        //
+        // // Shutdown in Avalonia korrekt durchführen
+        // if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
+        //     desktop.Shutdown();
+        // }
     }
 
     /// <summary>
@@ -63,7 +64,7 @@ public class App : Application {
 
             // 3. Alle DLLs aus dem Extensions-Verzeichnis laden (ersetzt DirectoryCatalog)
             if (Directory.Exists(pExtensionsDir)) {
-                foreach (var dllPath in Directory.GetFiles(pExtensionsDir, "*.dll")) {
+                foreach (var dllPath in Directory.GetFiles(pExtensionsDir + "/", "Buran.*.dll")) {
                     try {
                         // Assembly laden
                         var assembly = Assembly.LoadFrom(dllPath);
@@ -124,12 +125,35 @@ public class App : Application {
     }
 
     public override void OnFrameworkInitializationCompleted() {
+        
+        // 1. Extensions laden
+        if (!LoadExtensions(ExtensionsDirectory))
+        {
+            // 2. Jetzt darf die MessageBox kommen
+            // (async machen, kein .Wait()!)
+            _ = ShowMissingExtensionsAndShutdown();
+            return;
+        }
+
+        // 3. Erst danach MainWindow erstellen
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
             desktop.MainWindow = new MainWindow {
                 DataContext = new MainWindowViewModel(),
             };
         }
-
+        
         base.OnFrameworkInitializationCompleted();
     }
+    
+    private async Task ShowMissingExtensionsAndShutdown()
+    {
+        await BuranMessageBox.Show(
+            "Es konnten keine Komponenten geladen werden. Bitte stellen Sie sicher, dass sich die Komponenten im Pfad " +
+            ExtensionsDirectory + " befinden.",
+            "Achtung!");
+
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            desktop.Shutdown();
+    }
+    
 }

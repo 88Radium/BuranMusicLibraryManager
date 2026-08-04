@@ -6,7 +6,10 @@
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-      <OutputPath>..\BuranUI\bin\Debug\net10.0\</OutputPath>
+      <OutputPath>../BuranUI/bin/Debug/</OutputPath>
+    </PropertyGroup>
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <OutputPath>../BuranUI/bin/Release/</OutputPath>
     </PropertyGroup>
 
     <ItemGroup>

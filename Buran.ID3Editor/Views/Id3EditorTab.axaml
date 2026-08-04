@@ -5,11 +5,12 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Buran.ID3Editor.Views.Id3EditorTab"
              xmlns:vm="using:Buran.ID3Editor.ViewModels"
-             x:DataType="vm:Id3EditorTabViewModel">
+             x:DataType="vm:Id3EditorTabViewModel"
+             x:CompileBindings="True">
 
-    <UserControl.DataContext>
-        <vm:Id3EditorTabViewModel />
-    </UserControl.DataContext>
+    <!-- <UserControl.DataContext> -->
+    <!--     <vm:Id3EditorTabViewModel /> -->
+    <!-- </UserControl.DataContext> -->
 
     <UserControl.Resources>
         <!-- <BooleanToVisibilityConverter x:Key="BooleanVisConverter"/> -->
@@ -19,28 +20,23 @@
 
         <Grid x:Name="ID3EditorGrid">
             <Grid.RowDefinitions>
-                <RowDefinition x:Name="HeadRow" Height="Auto" />
-                <RowDefinition x:Name="FunctionRow" Height="Auto" />
-                <RowDefinition x:Name="ContentRow" Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
 
             <StackPanel x:Name="OutsideStackPanel" Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
                 <StackPanel x:Name="InsideStackPanel" Orientation="Vertical">
                     <TextBlock VerticalAlignment="Bottom" Text="Pfad der umzubenennenden Musikdateien:" />
-                    <TextBox Text="{Binding SelectedPath}" />
-                    <TextBox VerticalAlignment="Center" x:Name="DirPath" Width="350"
-                             Text="{Binding SelectedPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                             TextChanged="DirPath_TextChanged" Height="20" />
+                    <TextBox VerticalAlignment="Center" x:Name="DirPath" VerticalContentAlignment="Center" Text="{Binding SelectedPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" TextChanged="DirPath_TextChanged" Height="20" />
                 </StackPanel>
-                <Button x:Name="BtnOfd" Content="Open directory" Command="{Binding OfdCommand}"
-                        VerticalAlignment="Bottom" Height="20" Margin="5,0,0,0" />
+                <Button x:Name="BtnOfd" Content="Open directory" Command="{Binding OfdCommand}" VerticalAlignment="Bottom" Margin="5,0,0,0" />
             </StackPanel>
 
             <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" IsVisible="{Binding HasMusicFiles}"> <!-- Visibility="{Binding HasMusicFiles, Converter={StaticResource BooleanVisConverter}, Mode=OneWay}" -->
                 <TextBlock Text="{Binding SelectedFilesCount, StringFormat='{}Ausgewählt: {0}'}" />
-                <Button Content="Künstler zu ID3-Tag hinzufügen" Height="20" Margin="8,0,0,0"
-                        IsEnabled="{Binding HasSelectedFiles}" Command="{Binding OpenAddArtistDialogCommand}" />
+                <Button Content="Künstler zu ID3-Tag hinzufügen" Margin="8,0,0,0" IsEnabled="{Binding HasSelectedFiles}" Command="{Binding OpenAddArtistDialogCommand}" />
             </StackPanel>
 
             <ListBox x:Name="ItemsListView" Grid.Row="2"
@@ -133,9 +129,10 @@
                                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding FileName}" Margin="0,0,0,5"
                                          MinHeight="18" />
 
-                                <Button Grid.Row="0" Grid.Column="2" x:Name="Btn_ID3ToFile"
-                                        Command="{Binding Path=DataContext.FileNameFromId3Command, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                        CommandParameter="{Binding .}" Margin="5,16,0,5" Height="Auto">
+                                <Button Grid.Row="0" Grid.Column="2" x:Name="Btn_ID3ToFile" Margin="5,16,0,5"
+                                        Command="{ReflectionBinding DataContext.FileNameFromId3Command,
+                                        RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        CommandParameter="{Binding}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Margin="10,4,-15,0" FontSize="13">
                                             <TextBlock.RenderTransform>
@@ -147,9 +144,10 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button Grid.Row="1" Grid.Column="2" x:Name="Btn_FileToID3"
-                                        Command="{Binding Path=DataContext.Id3FromFileNameCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                        CommandParameter="{Binding .}" Margin="5,0,0,5" Height="Auto">
+                                <Button Grid.Row="1" Grid.Column="2" x:Name="Btn_FileToID3" Margin="5,0,0,5"
+                                        Command="{ReflectionBinding DataContext.Id3FromFileNameCommand, 
+                                        RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        CommandParameter="{Binding}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Margin="10,4,-15,0" FontSize="13">
                                             <TextBlock.RenderTransform>
@@ -162,8 +160,10 @@
                                 </Button>
 
                                 <Button Grid.Row="2" Grid.Column="2" x:Name="Btn_Reset" Content="Reset ID3 to default"
-                                        Command="{Binding Path=DataContext.ResetId3ToDefaultCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                        CommandParameter="{Binding .}" Margin="5,0,0,5" Height="Auto" />
+                                        Margin="5,0,0,5"
+                                        Command="{ReflectionBinding DataContext.ResetId3ToDefaultCommand, 
+                                        RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                        CommandParameter="{Binding }" />
 
                             </Grid>
                         </Border>

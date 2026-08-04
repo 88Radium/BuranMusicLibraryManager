@@ -115,32 +115,6 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         }
     }
 
-
-    /* Nachträglich rein kopiert nachdem ich wieder nach DE zurück bin. Mehrere Monate nicht mehr damit beschäftigt... Jetzt weiß ich schon gar nicht mehr, was ich mit diesem Programm ursprünglich bezwecken wollte, so lange ist es her, dass ich hieran gearbeitet habe.
-
-     var dlg1 = new Ionic.Utils.FolderBrowserDialogEx();
-       dlg1.Description = "Select a file or folder";
-       dlg1.ShowNewFolderButton = true;
-       dlg1.ShowEditBox = true;
-       dlg1.ShowBothFilesAndFolders = true;
-       dlg1.ShowFullPathInEditBox = true;
-       dlg1.RootFolder = System.Environment.SpecialFolder.MyComputer;
-
-       // Show the FolderBrowserDialog.
-       DialogResult result = dlg1.ShowDialog();
-       if (result == DialogResult.OK)
-       {
-           var path = dlg1.SelectedPath;
-           if(Directory.Exists(dlg1.SelectedPath))
-           {
-               MessageBox.Show("Directory selected: " + dlg1.SelectedPath);
-           }
-           else{
-               MessageBox.Show("File selected: " + dlg1.SelectedPath);
-           }
-       }
-     */
-
     #endregion
 
 
@@ -356,10 +330,9 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     #region Bulk_AddArtist
 
-    private ICommand? _openAddArtistDialogCommand;
+    private ICommand _openAddArtistDialogCommand;
 
-    public ICommand OpenAddArtistDialogCommand => _openAddArtistDialogCommand ??
-                                                  (_openAddArtistDialogCommand = new RelayCommand(OpenAddArtistDialog));
+    public ICommand OpenAddArtistDialogCommand => _openAddArtistDialogCommand ??= new RelayCommand(OpenAddArtistDialog);
 
     public bool HasSelectedFiles   => MusicFiles?.Any(f => f.IsSelected    == true) ?? false;
     public int  SelectedFilesCount => MusicFiles?.Count(f => f?.IsSelected == true) ?? 0;
