@@ -1,30 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
 using ATL;
 using ATL.Logging;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Buran.Types;
 
-public class Mp3FileObject : INotifyPropertyChanged {
-    #region PropertyChanged
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void NotifyPropertyChanged([CallerMemberName] string propertyName = "") {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    }
-
-    #endregion
-
+public class Mp3FileObject : ObservableObject {
     #region The TagLib#-Music file(s)
 
-    public Track? TagLibFile { get; set; }
-    public Track? FileInInitialState { get; set; }
+    public Track  Mp3File               { get; set; }
+    public Track Mp3FileInInitialState { get; set; }
 
     #endregion
 
@@ -36,7 +21,7 @@ public class Mp3FileObject : INotifyPropertyChanged {
         get => _wasManipulated;
         set {
             _wasManipulated = value;
-            NotifyPropertyChanged();
+            OnPropertyChanged();
         }
     }
 
@@ -46,7 +31,7 @@ public class Mp3FileObject : INotifyPropertyChanged {
         get => _fileName;
         set {
             _fileName = value;
-            NotifyPropertyChanged();
+            OnPropertyChanged();
         }
     }
 
@@ -56,7 +41,7 @@ public class Mp3FileObject : INotifyPropertyChanged {
         get => _containingDirectoryName;
         set {
             _containingDirectoryName = value;
-            NotifyPropertyChanged();
+            OnPropertyChanged();
         }
     }
 
@@ -68,7 +53,7 @@ public class Mp3FileObject : INotifyPropertyChanged {
         get => _fileType;
         set {
             _fileType = value;
-            NotifyPropertyChanged();
+            OnPropertyChanged();
         }
     }
 
@@ -79,7 +64,7 @@ public class Mp3FileObject : INotifyPropertyChanged {
         get => _artists;
         set {
             _artists = value;
-            NotifyPropertyChanged();
+            OnPropertyChanged();
         }
     }
 
@@ -89,7 +74,7 @@ public class Mp3FileObject : INotifyPropertyChanged {
         get => _songTitle;
         set {
             _songTitle = value;
-            NotifyPropertyChanged();
+            OnPropertyChanged();
         }
     }
 
@@ -99,7 +84,7 @@ public class Mp3FileObject : INotifyPropertyChanged {
         get => _albumTitle;
         set {
             _albumTitle = value;
-            NotifyPropertyChanged();
+            OnPropertyChanged();
         }
     }
 
@@ -109,10 +94,10 @@ public class Mp3FileObject : INotifyPropertyChanged {
     public string Id3Title {
         get => _id3Title;
         set {
-            _id3Title = value;
+            _id3Title     = value;
             // if (File?.Tag != null) 
-            TagLibFile.Title = value;
-            NotifyPropertyChanged();
+            Mp3File.Title = value;
+            OnPropertyChanged();
         }
     }
 
@@ -121,9 +106,9 @@ public class Mp3FileObject : INotifyPropertyChanged {
     public string[] Id3Artists {
         get => _id3Artists;
         set {
-            _id3Artists               = value;
-            TagLibFile.InvolvedPeople = string.Join(";", value);
-            NotifyPropertyChanged();
+            _id3Artists            = value;
+            Mp3File.InvolvedPeople = string.Join(";", value);
+            OnPropertyChanged();
         }
     }
 
@@ -132,10 +117,10 @@ public class Mp3FileObject : INotifyPropertyChanged {
     public string Id3Album {
         get => _id3Album;
         set {
-            _id3Album = value;
+            _id3Album     = value;
             // if (File?.Tag != null) 
-            TagLibFile.Album = value;
-            NotifyPropertyChanged();
+            Mp3File.Album = value;
+            OnPropertyChanged();
         }
     }
 
@@ -146,8 +131,8 @@ public class Mp3FileObject : INotifyPropertyChanged {
         set {
             _id3ReleaseYear = value;
             // if (File != null) 
-            TagLibFile.Year = value;
-            NotifyPropertyChanged();
+            Mp3File.Year    = value;
+            OnPropertyChanged();
         }
     }
 
@@ -156,10 +141,10 @@ public class Mp3FileObject : INotifyPropertyChanged {
     public string Id3Comment {
         get => _id3Comment;
         set {
-            _id3Comment = value;
+            _id3Comment     = value;
             // if (File.Comment != null) 
-            TagLibFile.Comment = value;
-            NotifyPropertyChanged();
+            Mp3File.Comment = value;
+            OnPropertyChanged();
         }
     }
 
@@ -169,7 +154,7 @@ public class Mp3FileObject : INotifyPropertyChanged {
         get => _isSelected;
         set {
             _isSelected = value;
-            NotifyPropertyChanged();
+            OnPropertyChanged();
         }
     }
 
@@ -179,13 +164,13 @@ public class Mp3FileObject : INotifyPropertyChanged {
         get => _id3Genre;
         set {
             _id3Genre = value;
-            NotifyPropertyChanged();
+            OnPropertyChanged();
         }
     }
 
     public string[] Id3GenresAsArray {
         get {
-            string[] tmp = _id3Genre.Split(';');
+            string[] tmp    = _id3Genre.Split(';');
             string[] result = new string[tmp.Length];
             for (int i = 0; i < tmp.Length; i++) {
                 var trim = tmp[i].Trim();
@@ -203,8 +188,8 @@ public class Mp3FileObject : INotifyPropertyChanged {
             // }
 
             // if (File?.Tag != null) 
-            TagLibFile.Genre = _id3Genre;
-            NotifyPropertyChanged();
+            Mp3File.Genre = _id3Genre;
+            OnPropertyChanged();
         }
     }
 
@@ -213,10 +198,13 @@ public class Mp3FileObject : INotifyPropertyChanged {
         set {
             if (string.IsNullOrEmpty(value)) {
                 Id3GenresAsArray = [];
-            } else {
-                Id3GenresAsArray = value.Split(';').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToArray();
             }
-            NotifyPropertyChanged();
+            else {
+                Id3GenresAsArray = value.Split(';').Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s))
+                    .ToArray();
+            }
+
+            OnPropertyChanged();
         }
     }
 
@@ -231,26 +219,27 @@ public class Mp3FileObject : INotifyPropertyChanged {
         _artists = [];
 
         try {
-            TagLibFile = new Track(path);
-        } catch (Exception ex) {
-            TagLibFile = null;
+            Mp3File = new Track(path);
+        }
+        catch (Exception ex) {
+            Mp3File = null;
             Debug.WriteLine($"Fehler beim Laden der Datei {path}: {ex.Message}");
             return;
         }
 
-        if (TagLibFile != null) {
-            int startIndex = path.LastIndexOf('\\');
+        if (Mp3File != null) {
+            int startIndex = path.LastIndexOf(Path.DirectorySeparatorChar);
             FileName                = path[(startIndex + 1)..];
             ContainingDirectoryName = path[..startIndex];
-            FileType                = TagLibFile.AudioFormat;
-            Bitrate                 = TagLibFile.Bitrate;
+            FileType                = Mp3File.AudioFormat;
+            Bitrate                 = Mp3File.Bitrate;
 
             // ID3-Tags direkt laden
             LoadID3TagsFromFile();
         }
 
-        WasManipulated     = false;
-        FileInInitialState = TagLibFile;
+        WasManipulated        = false;
+        Mp3FileInInitialState = Mp3File;
     }
 
     #endregion
@@ -258,43 +247,44 @@ public class Mp3FileObject : INotifyPropertyChanged {
     #region Private Methods
 
     private void LoadID3TagsFromFile() {
-        if (TagLibFile == null) return;
+        if (Mp3File == null) return;
 
         // Direkte Zuweisung ohne rekursive Setter
-        _id3Title       = TagLibFile.Title;
-        _id3Album       = TagLibFile.Album;
-        _id3ReleaseYear = TagLibFile.OriginalReleaseYear;
-        _id3Comment     = TagLibFile.Comment;
+        _id3Title       = Mp3File.Title;
+        _id3Album       = Mp3File.Album;
+        _id3ReleaseYear = Mp3File.OriginalReleaseYear;
+        _id3Comment     = Mp3File.Comment;
 
         // Genres
-        _id3Genre = TagLibFile.Genre;
+        _id3Genre = Mp3File.Genre;
 
 
         // Künstler: Direkt parsen ohne rekursive Setter
         ParseAndSetArtistsFromTag();
 
         // PropertyChanged events manuell auslösen
-        NotifyPropertyChanged(nameof(Id3Title));
-        NotifyPropertyChanged(nameof(Id3Album));
-        NotifyPropertyChanged(nameof(Id3ReleaseYear));
-        NotifyPropertyChanged(nameof(Id3Comment));
-        NotifyPropertyChanged(nameof(Id3Genre));
-        NotifyPropertyChanged(nameof(Id3GenresAsArray));
-        NotifyPropertyChanged(nameof(Id3GenresAsString));
+        OnPropertyChanged(nameof(Id3Title));
+        OnPropertyChanged(nameof(Id3Album));
+        OnPropertyChanged(nameof(Id3ReleaseYear));
+        OnPropertyChanged(nameof(Id3Comment));
+        OnPropertyChanged(nameof(Id3Genre));
+        OnPropertyChanged(nameof(Id3GenresAsArray));
+        OnPropertyChanged(nameof(Id3GenresAsString));
     }
 
     private void ParseAndSetArtistsFromTag() {
-        if (TagLibFile?.InvolvedPeople == null || TagLibFile.InvolvedPeople.Split(';').Length == 0) {
+        if (Mp3File?.InvolvedPeople == null || Mp3File.InvolvedPeople.Split(';').Length == 0) {
             _id3Artists = [];
-            _artists = [];
-            NotifyPropertyChanged(nameof(Id3Artists));
-            NotifyPropertyChanged(nameof(Artists));
+            _artists    = [];
+            OnPropertyChanged(nameof(Id3Artists));
+            OnPropertyChanged(nameof(Artists));
             return;
         }
 
         var allArtists = new List<string>();
 
-        foreach (var performer in TagLibFile.InvolvedPeople.Split(';')) {
+        foreach (var performer in Mp3File.InvolvedPeople.Split(';')) {
+            // Track.Artist vs Track.InvolvedPeople? - Welche Properties sollte man nutzen?
             if (string.IsNullOrWhiteSpace(performer))
                 continue;
 
@@ -320,11 +310,11 @@ public class Mp3FileObject : INotifyPropertyChanged {
 
         // Direkt zuweisen
         _id3Artists = allArtists.ToArray();
-        _artists = allArtists;
+        _artists    = allArtists;
 
         // Events auslösen
-        NotifyPropertyChanged(nameof(Id3Artists));
-        NotifyPropertyChanged(nameof(Artists));
+        OnPropertyChanged(nameof(Id3Artists));
+        OnPropertyChanged(nameof(Artists));
 
         Debug.WriteLine($"Geparste Künstler für {FileName}: {string.Join(", ", allArtists)}");
     }
@@ -335,23 +325,24 @@ public class Mp3FileObject : INotifyPropertyChanged {
 
     public void SaveTags() {
         try {
-            if (TagLibFile != null) {
+            if (Mp3File != null) {
                 // Sicherstellen, dass alle ID3-Properties im Tag sind
                 // if (File.Tag != null) {
-                TagLibFile.Title          = _id3Title;
-                TagLibFile.Artist         = _id3Artists[0];
-                TagLibFile.InvolvedPeople = string.Join(';', _id3Artists);
-                TagLibFile.Album          = _id3Album;
-                TagLibFile.Year           = _id3ReleaseYear;
-                TagLibFile.Comment        = _id3Comment;
-                TagLibFile.Genre          = _id3Genre;
+                Mp3File.Title          = _id3Title;
+                Mp3File.Artist         = _id3Artists[0];
+                Mp3File.InvolvedPeople = string.Join(';', _id3Artists);
+                Mp3File.Album          = _id3Album;
+                Mp3File.Year           = _id3ReleaseYear;
+                Mp3File.Comment        = _id3Comment;
+                Mp3File.Genre          = _id3Genre;
                 // }
 
-                TagLibFile.Save();
+                Mp3File.Save();
                 WasManipulated = false;
                 Debug.WriteLine($"Tags gespeichert: {FileName}");
             }
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             Debug.WriteLine($"Fehler beim Speichern von {FileName}: {ex.Message}");
             throw;
         }
@@ -364,48 +355,17 @@ public class Mp3FileObject : INotifyPropertyChanged {
     public string[] GetMoods(Track file) {
         // .mp3
         var fileType = file.GetType();
-        var moodVal = string.Empty;
+        var moodVal  = string.Empty;
 
         moodVal = file.AdditionalFields["TMOO"];
         moodVal = file.AdditionalFields["mood"];
 
 
-        try { } catch (Exception ex) {
+        try { }
+        catch (Exception ex) {
             ATL.Logging.Log Logger = new Log();
             Logger.Error($"Fehler beim Lesen der Moods: {ex.Message}");
         }
-
-        // TagLib.Id3v2.Tag id3 = (TagLib.Id3v2.Tag)file.GetTag(TagLib.TagTypes.Id3v2);
-        // if (id3 != null) {
-        //     ByteVector moodFrameId = TagLib.ByteVector.FromString("TMOO", TagLib.StringType.UTF8);
-        //     TextInformationFrame TIF = TextInformationFrame.Get(id3, moodFrameId, true);
-        //     if (TIF.Text.Count() > 0) {
-        //         return TIF.Text;
-        //     }
-        // }
-        //
-        // // .wma / .wmv
-        // TagLib.Asf.Tag asf = (TagLib.Asf.Tag)file.GetTag(TagLib.TagTypes.Asf);
-        // if (asf != null) {
-        //     string[] value = asf.GetDescriptorStrings("WM/Mood", "Mood");
-        //     if (value.Length > 0) {
-        //         return value;
-        //     }
-        // }
-        //
-        // // .flac / .aiff / .wav
-        // var Xiph = file.GetTag(TagLib.TagTypes.Xiph);
-        // if (Xiph != null) {
-        //     // Xiph Comment parsing hier implementieren
-        // }
-        //
-        // // .mpc / .ape / .wv / .mp3
-        // TagLib.Ape.Tag ape = (TagLib.Ape.Tag)file.GetTag(TagLib.TagTypes.Ape);
-        // if (ape != null) {
-        //     Item item = ape.GetItem("MOOD");
-        //     if (item != null)
-        //         return item.ToStringArray();
-        // }
 
         return Array.Empty<string>();
     }

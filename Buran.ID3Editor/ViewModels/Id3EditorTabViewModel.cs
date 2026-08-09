@@ -3,9 +3,11 @@ using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -24,17 +26,16 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace Buran.ID3Editor.ViewModels;
 
 public partial class Id3EditorTabViewModel : ViewModelBase {
-    private readonly IStorageProvider? _storageProvider;
-
     /// <summary>
     /// Constructor: Sets up Commands and NotifyPropertyChanged
     /// </summary>
-    public Id3EditorTabViewModel(IStorageProvider? storageProvider = null) {
-        _storageProvider            = storageProvider;
+    public Id3EditorTabViewModel() {
         _selectedPath               = string.Empty;
         _musicFiles                 = null;
         _openAddArtistDialogCommand = null;
-        OfdCommand                  = new RelayCommand(OpenMusicFolderDialog);
+        
+        // ✅ Wrap den async-Call in einen RelayCommand
+        OfdCommand = new RelayCommand(async () => await OpenMusicFolderDialog(), () => true);
 
         // FileNameFromId3 uses async/await for the BuranMessageBox. Dafuq AI suggested to make it async. Who knows how to fix that. Too many construction sites at once.
         FileNameFromId3Command       =  new RelayCommand<object>(FileNameFromId3);
@@ -77,7 +78,8 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     #region OpenFolderDialog
 
-    public ICommand OfdCommand { get; set; }
+    public ICommand             OfdCommand      { get; set; }
+    public Func<Task<string?>>? PickFolderAsync { get; set; }
 
     [ObservableProperty] private string _selectedPath;
 
@@ -94,25 +96,124 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     public bool HasMusicFiles => MusicFiles?.Count > 0;
 
+    // ✅ Robust Cross-Platform Folder Browser Dialog with StorageProvider + OpenFolderDialog fallback
+    public async Task<string?> BrowseFolder() {
+        try {
+            // Try to obtain a TopLevel from the Avalonia Application lifetime (classic desktop)
+            var lifetime = Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
+            TopLevel? tl = lifetime?.MainWindow;
 
-    public async void OpenMusicFolderDialog() {
-        if (_storageProvider is null) {
-            await BuranMessageBox.Show("StorageProvider ist nicht verfügbar.");
+            if (tl is null) {
+                // As an extra fallback, try first window in lifetime
+                tl = lifetime?.Windows?.FirstOrDefault();
+            }
+
+            if (tl is null) {
+                Debug.WriteLine("❌ No TopLevel/MainWindow available to show dialogs");
+            } else {
+                // First attempt: StorageProvider (recommended on Linux/Wayland/Flatpak etc.)
+                try {
+                    var provider = tl.StorageProvider;
+                    if (provider != null) {
+                        Debug.WriteLine("🔎 Trying StorageProvider.OpenFolderPickerAsync");
+                        var folders = await provider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Musikordner auswählen", AllowMultiple = false });
+                        if (folders?.Count > 0) {
+                            var p = folders[0].Path.AbsolutePath;
+                            Debug.WriteLine($"✅ StorageProvider result: {p}");
+                            return p;
+                        }
+                        Debug.WriteLine("ℹ️ StorageProvider returned nothing or was cancelled");
+                    } else {
+                        Debug.WriteLine("⚠️ No StorageProvider on TopLevel");
+                    }
+                } catch (Exception ex) {
+                    Debug.WriteLine($"⚠️ StorageProvider failed: {ex.Message}");
+                }
+
+                // Second attempt: platform-specific external pickers (Linux: zenity/kdialog)
+                try {
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                        Debug.WriteLine("🔁 Trying zenity/kdialog fallback (Linux)");
+
+                        // Try zenity
+                        try {
+                            var zenity = "/usr/bin/zenity";
+                            if (File.Exists(zenity)) {
+                                var psi = new ProcessStartInfo(zenity, "--file-selection --directory") {
+                                    RedirectStandardOutput = true,
+                                    UseShellExecute = false
+                                };
+                                using var p = Process.Start(psi);
+                                var outp = await p.StandardOutput.ReadToEndAsync();
+                                p.WaitForExit();
+                                outp = outp?.Trim();
+                                if (!string.IsNullOrEmpty(outp)) {
+                                    Debug.WriteLine($"✅ zenity result: {outp}");
+                                    return outp;
+                                }
+                            }
+                        } catch (Exception ex) {
+                            Debug.WriteLine($"⚠️ zenity failed: {ex.Message}");
+                        }
+
+                        // Try kdialog
+                        try {
+                            var kdialog = "/usr/bin/kdialog";
+                            if (File.Exists(kdialog)) {
+                                var psi = new ProcessStartInfo(kdialog, "--getexistingdirectory") {
+                                    RedirectStandardOutput = true,
+                                    UseShellExecute = false
+                                };
+                                using var p = Process.Start(psi);
+                                var outp = await p.StandardOutput.ReadToEndAsync();
+                                p.WaitForExit();
+                                outp = outp?.Trim();
+                                if (!string.IsNullOrEmpty(outp)) {
+                                    Debug.WriteLine($"✅ kdialog result: {outp}");
+                                    return outp;
+                                }
+                            }
+                        } catch (Exception ex) {
+                            Debug.WriteLine($"⚠️ kdialog failed: {ex.Message}");
+                        }
+
+                        Debug.WriteLine("ℹ️ No zenity/kdialog result or not installed");
+                    } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                        Debug.WriteLine("🔁 macOS fallback not implemented");
+                    } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                        Debug.WriteLine("🔁 Windows fallback not implemented");
+                    }
+                } catch (Exception ex) {
+                    Debug.WriteLine($"❌ Fallback pickers failed: {ex.Message}");
+                }
+            }
+
+            return null;
+        } catch (Exception ex) {
+            Debug.WriteLine($"❌ BrowseFolder error: {ex}");
+            return null;
+        }
+    }
+
+
+    public async Task OpenMusicFolderDialog() {
+        // Use PickFolderAsync if provided by View code-behind, otherwise fallback to BrowseFolder()
+        var picker = PickFolderAsync ?? BrowseFolder;
+
+        Debug.WriteLine($"🔎 OpenMusicFolderDialog using picker: {(PickFolderAsync != null ? "PickFolderAsync (code-behind)" : "BrowseFolder (vm)")}");
+
+        if (picker is null) {
+            Debug.WriteLine("❌ Kein Folder-Picker verfügbar");
             return;
         }
 
-        var options = new FolderPickerOpenOptions {
-            Title         = "Bitte wähle einen Ordner aus",
-            AllowMultiple = false // true für Mehrfachauswahl
-        };
+        var path = await picker();
+        Debug.WriteLine($"🔍 Picker returned path: {(path == null ? "<null>" : path)}");
 
-        var folders = await _storageProvider.OpenFolderPickerAsync(options);
+        if (string.IsNullOrEmpty(path)) return;
 
-        if (folders.Count > 0) {
-            var selectedFolder = folders[0];
-            var path           = selectedFolder.Path.AbsolutePath;
-            // Verwende den Pfad
-        }
+        SelectedPath = path;
+        LoadMusicFiles();
     }
 
     #endregion
@@ -165,7 +266,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     /// Checks like for preferred names and similar stuff is not part of this method.
     /// </summary>
     /// <param name="sender"></param>
-    public void FileNameFromId3(object sender) {
+    public async void FileNameFromId3(object sender) {
         Mp3FileObject sndr            = (Mp3FileObject)sender;
         string        artistString    = GetArtistNamesFromId3AsFormattedString(sndr);
         string        SongTitleString = GetSongTitleFromId3(sndr);
@@ -181,7 +282,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         sndr.FileName = artistString + " - " + SongTitleString + "." + sndr.FileType;
         try {
             // Saves Any Changes To The MetaData
-            sndr.TagLibFile.Save();
+            sndr.Mp3File.Save();
 
             // Saves The File Under The New Filename
             try {
@@ -190,7 +291,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             }
             catch (IOException IOex) {
                 //TODO: Datei-Ersetzen-Dialog - Option zum Überschreiben/Überspringen hinzufügen.
-                BuranMessageBox.Show($"Es existiert bereits eine Datei mit demselben Namen:\n{IOex.Message}").Wait();
+                await BuranMessageBox.Show($"Es existiert bereits eine Datei mit demselben Namen:\n{IOex.Message}");
             }
 
 
@@ -201,14 +302,14 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
                 new Mp3FileObject(Path.Combine(sndr.ContainingDirectoryName, sndr.FileName));
         }
         catch (IndexOutOfRangeException) {
-            BuranMessageBox.Show(
-                "The existing Filename could not be found in the List of music files to display.").Wait();
+            await BuranMessageBox.Show(
+                "The existing Filename could not be found in the List of music files to display.");
         }
         catch (NullReferenceException) {
-            BuranMessageBox.Show(
+            await BuranMessageBox.Show(
                 "The displayed object could not be saved, because the internal path to the file on the file system was not found." +
                 "This can be casued by an unsuccessful saving-attempt or may be unvalid characters in the file name."
-            ).Wait();
+            );
         }
     }
 
@@ -322,7 +423,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     public void ResetID3ToDefault(object sender) {
         ArgumentNullException.ThrowIfNull(sender);
         Mp3FileObject sndr = (Mp3FileObject)sender;
-        sndr.TagLibFile = sndr.FileInInitialState;
+        sndr.Mp3File = sndr.Mp3FileInInitialState;
     }
 
     #endregion

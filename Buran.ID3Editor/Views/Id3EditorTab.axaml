@@ -8,17 +8,19 @@
              x:DataType="vm:Id3EditorTabViewModel"
              x:CompileBindings="True">
 
-    <!-- <UserControl.DataContext> -->
-    <!--     <vm:Id3EditorTabViewModel /> -->
-    <!-- </UserControl.DataContext> -->
+    <!-- ✅ WICHTIG: DataContext wird hier definiert, nicht im Code-Behind! -->
+    <UserControl.DataContext>
+        <vm:Id3EditorTabViewModel />
+    </UserControl.DataContext>
 
-    <UserControl.Resources>
-        <!-- <BooleanToVisibilityConverter x:Key="BooleanVisConverter"/> -->
-    </UserControl.Resources>
+    <Design.DataContext>
+        <!-- Für Design-Time in der IDE -->
+        <vm:Id3EditorTabViewModel />
+    </Design.DataContext>
 
-    <TabItem x:Name="ID3EditorTabControl" Header="ID3 Editor">
+    <TabItem x:Name="Id3EditorTabControl" Header="ID3 Editor">
 
-        <Grid x:Name="ID3EditorGrid">
+        <Grid x:Name="Id3EditorGrid">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -34,9 +36,9 @@
                 <Button x:Name="BtnOfd" Content="Open directory" Command="{Binding OfdCommand}" VerticalAlignment="Bottom" Margin="5,0,0,0" />
             </StackPanel>
 
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" IsVisible="{Binding HasMusicFiles}"> <!-- Visibility="{Binding HasMusicFiles, Converter={StaticResource BooleanVisConverter}, Mode=OneWay}" -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" IsEnabled="{Binding HasMusicFiles}"> <!-- Visibility="{Binding HasMusicFiles, Converter={StaticResource BooleanVisConverter}, Mode=OneWay}" -->
                 <TextBlock Text="{Binding SelectedFilesCount, StringFormat='{}Ausgewählt: {0}'}" />
-                <Button Content="Künstler zu ID3-Tag hinzufügen" Margin="8,0,0,0" IsEnabled="{Binding HasSelectedFiles}" Command="{Binding OpenAddArtistDialogCommand}" />
+                <Button Content="Künstler zu ID3-Tag hinzufügen" Margin="8,0,0,0"  Command="{Binding OpenAddArtistDialogCommand}" />
             </StackPanel>
 
             <ListBox x:Name="ItemsListView" Grid.Row="2"
@@ -64,8 +66,7 @@
 
                                 <StackPanel Grid.RowSpan="3" Grid.Column="0" VerticalAlignment="Center">
                                     <Label Content="Select" HorizontalAlignment="Center" />
-                                    <CheckBox x:Name="ItemSelected" HorizontalAlignment="Center"
-                                              IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <CheckBox x:Name="ItemSelected" HorizontalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                 </StackPanel>
 
 
@@ -82,57 +83,50 @@
 
                                     <StackPanel Grid.Column="0" Margin="0,0,0,5">
                                         <TextBlock Text="Artist: " />
-                                        <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                                      HorizontalScrollBarVisibility="Auto"> <!-- CanContentScroll="True" -->
-                                            <ListBox ItemsSource="{Binding Id3Artists}" MinHeight="18" />
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" IsScrollInertiaEnabled="True"> <!-- CanContentScroll="True" -->
+                                            <ListBox x:Name="Listbox_Id3Artists" ItemsSource="{Binding Id3Artists}" MinHeight="18" />
                                         </ScrollViewer>
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="1" Margin="5,0,0,5">
                                         <TextBlock Text="Title: " />
                                         <!--<TextBox Text="{Binding ID3Title}" MinHeight="18"/>-->
-                                        <TextBox
-                                            Text="{Binding Id3Title, Delay=333, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                            MinHeight="18" />
+                                        <TextBox x:Name="TextBox_Id3Title" Text="{Binding Id3Title, Delay=333, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="18" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="2" Margin="5,0,0,5">
                                         <TextBlock Text="Album: " />
-                                        <TextBox Text="{Binding Id3Album}" MinHeight="18" />
+                                        <TextBox x:Name="TextBox_Id3Album" Text="{Binding Id3Album}" MinHeight="18" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="3" Margin="5,0,0,5">
                                         <TextBlock Text="Genre: " />
-                                        <TextBox
+                                        <TextBox x:Name="TextBox_Id3GenresAsString"
                                             Text="{Binding Id3GenresAsString, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                             MinHeight="18" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="4" Margin="5,0,0,5">
                                         <TextBlock Text="ReleaseYear: " />
-                                        <TextBox Text="{Binding Id3ReleaseYear}" MinHeight="18" />
+                                        <TextBox x:Name="TextBox_Id3ReleaseYear" Text="{Binding Id3ReleaseYear}" MinHeight="18" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="5" Margin="5,0,0,5">
                                         <TextBlock Text="Comment: " />
-                                        <TextBox Text="{Binding Id3Comment}" MinHeight="18" />
+                                        <TextBox x:Name="TextBox_Id3Comment" Text="{Binding Id3Comment}" MinHeight="18" />
                                     </StackPanel>
 
                                     <StackPanel Grid.Column="6" Margin="5,0,0,5">
                                         <TextBlock Text="Bitrate: " />
-                                        <TextBox Text="{Binding Bitrate}" MinHeight="18" IsReadOnly="True" />
+                                        <TextBox x:Name="TextBox_Bitrate" Text="{Binding Bitrate}" MinHeight="18" IsReadOnly="True" />
                                     </StackPanel>
 
                                 </Grid>
 
 
-                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding FileName}" Margin="0,0,0,5"
-                                         MinHeight="18" />
+                                <TextBox x:Name="TextBox_FileName" Grid.Row="1" Grid.Column="1" Text="{Binding FileName}" Margin="0,0,0,5" MinHeight="18" />
 
-                                <Button Grid.Row="0" Grid.Column="2" x:Name="Btn_ID3ToFile" Margin="5,16,0,5"
-                                        Command="{ReflectionBinding DataContext.FileNameFromId3Command,
-                                        RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                        CommandParameter="{Binding}">
+                                <Button x:Name="Btn_ID3ToFile" Grid.Row="0" Grid.Column="2" Margin="5,16,0,5" Command="{ReflectionBinding DataContext.FileNameFromId3Command, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Margin="10,4,-15,0" FontSize="13">
                                             <TextBlock.RenderTransform>
@@ -144,10 +138,7 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button Grid.Row="1" Grid.Column="2" x:Name="Btn_FileToID3" Margin="5,0,0,5"
-                                        Command="{ReflectionBinding DataContext.Id3FromFileNameCommand, 
-                                        RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                        CommandParameter="{Binding}">
+                                <Button x:Name="Btn_FileToID3" Grid.Row="1" Grid.Column="2" Margin="5,0,0,5" Command="{ReflectionBinding DataContext.Id3FromFileNameCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Margin="10,4,-15,0" FontSize="13">
                                             <TextBlock.RenderTransform>
@@ -159,11 +150,7 @@
                                     </StackPanel>
                                 </Button>
 
-                                <Button Grid.Row="2" Grid.Column="2" x:Name="Btn_Reset" Content="Reset ID3 to default"
-                                        Margin="5,0,0,5"
-                                        Command="{ReflectionBinding DataContext.ResetId3ToDefaultCommand, 
-                                        RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                        CommandParameter="{Binding }" />
+                                <Button x:Name="Btn_Reset" Grid.Row="2" Grid.Column="2" Content="Reset ID3 to default" Margin="5,0,0,5" Command="{ReflectionBinding DataContext.ResetId3ToDefaultCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding }" />
 
                             </Grid>
                         </Border>

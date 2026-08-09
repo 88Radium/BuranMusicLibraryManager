@@ -30,5 +30,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Buran.Interfaces\Buran.Interfaces.csproj" />
+      <ProjectReference Include="..\Buran.SQLite\Buran.SQLite.csproj" />
     </ItemGroup>
 </Project>

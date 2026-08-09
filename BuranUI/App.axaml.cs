@@ -14,6 +14,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Buran.SQLite;
 using Buran.Types;
 using MsBox.Avalonia;
 
@@ -125,6 +126,8 @@ public class App : Application {
     }
 
     public override void OnFrameworkInitializationCompleted() {
+        // Testet die Verbindung zur Datenbank, bzw. legt die Datenbank als auch die Tabelle an, falls noch nicht vorhanden.
+        DBConnector.TestConnection();
         
         // 1. Extensions laden
         if (!LoadExtensions(ExtensionsDirectory))

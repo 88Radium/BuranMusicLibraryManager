@@ -51,31 +51,62 @@ public class DBConnector {
                 queryExecutor(SqlCreateAlternativeGenreNameVariants);
 
 
+                // Setter "UNIQUE" for "Pattern"-Row is required for the IGNORE statement, otherwise Table will fill up with duplicates
                 string SqlCreateFileNamePatterns = @"CREATE TABLE IF NOT EXISTS FileNamePatterns (
                     Id INTEGER PRIMARY KEY,
-                    Pattern TEXT NOT NULL,
+                    Pattern TEXT NOT NULL UNIQUE,
                     Example TEXT,
                     Confidence INTEGER DEFAULT 1,
                     UserAdded BOOLEAN DEFAULT 1)";
                 queryExecutor(SqlCreateFileNamePatterns);
 
 
-                // Falls du die Tabelle neu erstellst, alle Patterns
+                // Umfangreiche Pattern-Sammlung für MP3-Dateinamen
+                // TODO: Für zukünftige Versionen mehrere {artist}-Platzhalter (über 2) unterstützen
                 string initPatterns = @"INSERT OR IGNORE INTO FileNamePatterns (Pattern, Example, Confidence, UserAdded) VALUES 
-                    ('{artists} - {title}', 'Eminem & Rihanna - Love The Way You Lie', 95, 0),
+                    -- Basis-Patterns: Artist - Title
+                    ('{artists} - {title}', 'Eminem & Rihanna - Love The Way You Lie', 92, 0),
                     ('{artist} - {title}', 'Eminem - Lose Yourself', 90, 0),
+                    ('{artist1} & {artist2} - {title}', 'Simon & Garfunkel - The Sound of Silence', 88, 0),
+                    
+                    -- Track-basierte Patterns
                     ('{track} - {title}', '01 - Lose Yourself', 85, 0),
-                    ('{track} - {artist} - {title}', '01 - Eminem - Lose Yourself', 80, 0),
+                    ('{track} - {artist} - {title}', '01 - Eminem - Lose Yourself', 87, 0),
+                    ('{track}. {artist} - {title}', '01. Eminem - Lose Yourself', 86, 0),
+                    ('{track} {artist} - {title}', '01 Eminem - Lose Yourself', 84, 0),
+                    
+                    -- Patterns mit Zusatzinfos (Album, Jahr)
                     ('{artist} - {album} - {title}', 'Pink Floyd - Dark Side - Time', 75, 0),
                     ('({year}) {artist} - {title}', '(2002) Eminem - Lose Yourself', 70, 0),
-                    ('{artist} feat. {featured} - {title}', 'Eminem feat. Rihanna - Love The Way You Lie', 80, 0),
-                    ('{artist} ft. {featured} - {title}', 'Eminem ft. Rihanna - Love The Way You Lie', 80, 0),
-                    ('{artist1} & {artist2} - {title}', 'Simon & Garfunkel - The Sound of Silence', 85, 0),
+                    ('{year} - {artist} - {title}', '2002 - Eminem - Lose Yourself', 68, 0),
+                    ('{track}. {artist} - {album} - {title}', '01. Pink Floyd - Dark Side - Time', 70, 0),
+                    
+                    -- Featured/Collaboration Patterns (im Filename)
+                    ('{artist} feat. {featured} - {title}', 'Eminem feat. Rihanna - Love The Way You Lie', 85, 0),
+                    ('{artist} ft. {featured} - {title}', 'Eminem ft. Rihanna - Love The Way You Lie', 85, 0),
+                    ('{artist} featuring {featured} - {title}', 'Eminem featuring Rihanna - Love The Way You Lie', 83, 0),
+                    ('{artist} vs. {featured} - {title}', 'Eminem vs. Rihanna - Love The Way You Lie', 80, 0),
+                    
+                    -- Title mit Featured/Zusatzinfos in Klammern (Comment-Bereich)
+                    ('{artist} - {title} (feat. {comment})', 'Eminem - Love The Way You Lie (feat. Rihanna)', 82, 0),
+                    ('{artist} - {title} (ft. {comment})', 'Eminem - Love The Way You Lie (ft. Rihanna)', 82, 0),
+                    ('{artist} - {title} (featuring {comment})', 'Eminem - Love The Way You Lie (featuring Rihanna)', 81, 0),
+                    ('{artist} - {title} (vs. {comment})', 'Eminem - Love The Way You Lie (vs. Rihanna)', 78, 0),
+                    ('{artist} - {title} ({comment})', 'Eminem - Love The Way You Lie (Rihanna)', 75, 0),
+                    
+                    -- Remix/Version/Live-Patterns
+                    ('{artist} - {title} (Live)', 'Queen - Bohemian Rhapsody (Live)', 72, 0),
+                    ('{artist} - {title} [Live]', 'Queen - Bohemian Rhapsody [Live]', 72, 0),
+                    ('{artist} - {title} (Remix)', 'Eminem - Lose Yourself (Remix)', 70, 0),
+                    ('{artist} - {title} [Remix]', 'Eminem - Lose Yourself [Remix]', 70, 0),
+                    ('{artist} - {title} ({comment})', 'Pink Floyd - Time (Remaster)', 65, 0),
+                    ('{artist} - {title} [{comment}]', 'Eminem - Lose Yourself [Extended]', 65, 0),
+                    ('{artist} - {title} - {comment}', 'Pink Floyd - Time - Remaster', 60, 0),
+                    
+                    -- Alternative Ordnungen: Title first
                     ('{title} by {artist}', 'Lose Yourself by Eminem', 60, 0),
-                    ('{title} ({artist})', 'Lose Yourself (Eminem)', 55, 0),
                     ('{title} - {artist}', 'Lose Yourself - Eminem', 50, 0),
-                    ('{artist} - {title} (Live)', 'Queen - Bohemian Rhapsody (Live)', 60, 0),
-                    ('{artist} - {title} [Remix]', 'Eminem - Lose Yourself [Remix]', 55, 0);";
+                    ('{title} ({artist})', 'Lose Yourself (Eminem)', 55, 0);";
                 queryExecutor(initPatterns);
 
                 // Keep the Format like "'content'"! The inner single-quotas are neccessary for the Database-query. It's possible to rewrite the SQLite-Code to the point where this isn't neccessary anymore but that's something for another time!

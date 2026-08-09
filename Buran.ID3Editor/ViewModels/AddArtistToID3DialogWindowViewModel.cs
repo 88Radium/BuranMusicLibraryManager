@@ -203,9 +203,9 @@ public class AddArtistToID3DialogWindowViewModel : ObservableObject {
 
                 // 2. Auf alle ausgewählten Dateien anwenden
                 foreach(var file in SelectedFiles) {
-                    if(file.TagLibFile != null) {
-                        file.TagLibFile.AlbumArtist = CurrentArtists.ToString(); //TODO: Check if this is working. Original code was ".Tag.Performers" 
-                        file.TagLibFile.Save();
+                    if(file.Mp3File != null) {
+                        file.Mp3File.AlbumArtist = CurrentArtists.ToString(); //TODO: Check if this is working. Original code was ".Tag.Performers" 
+                        file.Mp3File.Save();
                     }
 
                     file.Id3Artists = CurrentArtists.ToArray();
