@@ -61,13 +61,13 @@ public class DBConnector {
                 queryExecutor(SqlCreateFileNamePatterns);
 
 
-                // Umfangreiche Pattern-Sammlung für MP3-Dateinamen
-                // TODO: Für zukünftige Versionen mehrere {artist}-Platzhalter (über 2) unterstützen
+                // Pattern-Sammlung mit vereinheitlichten Platzhaltern
+                // {artists} - Mehrere Künstler möglich (feat., &, vs., etc.)
+                // {comment} - Zusätzliche Info wie (Live), [Remix], etc.
                 string initPatterns = @"INSERT OR IGNORE INTO FileNamePatterns (Pattern, Example, Confidence, UserAdded) VALUES 
-                    -- Basis-Patterns: Artist - Title
-                    ('{artists} - {title}', 'Eminem & Rihanna - Love The Way You Lie', 92, 0),
+                    -- Basis-Patterns: Artist(s) - Title
                     ('{artist} - {title}', 'Eminem - Lose Yourself', 90, 0),
-                    ('{artist1} & {artist2} - {title}', 'Simon & Garfunkel - The Sound of Silence', 88, 0),
+                    ('{artists} & {artists} - {title}', 'Simon & Garfunkel - The Sound of Silence', 88, 0),
                     
                     -- Track-basierte Patterns
                     ('{track} - {title}', '01 - Lose Yourself', 85, 0),
@@ -81,26 +81,26 @@ public class DBConnector {
                     ('{year} - {artist} - {title}', '2002 - Eminem - Lose Yourself', 68, 0),
                     ('{track}. {artist} - {album} - {title}', '01. Pink Floyd - Dark Side - Time', 70, 0),
                     
-                    -- Featured/Collaboration Patterns (im Filename)
-                    ('{artist} feat. {featured} - {title}', 'Eminem feat. Rihanna - Love The Way You Lie', 85, 0),
-                    ('{artist} ft. {featured} - {title}', 'Eminem ft. Rihanna - Love The Way You Lie', 85, 0),
-                    ('{artist} featuring {featured} - {title}', 'Eminem featuring Rihanna - Love The Way You Lie', 83, 0),
-                    ('{artist} vs. {featured} - {title}', 'Eminem vs. Rihanna - Love The Way You Lie', 80, 0),
+                    -- Featured/Collaboration Patterns (Künstler im Filename)
+                    ('{artist} feat. {artists} - {title}', 'Eminem feat. Rihanna - Love The Way You Lie', 85, 0),
+                    ('{artist} ft. {artists} - {title}', 'Eminem ft. Rihanna - Love The Way You Lie', 85, 0),
+                    ('{artist} featuring {artists} - {title}', 'Eminem featuring Rihanna - Love The Way You Lie', 83, 0),
+                    ('{artist} vs. {artists} - {title}', 'Eminem vs. Rihanna - Love The Way You Lie', 80, 0),
+                    ('{artists} & {artists} feat. {artists} - {title}', 'Simon & Garfunkel feat. Disturbed - Sound Of Silence', 82, 0),
                     
-                    -- Title mit Featured/Zusatzinfos in Klammern (Comment-Bereich)
-                    ('{artist} - {title} (feat. {comment})', 'Eminem - Love The Way You Lie (feat. Rihanna)', 82, 0),
-                    ('{artist} - {title} (ft. {comment})', 'Eminem - Love The Way You Lie (ft. Rihanna)', 82, 0),
-                    ('{artist} - {title} (featuring {comment})', 'Eminem - Love The Way You Lie (featuring Rihanna)', 81, 0),
-                    ('{artist} - {title} (vs. {comment})', 'Eminem - Love The Way You Lie (vs. Rihanna)', 78, 0),
-                    ('{artist} - {title} ({comment})', 'Eminem - Love The Way You Lie (Rihanna)', 75, 0),
+                    -- Title mit Zusatzinfos in Klammern/Klammern (Comment-Bereich)
+                    ('{artist} - {title} (feat. {comment})', 'Eminem - Love The Way You Lie (feat. Rihanna)', 78, 0),
+                    ('{artist} - {title} (ft. {comment})', 'Eminem - Love The Way You Lie (ft. Rihanna)', 78, 0),
+                    ('{artist} - {title} (vs. {comment})', 'Eminem - Love The Way You Lie (vs. Rihanna)', 75, 0),
+                    ('{artist} - {title} ({comment})', 'Eminem - Love The Way You Lie (Rihanna)', 70, 0),
                     
                     -- Remix/Version/Live-Patterns
                     ('{artist} - {title} (Live)', 'Queen - Bohemian Rhapsody (Live)', 72, 0),
                     ('{artist} - {title} [Live]', 'Queen - Bohemian Rhapsody [Live]', 72, 0),
                     ('{artist} - {title} (Remix)', 'Eminem - Lose Yourself (Remix)', 70, 0),
                     ('{artist} - {title} [Remix]', 'Eminem - Lose Yourself [Remix]', 70, 0),
-                    ('{artist} - {title} ({comment})', 'Pink Floyd - Time (Remaster)', 65, 0),
-                    ('{artist} - {title} [{comment}]', 'Eminem - Lose Yourself [Extended]', 65, 0),
+                    ('{artist} - {title} [{comment}] ({comment})', 'Queen - Bohemian Rhapsody [Extended Remix] (Live)', 68, 0),
+                    ('{artist} - {title} ({comment}) [{comment}]', 'Queen - Bohemian Rhapsody (Live) [Remix]', 68, 0),
                     ('{artist} - {title} - {comment}', 'Pink Floyd - Time - Remaster', 60, 0),
                     
                     -- Alternative Ordnungen: Title first

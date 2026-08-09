@@ -5,10 +5,11 @@ namespace Buran.Types {
         public string       Album       { get; set; }
         public string       TrackNumber { get; set; }
         public string       Year        { get; set; }
+        public List<string> Comments    { get; set; } = new List<string>();  // Neue Property für mehrfache Comments
 
         public override string ToString() {
             return
-                $"Artists: {string.Join(", ", Artists)}, Title: {Title ?? "[null]"}, Album: {Album ?? "[null]"}, Track: {TrackNumber ?? "[null]"}";
+                $"Artists: {string.Join(", ", Artists)}, Title: {Title ?? "[null]"}, Album: {Album ?? "[null]"}, Track: {TrackNumber ?? "[null]"}, Comments: {string.Join("; ", Comments)}";
         }
     }
 }

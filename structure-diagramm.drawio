@@ -1,0 +1,21 @@
+<mxfile host="Electron">
+  <diagram name="Seite-1" id="O8gPaImIvnDdO4M4kZwt">
+    <mxGraphModel dx="927" dy="770" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="KaSqcU_5nzZZkBPv583J-2" parent="1" style="swimlane;whiteSpace=wrap;html=1;" value="BuranUI" vertex="1">
+          <mxGeometry height="490" width="460" as="geometry">
+            <mxRectangle height="30" width="140" as="alternateBounds" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="KaSqcU_5nzZZkBPv583J-3" parent="KaSqcU_5nzZZkBPv583J-2" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;Looking For MEF-loadable .dll&#39;s&lt;/h1&gt;&lt;p&gt;not implemented yet.&lt;/p&gt;" vertex="1">
+          <mxGeometry height="70" width="420" x="20" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="KaSqcU_5nzZZkBPv583J-5" parent="KaSqcU_5nzZZkBPv583J-2" style="text;html=1;whiteSpace=wrap;overflow=hidden;rounded=0;" value="&lt;h1 style=&quot;margin-top: 0px;&quot;&gt;Application Bootstrapping&lt;/h1&gt;&lt;p&gt;Default Bootstrapping-Mechanism of AvaloniaUI:&lt;br&gt;&lt;br&gt;Program.cs =&amp;gt; Main() =&amp;gt; calls Avalonia-specific code that builds a desktop application out of the (code)files expected by the framework.&lt;/p&gt;" vertex="1">
+          <mxGeometry height="120" width="420" x="20" y="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
