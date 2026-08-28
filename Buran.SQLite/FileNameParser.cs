@@ -237,7 +237,7 @@ public class FileNameParser {
                 }
 
                 // MP3FileObject aktualisieren
-                mp3File.Id3Artists = dbArtistNames.ToArray();
+                mp3File.Id3ArtistList = dbArtistNames;
             }
 
             // Album setzen

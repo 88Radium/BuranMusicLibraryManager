@@ -60,6 +60,51 @@ public class DBConnector {
                     UserAdded BOOLEAN DEFAULT 1)";
                 queryExecutor(SqlCreateFileNamePatterns);
 
+                // Phase 2: Tabelle für Künstler-Album Beziehungen
+                string SqlCreateArtistAlbums = @"CREATE TABLE IF NOT EXISTS ArtistAlbums (
+                    Id INTEGER PRIMARY KEY,
+                    ArtistId INTEGER NOT NULL,
+                    AlbumName TEXT NOT NULL,
+                    FOREIGN KEY(ArtistId) REFERENCES ArtistNames(ID),
+                    UNIQUE(ArtistId, AlbumName))";
+                queryExecutor(SqlCreateArtistAlbums);
+
+                // Phase 2: Tabelle für mehrdeutige Metadaten (Nutzer-Feedback lernen)
+                string SqlCreateAmbiguousMetadata = @"CREATE TABLE IF NOT EXISTS AmbiguousMetadata (
+                    Id INTEGER PRIMARY KEY,
+                    RawValue TEXT NOT NULL,
+                    PatternContext TEXT,
+                    ResolvedAsType TEXT,
+                    Confidence INTEGER DEFAULT 0,
+                    CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(RawValue, ResolvedAsType))";
+                queryExecutor(SqlCreateAmbiguousMetadata);
+
+                // Phase 2: Tabelle für Feature-Keywords (feat., vs., &, etc.)
+                string SqlCreateFeatureKeywords = @"CREATE TABLE IF NOT EXISTS FeatureKeywords (
+                    Id INTEGER PRIMARY KEY,
+                    Keyword TEXT NOT NULL UNIQUE,
+                    Type TEXT NOT NULL,
+                    Weight INTEGER DEFAULT 1)";
+                queryExecutor(SqlCreateFeatureKeywords);
+
+                // Init Feature-Keywords
+                string initFeatureKeywords = @"INSERT OR IGNORE INTO FeatureKeywords (Keyword, Type, Weight) VALUES
+                    ('feat.', 'COLLABORATION', 10),
+                    ('ft.', 'COLLABORATION', 10),
+                    ('featuring', 'COLLABORATION', 9),
+                    ('vs.', 'COLLABORATION', 8),
+                    ('&', 'COLLABORATION', 10),
+                    ('and', 'COLLABORATION', 7),
+                    ('with', 'COLLABORATION', 6),
+                    ('(Live)', 'VERSION', 8),
+                    ('[Live]', 'VERSION', 8),
+                    ('(Remix)', 'VERSION', 7),
+                    ('[Remix]', 'VERSION', 7),
+                    ('(Extended)', 'VERSION', 5),
+                    ('(Remaster)', 'VERSION', 6);";
+                queryExecutor(initFeatureKeywords);
+
 
                 // Pattern-Sammlung mit vereinheitlichten Platzhaltern
                 // {artists} - Mehrere Künstler möglich (feat., &, vs., etc.)

@@ -5,8 +5,15 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="Buran.ID3Editor.Views.Id3EditorTab"
              xmlns:vm="using:Buran.ID3Editor.ViewModels"
+             xmlns:types="clr-namespace:Buran.Types;assembly=Buran.Types"
              x:DataType="vm:Id3EditorTabViewModel"
              x:CompileBindings="True">
+
+    <UserControl.Resources>
+        <types:ArtistRemoveArgsConverter x:Key="ArtistRemoveArgsConverter" />
+        <types:GenreRemoveArgsConverter x:Key="GenreRemoveArgsConverter" />
+        <types:MoodRemoveArgsConverter x:Key="MoodRemoveArgsConverter" />
+    </UserControl.Resources>
 
     <!-- ✅ WICHTIG: DataContext wird hier definiert, nicht im Code-Behind! -->
     <UserControl.DataContext>
@@ -20,13 +27,7 @@
 
     <TabItem x:Name="Id3EditorTabControl" Header="ID3 Editor">
 
-        <Grid x:Name="Id3EditorGrid">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-
+        <Grid x:Name="Id3EditorGrid" RowDefinitions="Auto,Auto,*">
 
             <StackPanel x:Name="OutsideStackPanel" Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
                 <StackPanel x:Name="InsideStackPanel" Orientation="Vertical">
@@ -36,123 +37,216 @@
                 <Button x:Name="BtnOfd" Content="Open directory" Command="{Binding OfdCommand}" VerticalAlignment="Bottom" Margin="5,0,0,0" />
             </StackPanel>
 
-            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" IsEnabled="{Binding HasMusicFiles}"> <!-- Visibility="{Binding HasMusicFiles, Converter={StaticResource BooleanVisConverter}, Mode=OneWay}" -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="5" IsEnabled="{Binding HasMusicFiles}">
                 <TextBlock Text="{Binding SelectedFilesCount, StringFormat='{}Ausgewählt: {0}'}" />
-                <Button Content="Künstler zu ID3-Tag hinzufügen" Margin="8,0,0,0"  Command="{Binding OpenAddArtistDialogCommand}" />
+                <Button Content="Künstler zu ID3-Tag hinzufügen" Margin="8,0,0,0" Command="{Binding OpenAddArtistDialogCommand}" />
             </StackPanel>
 
-            <ListBox x:Name="ItemsListView" Grid.Row="2"
-                     ItemsSource="{Binding MusicFiles, Mode=TwoWay, Delay=333, UpdateSourceTrigger=PropertyChanged}"
-                     BorderThickness="1">
-                <!--Mode=TwoWay, Delay=333,-->
+            <ListBox x:Name="ItemsListView" Grid.Row="2" ItemsSource="{Binding MusicFiles, Mode=TwoWay, Delay=333, UpdateSourceTrigger=PropertyChanged}" BorderThickness="1">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Border BorderThickness="1" BorderBrush="Black" Margin="5" Padding="5">
-                            <Grid x:Name="ItemsGrid">
 
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                </Grid.RowDefinitions>
+                            <Grid x:Name="ItemsGrid" ColumnDefinitions="Auto,*,200">
 
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="50" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="160" />
-                                    <!--<ColumnDefinition Width="160" />-->
-                                </Grid.ColumnDefinitions>
+                                <!-- Select -->
+                                <GroupBox Header="Select:" x:Name="StackPanel_ItemSelector" Grid.Row="0" Grid.Column="0" Margin="0,0,5,5">
+                                    <CheckBox x:Name="ItemSelected" HorizontalAlignment="Center" Padding="0" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                </GroupBox>
 
 
-                                <StackPanel Grid.RowSpan="3" Grid.Column="0" VerticalAlignment="Center">
-                                    <Label Content="Select" HorizontalAlignment="Center" />
-                                    <CheckBox x:Name="ItemSelected" HorizontalAlignment="Center" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                </StackPanel>
+                                <Grid x:Name="ID3TopGrid" Grid.Row="0" Grid.Column="1" RowDefinitions="*,*,*,*" ColumnDefinitions="*,*,*,*,*">
 
 
-                                <Grid x:Name="ID3TopGrid" Grid.Row="0" Grid.Column="1">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="200" />
-                                        <ColumnDefinition Width="200" />
-                                        <ColumnDefinition Width="150" />
-                                        <ColumnDefinition Width="100" />
-                                        <ColumnDefinition Width="72" />
-                                        <ColumnDefinition Width="100" />
-                                        <ColumnDefinition Width="60" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <StackPanel Grid.Column="0" Margin="0,0,0,5">
-                                        <TextBlock Text="Artist: " />
-                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" IsScrollInertiaEnabled="True"> <!-- CanContentScroll="True" -->
-                                            <ListBox x:Name="Listbox_Id3Artists" ItemsSource="{Binding Id3Artists}" MinHeight="18" />
-                                        </ScrollViewer>
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Column="1" Margin="5,0,0,5">
-                                        <TextBlock Text="Title: " />
-                                        <!--<TextBox Text="{Binding ID3Title}" MinHeight="18"/>-->
+                                    <!-- Mitte -->
+                                    <GroupBox Header="Title:" Grid.Row="0" Grid.Column="1" Margin="5,0,0,5">
                                         <TextBox x:Name="TextBox_Id3Title" Text="{Binding Id3Title, Delay=333, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" MinHeight="18" />
-                                    </StackPanel>
+                                    </GroupBox>
 
-                                    <StackPanel Grid.Column="2" Margin="5,0,0,5">
-                                        <TextBlock Text="Album: " />
+                                    <GroupBox Header="Album:" Grid.Row="1" Grid.Column="1" Margin="5,0,0,5">
                                         <TextBox x:Name="TextBox_Id3Album" Text="{Binding Id3Album}" MinHeight="18" />
-                                    </StackPanel>
+                                    </GroupBox>
 
-                                    <StackPanel Grid.Column="3" Margin="5,0,0,5">
-                                        <TextBlock Text="Genre: " />
-                                        <TextBox x:Name="TextBox_Id3GenresAsString"
-                                            Text="{Binding Id3GenresAsString, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                            MinHeight="18" />
-                                    </StackPanel>
+                                    <GroupBox Header="Filename:" Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" Margin="5,0,0,5">
+                                        <TextBox x:Name="TextBox_FileName" Text="{Binding FileName}" Margin="0,0,0,5" MinHeight="18" />
+                                    </GroupBox>
 
-                                    <StackPanel Grid.Column="4" Margin="5,0,0,5">
-                                        <TextBlock Text="ReleaseYear: " />
+
+                                    <!-- Rechts -->
+                                    <GroupBox Header="Release Year:" Grid.Row="0" Grid.Column="2" Margin="5,0,0,5">
                                         <TextBox x:Name="TextBox_Id3ReleaseYear" Text="{Binding Id3ReleaseYear}" MinHeight="18" />
-                                    </StackPanel>
+                                    </GroupBox>
 
-                                    <StackPanel Grid.Column="5" Margin="5,0,0,5">
-                                        <TextBlock Text="Comment: " />
+                                    <GroupBox Header="Comment:" Grid.Row="1" Grid.Column="2" Margin="5,0,0,5">
                                         <TextBox x:Name="TextBox_Id3Comment" Text="{Binding Id3Comment}" MinHeight="18" />
-                                    </StackPanel>
+                                    </GroupBox>
 
-                                    <StackPanel Grid.Column="6" Margin="5,0,0,5">
-                                        <TextBlock Text="Bitrate: " />
-                                        <TextBox x:Name="TextBox_Bitrate" Text="{Binding Bitrate}" MinHeight="18" IsReadOnly="True" />
-                                    </StackPanel>
+                                    <GroupBox Header="Bitrate:" Grid.Row="2" Grid.Column="2" Margin="5,0,0,5">
+                                        <TextBlock x:Name="TextBlock_BitRate" Text="{Binding Bitrate}" MinHeight="18" VerticalAlignment="Center" Margin="10,7,0,0" />
+                                    </GroupBox>
+
+
+                                    <!-- Artists -->
+                                    <GroupBox Header="Artists:" Grid.Row="0" Grid.Column="0" Grid.RowSpan="4" Margin="0,0,0,5">
+                                        <Grid RowDefinitions="*, Auto">
+
+                                            <!-- List Of Artists -->
+                                            <ItemsControl Grid.Row="0" x:Name="Listbox_Id3Artists" ItemsSource="{Binding Id3ArtistCollection}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <DockPanel LastChildFill="True">
+
+                                                            <Button DockPanel.Dock="Right" Content="X" Margin="8,0,0,0"
+                                                                    Command="{Binding $parent[UserControl].((vm:Id3EditorTabViewModel)DataContext).RemoveSingleArtistFromID3TagsCommand}">
+                                                                <Button.CommandParameter>
+                                                                    <MultiBinding Converter="{StaticResource ArtistRemoveArgsConverter}">
+                                                                        <!-- 1) Artist-String (Item-DataContext) -->
+                                                                        <Binding />
+                                                                        <!-- 2) Mp3FileObject (DataContext des ItemsControl) -->
+                                                                        <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                                    </MultiBinding>
+                                                                </Button.CommandParameter>
+                                                            </Button>
+
+                                                            <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- Add Artist Group -->
+                                            <GroupBox Grid.Row="1" Header="Add Artist" VerticalAlignment="Bottom">
+                                                <Grid ColumnDefinitions="*, auto">
+                                                    <TextBox Grid.Column="0" PlaceholderText="Artist Name" Text="{Binding ArtistToAdd, Mode=TwoWay}" />
+                                                    <Button Grid.Column="1" Content="+" Margin="5,0,0,0"
+                                                            Command="{Binding $parent[ListBox].((vm:Id3EditorTabViewModel)DataContext).AddSingleArtistFromID3TagsCommand}"
+                                                            CommandParameter="{Binding}" />
+                                                </Grid>
+                                            </GroupBox>
+
+                                        </Grid>
+                                    </GroupBox>
+
+
+                                    <!-- Mood -->
+                                    <GroupBox Header="Moods:" Grid.Row="0" Grid.Column="3" Grid.RowSpan="4" VerticalAlignment="Stretch" Margin="5,0,0,5">
+                                        <Grid RowDefinitions="*, Auto">
+
+                                            <!-- List Of Moods -->
+                                            <ItemsControl x:Name="ListBox_Moods" ItemsSource="{Binding Id3MoodCollection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <DockPanel LastChildFill="True">
+
+                                                            <Button x:Name="Btn_MoodAdder" DockPanel.Dock="Right" Content="X" Margin="8,0,0,0"
+                                                                    Command="{Binding $parent[UserControl].((vm:Id3EditorTabViewModel)DataContext).RemoveSingleMoodFromID3TagsCommand}">
+                                                                <Button.CommandParameter>
+                                                                    <MultiBinding Converter="{StaticResource MoodRemoveArgsConverter}">
+                                                                        <!-- 1) Mood-String (Item-DataContext) -->
+                                                                        <Binding />
+                                                                        <!-- 2) Mp3FileObject (DataContext des ItemsControl) -->
+                                                                        <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                                    </MultiBinding>
+                                                                </Button.CommandParameter>
+                                                            </Button>
+
+                                                            <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- "Add Mood" Group -->
+                                            <GroupBox Grid.Row="1" Header="Add Mood" VerticalAlignment="Bottom">
+                                                <Grid ColumnDefinitions="*, auto">
+                                                    <TextBox x:Name="Tbx_ArtistToAdd" Grid.Column="0" PlaceholderText="Artist Name" Text="{Binding MoodToAdd, Mode=TwoWay}" />
+                                                    <Button Grid.Column="1" Content="+" Margin="5,0,0,0"
+                                                            Command="{Binding $parent[ListBox].((vm:Id3EditorTabViewModel)DataContext).AddSingleMoodFromID3TagsCommand}"
+                                                            CommandParameter="{Binding }" />
+                                                </Grid>
+                                            </GroupBox>
+
+                                        </Grid>
+                                    </GroupBox>
+
+
+                                    <!-- Genre -->
+                                    <GroupBox Header="Genre:" Grid.Row="0" Grid.Column="4" Grid.RowSpan="4" Margin="5,0,0,5">
+                                        
+                                        <Grid RowDefinitions="*, Auto">
+
+                                            <ItemsControl Grid.Row="0" x:Name="ListBox_Id3Genres" ItemsSource="{Binding Id3GenreCollection, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <DockPanel LastChildFill="True">
+
+                                                            <Button x:Name="Btn_GenreAdder" DockPanel.Dock="Right" Content="X" Margin="8,0,0,0"
+                                                                    Command="{Binding $parent[UserControl].((vm:Id3EditorTabViewModel)DataContext).RemoveSingleGenreFromID3TagsCommand}">
+                                                                <Button.CommandParameter>
+                                                                    <MultiBinding Converter="{StaticResource GenreRemoveArgsConverter}">
+                                                                        <!-- 1) Genre-String (Item-DataContext) -->
+                                                                        <Binding />
+                                                                        <!-- 2) Mp3FileObject (DataContext des ItemsControl) -->
+                                                                        <Binding Path="DataContext" RelativeSource="{RelativeSource AncestorType=ItemsControl}" />
+                                                                    </MultiBinding>
+                                                                </Button.CommandParameter>
+                                                            </Button>
+
+                                                            <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                                                        </DockPanel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- "Add Genre" Group -->
+                                            <GroupBox Grid.Row="1" Header="Add Genre" VerticalAlignment="Bottom">
+                                                <Grid ColumnDefinitions="*, auto">
+                                                    <TextBox Grid.Column="0" PlaceholderText="Artist Name" Text="{Binding GenreToAdd, Mode=TwoWay}" />
+                                                    <Button Grid.Column="1" Content="+" Margin="5,0,0,0"
+                                                            Command="{Binding $parent[ListBox].((vm:Id3EditorTabViewModel)DataContext).AddSingleGenreFromID3TagsCommand}"
+                                                            CommandParameter="{Binding}" />
+                                                </Grid>
+                                            </GroupBox>
+
+                                        </Grid>
+                                    </GroupBox>
 
                                 </Grid>
 
 
-                                <TextBox x:Name="TextBox_FileName" Grid.Row="1" Grid.Column="1" Text="{Binding FileName}" Margin="0,0,0,5" MinHeight="18" />
+                                <!-- Button Grid -->
+                                <Grid x:Name="ButtonGrid" Grid.Column="2" VerticalAlignment="Stretch" RowDefinitions="*,*,*">
+                                    <Button x:Name="Btn_ID3ToFile" Grid.Row="0" Margin="5,10,0,5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Command="{ReflectionBinding DataContext.FileNameFromId3Command, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock>
+                                                <TextBlock.RenderTransform>
+                                                    <RotateTransform Angle="90" />
+                                                </TextBlock.RenderTransform>
+                                                <Run Text="↷" />
+                                            </TextBlock>
+                                            <TextBlock Margin="10,0,0,0" Text="From ID3 to Filename" />
+                                        </StackPanel>
+                                    </Button>
 
-                                <Button x:Name="Btn_ID3ToFile" Grid.Row="0" Grid.Column="2" Margin="5,16,0,5" Command="{ReflectionBinding DataContext.FileNameFromId3Command, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Margin="10,4,-15,0" FontSize="13">
-                                            <TextBlock.RenderTransform>
-                                                <RotateTransform Angle="90" />
-                                            </TextBlock.RenderTransform>
-                                            <Run Text="↷" />
-                                        </TextBlock>
-                                        <TextBlock Text="From ID3 to Filename" />
-                                    </StackPanel>
-                                </Button>
+                                    <Button x:Name="Btn_FileToID3" Grid.Row="1" Margin="5,0,0,5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Command="{ReflectionBinding DataContext.Id3FromFileNameCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock>
+                                                <TextBlock.RenderTransform>
+                                                    <RotateTransform Angle="90" />
+                                                </TextBlock.RenderTransform>
+                                                <Run Text="↶" />
+                                            </TextBlock>
+                                            <TextBlock Margin="10,0,0,0" Text="From Filename to ID3" />
+                                        </StackPanel>
+                                    </Button>
 
-                                <Button x:Name="Btn_FileToID3" Grid.Row="1" Grid.Column="2" Margin="5,0,0,5" Command="{ReflectionBinding DataContext.Id3FromFileNameCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Margin="10,4,-15,0" FontSize="13">
-                                            <TextBlock.RenderTransform>
-                                                <RotateTransform Angle="90" />
-                                            </TextBlock.RenderTransform>
-                                            <Run Text="↶" />
-                                        </TextBlock>
-                                        <TextBlock Text="From Filename to ID3" />
-                                    </StackPanel>
-                                </Button>
+                                    <!-- <Button x:Name="Btn_Reset" Grid.Row="2" Grid.Column="2" Content="Reset ID3 to default" Margin="5,0,0,5" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Command="{ReflectionBinding DataContext.ResetId3ToDefaultCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding }" /> -->
+                                    <Button x:Name="Btn_Reset" Grid.Row="2" Content="Reset ID3 to default" Margin="5,0,0,5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Command="{ReflectionBinding ResetId3Tags}" CommandParameter="{Binding }" />
+                                </Grid>
 
-                                <Button x:Name="Btn_Reset" Grid.Row="2" Grid.Column="2" Content="Reset ID3 to default" Margin="5,0,0,5" Command="{ReflectionBinding DataContext.ResetId3ToDefaultCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding }" />
 
                             </Grid>
+
                         </Border>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
