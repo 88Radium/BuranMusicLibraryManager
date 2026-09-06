@@ -253,7 +253,12 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             }
         }
 
+        Debug.WriteLine("{0} Music files loaded", pathsOfMusicFilesToDisplay.Count);
+
+        int i = 1;
         foreach (string path in pathsOfMusicFilesToDisplay) {
+            Debug.WriteLine($"Loading Track {i} {path}");
+            i++;
             Mp3FileObject mp3 = new Mp3FileObject(path);
             MusicFiles.Add(mp3);
 
@@ -263,6 +268,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
                 }
             }
         }
+        GC.Collect();
     }
 
     #endregion
@@ -345,8 +351,8 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     /// <param name="fileObject"></param>
     /// <returns>[string] with all Artists, formatted in a filename friendly way</returns>
     private string GetArtistNamesFromId3AsFormattedString(Mp3FileObject fileObject) {
-        List<string> preferredArtistNameList = new List<string>();
-        var          sb                      = new StringBuilder();
+        List<string>  preferredArtistNameList = [];
+        StringBuilder sb                      = new StringBuilder();
 
         // Assembling ArtistListing
         foreach (string artist in fileObject.Id3ArtistCollection) {
@@ -392,21 +398,41 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     public void Id3FromFileName(object sender) {
         ArgumentNullException.ThrowIfNull(sender);
         Mp3FileObject sndr = sender as Mp3FileObject;
-        if (sndr == null) return;
+        if (sndr is not Mp3FileObject file) return;
 
         var parser   = new FileNameParser();
-        var metadata = parser.Parse(sndr.FileName);
+        var metadata = parser.Parse(sndr.FileName, DBConnector.LoadFileNamePatterns());
 
-        // NUR ID3-Properties setzen
-        if (!string.IsNullOrEmpty(metadata.Title)) {
-            sndr.Id3Title = metadata.Title;
+        if (metadata.MatchedPatternId is int patternId) {
+            DBConnector.IncreasePatternConfidence(patternId);
+        } else {
+            parser.LearnNewPattern(file.FileName, metadata);
         }
 
-        if (metadata.Artists != null && metadata.Artists.Any()) {
-            sndr.Id3ArtistCollection = new ObservableCollection<string>(metadata.Artists);
+        ApplyParsedMetadata(file, metadata);
+        file.SaveTags();
+    }
+
+    private static void ApplyParsedMetadata(Mp3FileObject file, ParsedMetadata metadata) {
+        if (!string.IsNullOrEmpty(metadata.Title))
+            file.Id3Title = metadata.Title;
+
+        if (metadata.Artists is { Count: > 0 }) {
+            var resolved = metadata.Artists
+                .Select(a => DBConnector.CheckForPreferredName(a).PreferredArtistName)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            file.Id3ArtistCollection = new ObservableCollection<string>(resolved);
         }
 
-        sndr.SaveTags();
+        if (!string.IsNullOrEmpty(metadata.Album))
+            file.Id3Album = metadata.Album;
+
+        if (metadata.Comments is { Count: > 0 })
+            file.Id3Comment = string.Join("; ", metadata.Comments);
+
+        if (uint.TryParse(metadata.Year, out var year))
+            file.Id3ReleaseYear = (int)year;
     }
 
     public string GetTitleFromFileName() {

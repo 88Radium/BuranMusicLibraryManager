@@ -1,23 +1,16 @@
+using System.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Buran.SQLite;
 
 public partial class DatabaseTable_GenreNames : ObservableObject {
+    [ObservableProperty] private int    _ID;
+    [ObservableProperty] private string _genreName = "";
 
-    // #region PropertyChanged
-    // // : INotifyPropertyChanged
-    // public event PropertyChangedEventHandler PropertyChanged;
-    // private void NotifyPropertyChanged([CallerMemberName] string propertyName = "") {
-    //     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-    // }
-    // #endregion
+    public DatabaseTable_GenreNames() { }
 
-    [ObservableProperty]
-    private int _ID;
-    // public  int ID { get { return _ID; } set { _ID = value; NotifyPropertyChanged(); } }
-
-    [ObservableProperty]
-    private string _GenreName;
-    // public  string GenreName { get { return _GenreName; } set { _GenreName = value; NotifyPropertyChanged(); } }
-
+    public DatabaseTable_GenreNames(DataRow row) {
+        ID        = Convert.ToInt32(row["ID"]);
+        GenreName = Convert.ToString(row["GenreName"]) ?? "";
+    }
 }

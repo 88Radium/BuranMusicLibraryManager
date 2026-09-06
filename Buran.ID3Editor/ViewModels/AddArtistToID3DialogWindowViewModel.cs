@@ -176,9 +176,9 @@ public class AddArtistToID3DialogWindowViewModel : ObservableObject {
         if (!_selectedFiles.Any()) return;
 
         var firstFile = _selectedFiles.First();
-        if (firstFile.Id3ArtistList != null) {
+        if (firstFile.Id3ArtistCollection != null) {
             CurrentArtists.Clear();
-            foreach (var artist in firstFile.Id3ArtistList) {
+            foreach (var artist in firstFile.Id3ArtistCollection) {
                 if (!string.IsNullOrWhiteSpace(artist) &&
                     !CurrentArtists.Contains(artist, StringComparer.OrdinalIgnoreCase))
                     CurrentArtists.Add(artist);
@@ -202,11 +202,11 @@ public class AddArtistToID3DialogWindowViewModel : ObservableObject {
             // 2. Auf alle ausgewählten Dateien anwenden
             foreach (var file in SelectedFiles) {
                 if (file.Mp3File != null) {
-                    file.Mp3File.AlbumArtist = CurrentArtists.ToString(); 
+                    file.Mp3File.AlbumArtist = CurrentArtists.ToString();
                     file.Mp3File.Save();
                 }
 
-                file.Id3ArtistList = CurrentArtists.ToList();
+                file.Id3ArtistCollection = new ObservableCollection<string>(CurrentArtists.ToList());
             }
 
             OnApplyCompleted?.Invoke(this, EventArgs.Empty);
@@ -223,8 +223,8 @@ public class AddArtistToID3DialogWindowViewModel : ObservableObject {
         PreviewItems.Clear();
 
         foreach (var file in SelectedFiles) {
-            var oldArtists = file.Id3ArtistList != null ? string.Join(", ", file.Id3ArtistList) : "Keine Künstler";
-            var newArtists = CurrentArtists.Any() ? string.Join(", ",       CurrentArtists) : "(werden entfernt)";
+            var oldArtists = file.Id3ArtistCollection != null ? string.Join(", ", file.Id3ArtistCollection) : "Keine Künstler";
+            var newArtists = CurrentArtists.Any() ? string.Join(", ",             CurrentArtists) : "(werden entfernt)";
 
             PreviewItems.Add(new ArtistPreviewItem {
                 FileName   = file.FileName,

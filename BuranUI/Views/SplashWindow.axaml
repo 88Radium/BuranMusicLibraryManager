@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="BuranUI.Views.SplashWindow"
+        Title="Buran"
+        Icon="/Assets/Buran.ico"
+        Width="720"
+        Height="800"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        WindowDecorations="None"
+        ShowInTaskbar="True"
+        Topmost="True"
+        Background="#02050C">
+
+    <Border BorderBrush="#22304A" BorderThickness="1" CornerRadius="12" Margin="8" Padding="24">
+        <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Image Source="/Assets/Buran4.png"  Stretch="Uniform" />
+            <TextBlock Text="Buran"
+                       FontSize="28"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center"
+                       Foreground="#F2F5FA" />
+            <TextBlock x:Name="StatusText"
+                       Text="Wird geladen …"
+                       FontSize="14"
+                       Opacity="0.75"
+                       HorizontalAlignment="Center"
+                       Foreground="#F2F5FA" />
+            <ProgressBar IsIndeterminate="True" Height="4" />
+        </StackPanel>
+    </Border>
+</Window>

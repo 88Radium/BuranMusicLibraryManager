@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Buran.SQLite;
 
-public class DBConnector {
+public partial class DBConnector {
         public enum IWantTo { getArtistNames, getAlternativeArtistNames, insertArtistName, insertAlternativeArtistName };
 
         public static void TestConnection() {
@@ -50,6 +50,31 @@ public class DBConnector {
                     )";
                 queryExecutor(SqlCreateAlternativeGenreNameVariants);
 
+                queryExecutor(@"CREATE TABLE IF NOT EXISTS MoodNames(
+                    ID INTEGER NOT NULL UNIQUE,
+                    MoodName TEXT NOT NULL,
+                    PRIMARY KEY(ID AUTOINCREMENT)
+                    )");
+
+                queryExecutor(@"CREATE TABLE IF NOT EXISTS AlternativeMoodNameVariants(
+                    ID INTEGER NOT NULL UNIQUE,
+                    MoodNameVariant TEXT NOT NULL,
+                    IsMissSpelled BOOL NOT NULL,
+                    RefersToMoodName INT NOT NULL,
+                    PRIMARY KEY(ID AUTOINCREMENT)
+                    )");
+
+                queryExecutor(@"CREATE TABLE IF NOT EXISTS ArtistGenres(
+                    ArtistId INTEGER NOT NULL,
+                    GenreId INTEGER NOT NULL,
+                    PRIMARY KEY(ArtistId, GenreId)
+                    )");
+
+                queryExecutor(@"CREATE TABLE IF NOT EXISTS ArtistMoods(
+                    ArtistId INTEGER NOT NULL,
+                    MoodId INTEGER NOT NULL,
+                    PRIMARY KEY(ArtistId, MoodId)
+                    )");
 
                 // Setter "UNIQUE" for "Pattern"-Row is required for the IGNORE statement, otherwise Table will fill up with duplicates
                 string SqlCreateFileNamePatterns = @"CREATE TABLE IF NOT EXISTS FileNamePatterns (

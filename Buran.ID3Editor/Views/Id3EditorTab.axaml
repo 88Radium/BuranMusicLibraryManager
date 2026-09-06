@@ -25,9 +25,7 @@
         <vm:Id3EditorTabViewModel />
     </Design.DataContext>
 
-    <TabItem x:Name="Id3EditorTabControl" Header="ID3 Editor">
-
-        <Grid x:Name="Id3EditorGrid" RowDefinitions="Auto,Auto,*">
+    <Grid x:Name="Id3EditorGrid" RowDefinitions="Auto,Auto,*">
 
             <StackPanel x:Name="OutsideStackPanel" Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
                 <StackPanel x:Name="InsideStackPanel" Orientation="Vertical">
@@ -42,7 +40,8 @@
                 <Button Content="Künstler zu ID3-Tag hinzufügen" Margin="8,0,0,0" Command="{Binding OpenAddArtistDialogCommand}" />
             </StackPanel>
 
-            <ListBox x:Name="ItemsListView" Grid.Row="2" ItemsSource="{Binding MusicFiles, Mode=TwoWay, Delay=333, UpdateSourceTrigger=PropertyChanged}" BorderThickness="1">
+            <ListBox x:Name="ItemsListView" Grid.Row="2" 
+                     ItemsSource="{Binding MusicFiles, Mode=TwoWay, Delay=333, UpdateSourceTrigger=PropertyChanged}" BorderThickness="1">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Border BorderThickness="1" BorderBrush="Black" Margin="5" Padding="5">
@@ -51,7 +50,7 @@
 
                                 <!-- Select -->
                                 <GroupBox Header="Select:" x:Name="StackPanel_ItemSelector" Grid.Row="0" Grid.Column="0" Margin="0,0,5,5">
-                                    <CheckBox x:Name="ItemSelected" HorizontalAlignment="Center" Padding="0" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <CheckBox x:Name="Cbx_ItemSelected" HorizontalAlignment="Center" Padding="0" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                 </GroupBox>
 
 
@@ -252,6 +251,5 @@
                 </ListBox.ItemTemplate>
             </ListBox>
 
-        </Grid>
-    </TabItem>
+    </Grid>
 </UserControl>

@@ -14,6 +14,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Buran.SQLite;
 using Buran.Types;
 using MsBox.Avalonia;
@@ -126,25 +127,46 @@ public class App : Application {
     }
 
     public override void OnFrameworkInitializationCompleted() {
-        // Testet die Verbindung zur Datenbank, bzw. legt die Datenbank als auch die Tabelle an, falls noch nicht vorhanden.
-        DBConnector.TestConnection();
-        
-        // 1. Extensions laden
-        if (!LoadExtensions(ExtensionsDirectory))
-        {
-            // 2. Jetzt darf die MessageBox kommen
-            // (async machen, kein .Wait()!)
-            _ = ShowMissingExtensionsAndShutdown();
-            return;
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
+            desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            var splash = new SplashWindow();
+            splash.Show();
+
+            Dispatcher.UIThread.Post(async () => {
+                var shownAt = DateTime.UtcNow;
+                try {
+                    splash.SetStatus("Datenbank wird geprüft …");
+                    await Task.Run(DBConnector.TestConnection);
+
+                    splash.SetStatus("Erweiterungen werden geladen …");
+                    if (!LoadExtensions(ExtensionsDirectory)) {
+                        splash.Close();
+                        await ShowMissingExtensionsAndShutdown();
+                        return;
+                    }
+
+                    var remaining = TimeSpan.FromMilliseconds(900) - (DateTime.UtcNow - shownAt);
+                    if (remaining > TimeSpan.Zero)
+                        await Task.Delay(remaining);
+
+                    splash.SetStatus("Anwendung wird gestartet …");
+                    var main = new MainWindow {
+                        DataContext = new MainWindowViewModel(),
+                    };
+                    desktop.MainWindow = main;
+                    desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
+                    main.Show();
+                    splash.Close();
+                }
+                catch (Exception ex) {
+                    Console.WriteLine($"Startfehler: {ex}");
+                    splash.Close();
+                    desktop.Shutdown();
+                }
+            });
         }
 
-        // 3. Erst danach MainWindow erstellen
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
-            desktop.MainWindow = new MainWindow {
-                DataContext = new MainWindowViewModel(),
-            };
-        }
-        
         base.OnFrameworkInitializationCompleted();
     }
     

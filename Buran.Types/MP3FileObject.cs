@@ -113,8 +113,10 @@ public class Mp3FileObject : ObservableObject {
     public string Id3Title {
         get => _id3Title;
         set {
+            if (ReferenceEquals(_id3Title, value)) return;
             _id3Title     = value;
             Mp3File.Title = value;
+            Mp3File.Save();
             OnPropertyChanged();
         }
     }
@@ -125,8 +127,10 @@ public class Mp3FileObject : ObservableObject {
     public string Id3Album {
         get => _id3Album;
         set {
+            if (ReferenceEquals(_id3Album, value)) return;
             _id3Album     = value;
             Mp3File.Album = value;
+            Mp3File.Save();
             OnPropertyChanged();
         }
     }
@@ -139,6 +143,7 @@ public class Mp3FileObject : ObservableObject {
         set {
             _id3ReleaseYear             = value;
             Mp3File.OriginalReleaseYear = value;
+            Mp3File.Save();
             OnPropertyChanged();
         }
     }
@@ -149,28 +154,22 @@ public class Mp3FileObject : ObservableObject {
     public string Id3Comment {
         get => _id3Comment;
         set {
-            _id3Comment     = value;
+            if (ReferenceEquals(_id3Comment, value)) return;
+            _id3Comment     = value ?? string.Empty;
             Mp3File.Comment = value;
+            Mp3File.Save();
             OnPropertyChanged();
         }
     }
 
 
-    private List<string> _id3Artists;
+    private ObservableCollection<string> _id3Artists;
 
-    public List<string> Id3ArtistList {
+    public ObservableCollection<string> Id3ArtistCollection {
         get => _id3Artists;
         set {
             if (ReferenceEquals(_id3Artists, value)) return;
-            _id3Artists = value ?? [];
-            OnPropertyChanged();
-        }
-    }
-
-    public ObservableCollection<string> Id3ArtistCollection {
-        get => new ObservableCollection<string>(Id3ArtistList);
-        set {
-            Id3ArtistList  = value.ToList();
+            _id3Artists    = value ?? [];
             Mp3File.Artist = JoinTags(Id3ArtistCollection);
             Mp3File.Save();
             OnPropertyChanged();
@@ -178,44 +177,31 @@ public class Mp3FileObject : ObservableObject {
     }
 
 
-    private List<string> _id3Genres;
+    private ObservableCollection<string> _id3Genres;
 
-    public List<string> Id3GenreList {
+    public ObservableCollection<string> Id3GenreCollection {
         get => _id3Genres;
         set {
             if (ReferenceEquals(_id3Genres, value)) return;
-            _id3Genres = value ?? [];
-            OnPropertyChanged();
-        }
-    }
 
-    public ObservableCollection<string> Id3GenreCollection {
-        get => new ObservableCollection<string>(Id3GenreList);
-        set {
-            Id3GenreList  = value.ToList();
-            Mp3File.Genre = JoinTags(Id3GenreCollection);
+            _id3Genres    = value ?? [];
+            Mp3File.Genre = JoinTags(value);
             Mp3File.Save();
             OnPropertyChanged();
         }
     }
 
-    private List<string> _id3Moods;
 
-    public List<string> Id3MoodList {
+    private ObservableCollection<string> _id3Moods;
+
+    public ObservableCollection<string> Id3MoodCollection {
         get => _id3Moods;
         set {
             if (ReferenceEquals(_id3Moods, value)) return;
-            _id3Moods = value ?? [];
-            OnPropertyChanged();
-        }
-    }
 
-    public ObservableCollection<string> Id3MoodCollection {
-        get => new ObservableCollection<string>(Id3MoodList);
-        set {
-            Id3MoodList                      = value.ToList();
-            Mp3File.AdditionalFields["MOOD"] = JoinTags(Id3MoodList);
-            Mp3File.AdditionalFields["TMOO"] = JoinTags(Id3MoodList);
+            _id3Moods                        = value ?? [];
+            Mp3File.AdditionalFields["MOOD"] = JoinTags(value);
+            Mp3File.AdditionalFields["TMOO"] = JoinTags(value);
             Mp3File.Save();
             OnPropertyChanged();
         }
@@ -242,8 +228,8 @@ public class Mp3FileObject : ObservableObject {
         OnPropertyChanged(nameof(Id3Album));
         OnPropertyChanged(nameof(Id3ReleaseYear));
         OnPropertyChanged(nameof(Id3Comment));
-        OnPropertyChanged(nameof(Id3GenreList));
-        OnPropertyChanged(nameof(Id3MoodList));
+        OnPropertyChanged(nameof(Id3GenreCollection));
+        OnPropertyChanged(nameof(Id3MoodCollection));
     }
 
 
@@ -270,7 +256,7 @@ public class Mp3FileObject : ObservableObject {
     public async Task ResetId3Tags() {
         Id3Title            = Mp3FileInInitialState.Title;
         Id3Album            = Mp3FileInInitialState.Album;
-        Id3ArtistList       = SplitTags(Mp3FileInInitialState.Artist);
+        Id3ArtistCollection = SplitTags(Mp3FileInInitialState.Artist);
         Mp3File.AlbumArtist = Mp3FileInInitialState.AlbumArtist;
         Mp3File.Year        = Mp3FileInInitialState.Year;
         Mp3File.Genre       = Mp3FileInInitialState.Genre;
@@ -281,16 +267,14 @@ public class Mp3FileObject : ObservableObject {
     }
 
 
-
-
     private void ParseAndSetArtistsFromTag() {
         if (string.IsNullOrEmpty(Mp3File.Artist)) {
             _id3Artists = [];
-            OnPropertyChanged(nameof(Id3ArtistList));
+            OnPropertyChanged(nameof(Id3ArtistCollection));
             return;
         }
 
-        List<string> allArtists = [];
+        ObservableCollection<string> allArtists = [];
 
         foreach (var performer in Mp3File.Artist.Split(';')) {
             if (string.IsNullOrWhiteSpace(performer))
@@ -313,19 +297,19 @@ public class Mp3FileObject : ObservableObject {
         }
 
         // Doppelte entfernen
-        allArtists = allArtists.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        allArtists = new ObservableCollection<string>(allArtists.Distinct(StringComparer.OrdinalIgnoreCase).ToList());
 
         // Direkt zuweisen
         _id3Artists = allArtists;
 
         // Events auslösen
-        OnPropertyChanged(nameof(Id3ArtistList));
+        OnPropertyChanged(nameof(Id3ArtistCollection));
 
         Debug.WriteLine($"Geparste Künstler für {FileName}: {string.Join(", ", allArtists)}");
     }
 
-    public List<string> GetMoods(Track file) {
-        List<string> moodVal = [];
+    public ObservableCollection<string> GetMoods(Track file) {
+        ObservableCollection<string> moodVal = [];
         try {
             file.AdditionalFields.TryGetValue("TMOO", out string? TMOOString);
             List<string> moods = [];
@@ -352,8 +336,10 @@ public class Mp3FileObject : ObservableObject {
     }
 
 
-
-    private static List<string> SplitTags(string? raw) => string.IsNullOrWhiteSpace(raw) ? new List<string>() : raw.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+    private static ObservableCollection<string> SplitTags(string? raw) {
+        var result = string.IsNullOrWhiteSpace(raw) ? [] : new ObservableCollection<string>(raw.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList());
+        return result;
+    }
 
     private static string JoinTags(IEnumerable<string>? items) => items is null ? string.Empty : string.Join(';', items.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()));
 

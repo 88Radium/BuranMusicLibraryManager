@@ -8,7 +8,7 @@
         Height="1200"
         x:Class="BuranUI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/Buran.ico"
         Opacity="0.8"
         Title="BuranUI">
     <!-- x:DataType="vm:MainWindowViewModel" -->
@@ -25,7 +25,7 @@
 
     <Grid>
         <!-- <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/> -->
-        <TabControl ItemsSource="{Binding Tabs}" Padding="12"/>
+        <TabControl x:Name="MainTabControl" Padding="12"/>
         <!-- <TextBlock Text="Hallo Stefan und Thomas Wunder!" FontSize="56" /> -->
     </Grid>
 </Window>
