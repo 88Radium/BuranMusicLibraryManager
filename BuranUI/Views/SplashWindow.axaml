@@ -1,5 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:Buran.Localization"
         x:Class="BuranUI.Views.SplashWindow"
         Title="Buran"
         Icon="/Assets/Buran.ico"
@@ -21,7 +22,7 @@
                        HorizontalAlignment="Center"
                        Foreground="#F2F5FA" />
             <TextBlock x:Name="StatusText"
-                       Text="Wird geladen …"
+                       Text="{loc:Loc Key=Splash.Loading}"
                        FontSize="14"
                        Opacity="0.75"
                        HorizontalAlignment="Center"

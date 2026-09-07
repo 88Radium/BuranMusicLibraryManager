@@ -7,7 +7,7 @@ namespace Buran.SQLite;
 public class DatabaseTable_ArtistNames : INotifyPropertyChanged {
     #region PropertyChanged
 
-    public event PropertyChangedEventHandler PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     private void NotifyPropertyChanged([CallerMemberName] string propertyName = "") {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -15,11 +15,13 @@ public class DatabaseTable_ArtistNames : INotifyPropertyChanged {
 
     #endregion
 
+    public DatabaseTable_ArtistNames() { }
+
     public DatabaseTable_ArtistNames(DataRow pEntry) {
         if (pEntry != null) {
             ID                  = Convert.ToInt32(pEntry.ItemArray[0]);
-            PreferredArtistName = Convert.ToString(pEntry.ItemArray[1]);
-            RealName            = Convert.ToString(pEntry.ItemArray[2]);
+            PreferredArtistName = Convert.ToString(pEntry.ItemArray[1]) ?? "";
+            RealName            = Convert.ToString(pEntry.ItemArray[2]) ?? "";
         }
     }
 
@@ -34,7 +36,7 @@ public class DatabaseTable_ArtistNames : INotifyPropertyChanged {
     }
 
 
-    private string _PreferredArtistName;
+    private string _PreferredArtistName = "";
 
     public string PreferredArtistName {
         get { return _PreferredArtistName; }
@@ -45,7 +47,7 @@ public class DatabaseTable_ArtistNames : INotifyPropertyChanged {
     }
 
 
-    private string _RealName;
+    private string _RealName = "";
 
     public string RealName {
         get { return _RealName; }

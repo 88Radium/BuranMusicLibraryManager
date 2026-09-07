@@ -21,7 +21,7 @@ public class FileNameParser {
     }
 
     private string CleanFileName(string fileName) {
-        // Nur Dateiname ohne Pfad und Endung
+        // File name only, without path or extension
         string name = Path.GetFileNameWithoutExtension(fileName);
 
         // Common replacements
@@ -31,13 +31,13 @@ public class FileNameParser {
             .Replace('{', ' ').Replace('}', ' ')
             .Trim();
 
-        // Mehrere Leerzeichen zu einem
+        // Collapse consecutive whitespace
         name = Regex.Replace(name, @"\s+", " ");
 
         return name;
     }
 
-    private ParsedMetadata TryPattern(string fileName, string pattern) {
+    private ParsedMetadata? TryPattern(string fileName, string pattern) {
         try {
             string regex = ConvertToRegex(pattern);
             var    match = Regex.Match(fileName, regex, RegexOptions.IgnoreCase);
@@ -50,7 +50,7 @@ public class FileNameParser {
                     Year        = GetGroupValue(match, "year")
                 };
 
-                // Sammle alle Artists (sowohl {artist} als auch {artists_N})
+                // Collect all artists ({artist} and {artists_N})
                 var allArtists = new List<string>();
 
                 // Single {artist}
@@ -59,7 +59,7 @@ public class FileNameParser {
                     allArtists.AddRange(ParseArtistsString(artist));
                 }
 
-                // Mehrfache {artists_N} - alle durchgehen
+                // Repeated {artists_N}
                 for (int i = 1; i <= 10; i++) {
                     var artistN = GetGroupValue(match, $"artists_{i}");
                     if (!string.IsNullOrWhiteSpace(artistN)) {
@@ -67,12 +67,12 @@ public class FileNameParser {
                     }
                 }
 
-                // Duplikate entfernen (case-insensitive)
+                // Drop duplicates (case-insensitive)
                 metadata.Artists = allArtists
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
-                // Sammle alle Comments (mehrfache {comment_N})
+                // Collect all comments (repeated {comment_N})
                 for (int i = 1; i <= 10; i++) {
                     var comment = GetGroupValue(match, $"comment_{i}");
                     if (!string.IsNullOrWhiteSpace(comment)) {
@@ -90,35 +90,35 @@ public class FileNameParser {
     }
 
     private string ConvertToRegex(string pattern) {
-        // Spezialfall: Klammern in Pattern escaped behandeln
+        // Treat parentheses in the pattern as literals
         pattern = pattern.Replace("(", @"\(").Replace(")", @"\)");
 
-        // Platzhalter-Zähler für mehrfaches Vorkommen
+        // Counters for placeholders that can appear more than once
         var artistCount  = 0;
         var commentCount = 0;
 
-        // Mehrfache {artists} → artists_1, artists_2, etc.
+        // Repeated {artists} → artists_1, artists_2, etc.
         pattern = System.Text.RegularExpressions.Regex.Replace(pattern, @"\{artists\}",
             m => $"___ARTISTS_{++artistCount}___");
 
-        // Mehrfache {comment} → comment_1, comment_2, etc.
+        // Repeated {comment} → comment_1, comment_2, etc.
         pattern = System.Text.RegularExpressions.Regex.Replace(pattern, @"\{comment\}",
             m => $"___COMMENT_{++commentCount}___");
 
-        // Einzelne {artist} (kein Zähler, nur einer pro Pattern)
+        // Single {artist} (no counter; one per pattern)
         pattern = pattern.Replace("{artist}", "___ARTIST___")
             .Replace("{title}", "___TITLE___")
             .Replace("{album}", "___ALBUM___")
             .Replace("{track}", "___TRACK___")
             .Replace("{year}",  "___YEAR___");
 
-        // Jetzt escapen (damit Sonderzeichen safe sind)
+        // Escape so remaining special characters are literal
         string escaped = System.Text.RegularExpressions.Regex.Escape(pattern);
 
-        // Temporäre Markierungen durch Regex-Gruppen ersetzen
+        // Replace temporary markers with named regex groups
         escaped = escaped.Replace("___ARTIST___", "(?<artist>.+?)");
 
-        // Mehrfache {artists_N} → jeweilige Groups
+        // Repeated {artists_N} → matching groups
         for (int i = 1; i <= artistCount; i++) {
             escaped = escaped.Replace($"___ARTISTS_{i}___", $"(?<artists_{i}>.+?)");
         }
@@ -128,12 +128,12 @@ public class FileNameParser {
             .Replace("___TRACK___", "(?<track>.+?)")
             .Replace("___YEAR___",  "(?<year>.+?)");
 
-        // Mehrfache {comment_N} → jeweilige Groups
+        // Repeated {comment_N} → matching groups
         for (int i = 1; i <= commentCount; i++) {
             escaped = escaped.Replace($"___COMMENT_{i}___", $"(?<comment_{i}>.+?)");
         }
 
-        // Bindestrich mit optionalen Leerzeichen
+        // Hyphen with optional surrounding whitespace
         escaped = escaped.Replace(@"\ \- ", @"\s*-\s*");
 
         if (!escaped.StartsWith("^")) escaped = "^"     + escaped;
@@ -142,13 +142,13 @@ public class FileNameParser {
         return escaped;
     }
 
-    private string GetGroupValue(Match match, string groupName) {
+    private string? GetGroupValue(Match match, string groupName) {
         var group = match.Groups[groupName];
         return group.Success ? group.Value.Trim() : null;
     }
 
     private bool IsPlausibleResult(ParsedMetadata metadata) {
-        // Einfache Plausibilitätsprüfung
+        // Simple plausibility check
         if (string.IsNullOrWhiteSpace(metadata.Title))
             return false;
 
@@ -156,7 +156,7 @@ public class FileNameParser {
     }
 
     private ParsedMetadata FallbackParse(string fileName) {
-        // 1. "Artist(s) - Title" Pattern (mit feat., & usw.)
+        // 1. "Artist(s) - Title" (feat., &, etc.)
         var artistTitleMatch = Regex.Match(fileName,
             @"^(?<artist>.+?)\s*[-\u2013\u2014]\s*(?<title>.+)$",
             RegexOptions.IgnoreCase);
@@ -168,7 +168,7 @@ public class FileNameParser {
             };
         }
 
-        // 2. "Track - Title" (ohne Artist)
+        // 2. "Track - Title" (no artist)
         var trackMatch = Regex.Match(fileName,
             @"^(?<track>\d{1,3})(?:\.\d{1,2})?\s*[-\u2013\u2014\.]\s*(?<title>.+)$",
             RegexOptions.IgnoreCase);
@@ -180,102 +180,32 @@ public class FileNameParser {
             };
         }
 
-        // 3. Default: Alles als Titel
+        // 3. Default: treat the whole name as the title
         return new ParsedMetadata { Title = fileName };
     }
 
     /// <summary>
-    /// Parst einen Artist-String in eine Liste von Künstlernamen
-    /// Unterstützt: "Artist1 & Artist2", "Artist1 feat. Artist2", "Artist1, Artist2 and Artist3"
+    /// Splits an artist string into a list of artist names.
+    /// Tokens come from <see cref="CollaborationMarkers"/> (case-insensitive, word-bounded).
     /// </summary>
-    private List<string> ParseArtistsString(string artistsString) {
-        if (string.IsNullOrWhiteSpace(artistsString))
-            return new List<string>();
-
-        // Normalisiere Trennzeichen
-        string normalized = artistsString
-            .Replace("feat.", ",")
-            .Replace("ft.",   ",")
-            .Replace("&",     ",")
-            .Replace(" and ", ",");
-
-        // Splitte und trimme
-        return normalized.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-            .Select(a => a.Trim())
-            .Where(a => !string.IsNullOrWhiteSpace(a))
-            .ToList();
-    }
+    private List<string> ParseArtistsString(string artistsString) =>
+        CollaborationMarkers.SplitArtistNames(artistsString);
 
     /// <summary>
-    /// Wende geparste Metadaten auf ein MP3FileObject an
-    /// </summary>
-    public void ApplyToMP3FileObject(Mp3FileObject mp3File, ParsedMetadata metadata) {
-        if (mp3File == null || metadata == null)
-            return;
-
-        // Titel setzen
-        if (!string.IsNullOrEmpty(metadata.Title))
-            mp3File.Id3Title = metadata.Title;
-
-        // Künstler setzen (als Liste!)
-        if (metadata.Artists != null && metadata.Artists.Any()) {
-            // Für jeden Künstler DB-Check machen
-            ObservableCollection<string> dbArtistNames = [];
-
-            foreach (var artist in metadata.Artists) {
-                var artistEvent = DBConnector.CheckForPreferredName(artist);
-                dbArtistNames.Add(artistEvent.PreferredArtistName);
-
-                // Neuen Künstler in DB eintragen, falls unbekannt
-                if (artistEvent.ArtistNameStatus == ArtistNameStatus.IsNonExistent) {
-                    DBConnector.InsertInto_ArtistNames(artistEvent.PreferredArtistName, "");
-                }
-            }
-
-            // MP3FileObject aktualisieren
-            mp3File.Id3ArtistCollection = dbArtistNames;
-        }
-
-        // Album setzen
-        if (!string.IsNullOrEmpty(metadata.Album))
-            mp3File.Id3Album = metadata.Album;
-
-        // Comments setzen (mehrfach möglich, mit ";" verbunden)
-        if (metadata.Comments != null && metadata.Comments.Any()) {
-            mp3File.Id3Comment = string.Join("; ", metadata.Comments);
-        }
-
-        // Tracknummer setzen
-        if (!string.IsNullOrEmpty(metadata.TrackNumber) &&
-            int.TryParse(metadata.TrackNumber, out int trackNum)) {
-            // Tracknummer setzen - falls deine MP3FileObject-Klasse das unterstützt
-            // mp3File.Track = trackNum; // Wenn du eine Track-Property hast
-        }
-
-        // Jahr setzen
-        if (!string.IsNullOrEmpty(metadata.Year) &&
-            uint.TryParse(metadata.Year, out uint year)) {
-            mp3File.Id3ReleaseYear = (int?)year;
-        }
-    }
-
-    /// <summary>
-    /// Lerne neues Pattern aus User-Korrektur
+    /// Learns a new pattern from a user correction.
     /// </summary>
     public void LearnNewPattern(string fileName, ParsedMetadata correctMetadata) {
-        // Pattern generieren basierend auf den Metadaten
-        string pattern = GeneratePatternFromMetadata(fileName, correctMetadata);
+        var pattern = GeneratePatternFromMetadata(fileName, correctMetadata);
 
         if (!string.IsNullOrEmpty(pattern)) {
             DBConnector.InsertFileNamePattern(pattern, fileName, confidence: 10);
         }
     }
 
-    private string GeneratePatternFromMetadata(string fileName, ParsedMetadata metadata) {
-        // Einfache Heuristik: Ersetze bekannte Werte mit Platzhaltern
+    private string? GeneratePatternFromMetadata(string fileName, ParsedMetadata metadata) {
+        // Simple heuristic: replace known values with placeholders
         string pattern = CleanFileName(fileName);
 
-        // Artist-String erstellen (für Pattern-Matching)
         string artistString = metadata.Artists != null ? string.Join(" & ", metadata.Artists) : "";
 
         if (!string.IsNullOrEmpty(artistString))
@@ -290,7 +220,7 @@ public class FileNameParser {
         if (!string.IsNullOrEmpty(metadata.TrackNumber))
             pattern = pattern.Replace(metadata.TrackNumber, "{track}");
 
-        // Nur speichern, wenn mindestens 2 Platzhalter ersetzt wurden
+        // Keep only if at least two placeholders were substituted
         var placeholderCount = Regex.Matches(pattern, @"\{\w+\}").Count;
         return placeholderCount >= 2 ? pattern : null;
     }

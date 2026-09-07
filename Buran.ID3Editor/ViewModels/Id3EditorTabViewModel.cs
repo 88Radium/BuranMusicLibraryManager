@@ -6,19 +6,21 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using Buran.Interfaces;
 using Buran.SQLite;
 using CommunityToolkit.Mvvm.Input;
+using Buran.ID3Editor.Models;
+using Buran.ID3Editor.Services;
 using Buran.ID3Editor.Views;
 using Buran.Types;
+using Buran.Localization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 
@@ -29,14 +31,8 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     /// Constructor: Sets up Commands and NotifyPropertyChanged
     /// </summary>
     public Id3EditorTabViewModel() {
-        _selectedPath               = string.Empty;
-        _musicFiles                 = null;
-        _openAddArtistDialogCommand = null;
+        _selectedPath = string.Empty;
 
-        // ✅ Wrap den async-Call in einen RelayCommand
-        OfdCommand = new RelayCommand(async () => await OpenMusicFolderDialog(), () => true);
-
-        // FileNameFromId3 uses async/await for the BuranMessageBox. Dafuq AI suggested to make it async. Who knows how to fix that. Too many construction sites at once.
         FileNameFromId3Command               =  new RelayCommand<object>(FileNameFromId3);
         Id3FromFileNameCommand               =  new RelayCommand<object>(Id3FromFileName!);
         RemoveSingleArtistFromID3TagsCommand =  new RelayCommand<object>(RemoveSingleArtistFromID3Tags);
@@ -46,15 +42,58 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         AddSingleGenreFromID3TagsCommand     =  new RelayCommand<Mp3FileObject>(AddSingleGenreFromID3Tags);
         AddSingleMoodFromID3TagsCommand      =  new RelayCommand<Mp3FileObject>(AddSingleMoodFromID3Tags);
         ResetId3ToDefaultCommand             =  new RelayCommand<object>(ResetID3ToDefault!);
+        OpenBulkAddDialogCommand             =  new RelayCommand<string>(OpenBulkAddDialog);
+        SelectAllFilesCommand                =  new RelayCommand(SelectAllFiles, () => HasMusicFiles);
+        UnselectAllFilesCommand              =  new RelayCommand(UnselectAllFiles, () => HasSelectedFiles);
+        BulkFileNameFromId3Command           =  new AsyncRelayCommand(BulkFileNameFromId3Async, () => HasSelectedFiles);
+        BulkId3FromFileNameCommand           =  new RelayCommand(BulkId3FromFileName, () => HasSelectedFiles);
         MusicFiles                           =  new ObservableCollection<Buran.Types.Mp3FileObject>();
-        MusicFiles.CollectionChanged         += (s, e) => OnPropertyChanged(nameof(HasMusicFiles));
+        MusicFiles.CollectionChanged         += (s, e) => {
+            OnPropertyChanged(nameof(HasMusicFiles));
+            NotifySelectionCommands();
+        };
         MusicFiles.CollectionChanged         += OnMusicFilesCollectionChanged!;
+        ReloadCatalogSuggestions();
+        DBConnector.CatalogChanged           += OnCatalogChanged;
+        L.WhenChanged(() => OnPropertyChanged(nameof(SelectedFilesCountText)));
+    }
+
+    private int _catalogReloadQueued;
+
+    private void OnCatalogChanged(object? sender, EventArgs e) {
+        if (Interlocked.Exchange(ref _catalogReloadQueued, 1) == 1)
+            return;
+
+        Dispatcher.UIThread.Post(() => {
+            Interlocked.Exchange(ref _catalogReloadQueued, 0);
+            ReloadCatalogSuggestions();
+        });
+    }
+
+    public ObservableCollection<string> KnownArtistNames { get; } = new();
+    public ObservableCollection<string> KnownGenreNames  { get; } = new();
+    public ObservableCollection<string> KnownMoodNames   { get; } = new();
+
+    public void ReloadCatalogSuggestions() {
+        try {
+            Replace(KnownArtistNames, CatalogNameCache.LoadArtistSuggestionNames());
+            Replace(KnownGenreNames,  CatalogNameCache.LoadGenreSuggestionNames());
+            Replace(KnownMoodNames,   CatalogNameCache.LoadMoodSuggestionNames());
+        } catch (Exception ex) {
+            Debug.WriteLine($"Catalog suggestions could not be loaded: {ex.Message}");
+        }
+    }
+
+    private static void Replace(ObservableCollection<string> target, IEnumerable<string> source) {
+        target.Clear();
+        foreach (var item in source)
+            target.Add(item);
     }
 
 
     #region PropertyChanged
 
-    private void OnMusicFilesCollectionChanged(object sender, NotifyCollectionChangedEventArgs e) {
+    private void OnMusicFilesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e) {
         // Neue Files: PropertyChanged für IsSelected abonnieren
         if (e.NewItems != null) {
             foreach (Mp3FileObject file in e.NewItems) {
@@ -70,25 +109,25 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         }
 
         OnPropertyChanged(nameof(HasSelectedFiles));
+        OnPropertyChanged(nameof(SelectedFilesCount));
+        OnPropertyChanged(nameof(SelectedFilesCountText));
+        NotifySelectionCommands();
     }
 
-    private void OnFilePropertyChanged(object sender, PropertyChangedEventArgs e) {
+    private void OnFilePropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName != nameof(Mp3FileObject.IsSelected)) return;
         OnPropertyChanged(nameof(HasSelectedFiles));
         OnPropertyChanged(nameof(SelectedFilesCount));
+        OnPropertyChanged(nameof(SelectedFilesCountText));
+        NotifySelectionCommands();
     }
 
     #endregion
 
 
-    #region OpenFolderDialog
-
-    public ICommand             OfdCommand      { get; set; }
-    public Func<Task<string?>>? PickFolderAsync { get; set; }
-
     [ObservableProperty] private string _selectedPath;
 
-    private ObservableCollection<Mp3FileObject>? _musicFiles;
+    private ObservableCollection<Mp3FileObject> _musicFiles = [];
 
     public ObservableCollection<Mp3FileObject> MusicFiles {
         get => _musicFiles;
@@ -101,135 +140,17 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     public bool HasMusicFiles => MusicFiles?.Count > 0;
 
-    // ✅ Robust Cross-Platform Folder Browser Dialog with StorageProvider + OpenFolderDialog fallback
-    public async Task<string?> BrowseFolder() {
-        try {
-            // Try to obtain a TopLevel from the Avalonia Application lifetime (classic desktop)
-            var       lifetime = Avalonia.Application.Current?.ApplicationLifetime as Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime;
-            TopLevel? tl       = lifetime?.MainWindow;
-
-            if (tl is null) {
-                // As an extra fallback, try first window in lifetime
-                tl = lifetime?.Windows?.FirstOrDefault();
-            }
-
-            if (tl is null) {
-                Debug.WriteLine("❌ No TopLevel/MainWindow available to show dialogs");
-            } else {
-                // First attempt: StorageProvider (recommended on Linux/Wayland/Flatpak etc.)
-                try {
-                    var provider = tl.StorageProvider;
-                    if (provider != null) {
-                        Debug.WriteLine("🔎 Trying StorageProvider.OpenFolderPickerAsync");
-                        var folders = await provider.OpenFolderPickerAsync(new FolderPickerOpenOptions
-                            { Title = "Musikordner auswählen", AllowMultiple = false });
-                        if (folders?.Count > 0) {
-                            var p = folders[0].Path.AbsolutePath;
-                            Debug.WriteLine($"✅ StorageProvider result: {p}");
-                            return p;
-                        }
-
-                        Debug.WriteLine("ℹ️ StorageProvider returned nothing or was cancelled");
-                    } else {
-                        Debug.WriteLine("⚠️ No StorageProvider on TopLevel");
-                    }
-                } catch (Exception ex) {
-                    Debug.WriteLine($"⚠️ StorageProvider failed: {ex.Message}");
-                }
-
-                // Second attempt: platform-specific external pickers (Linux: zenity/kdialog)
-                try {
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-                        Debug.WriteLine("🔁 Trying zenity/kdialog fallback (Linux)");
-
-                        // Try zenity
-                        try {
-                            var zenity = "/usr/bin/zenity";
-                            if (File.Exists(zenity)) {
-                                var psi = new ProcessStartInfo(zenity, "--file-selection --directory") {
-                                    RedirectStandardOutput = true,
-                                    UseShellExecute        = false
-                                };
-                                using var p    = Process.Start(psi);
-                                var       outp = await p.StandardOutput.ReadToEndAsync();
-                                p.WaitForExit();
-                                outp = outp?.Trim();
-                                if (!string.IsNullOrEmpty(outp)) {
-                                    Debug.WriteLine($"✅ zenity result: {outp}");
-                                    return outp;
-                                }
-                            }
-                        } catch (Exception ex) {
-                            Debug.WriteLine($"⚠️ zenity failed: {ex.Message}");
-                        }
-
-                        // Try kdialog
-                        try {
-                            var kdialog = "/usr/bin/kdialog";
-                            if (File.Exists(kdialog)) {
-                                var psi = new ProcessStartInfo(kdialog, "--getexistingdirectory") {
-                                    RedirectStandardOutput = true,
-                                    UseShellExecute        = false
-                                };
-                                using var p    = Process.Start(psi);
-                                var       outp = await p.StandardOutput.ReadToEndAsync();
-                                p.WaitForExit();
-                                outp = outp?.Trim();
-                                if (!string.IsNullOrEmpty(outp)) {
-                                    Debug.WriteLine($"✅ kdialog result: {outp}");
-                                    return outp;
-                                }
-                            }
-                        } catch (Exception ex) {
-                            Debug.WriteLine($"⚠️ kdialog failed: {ex.Message}");
-                        }
-
-                        Debug.WriteLine("ℹ️ No zenity/kdialog result or not installed");
-                    } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                        Debug.WriteLine("🔁 macOS fallback not implemented");
-                    } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                        Debug.WriteLine("🔁 Windows fallback not implemented");
-                    }
-                } catch (Exception ex) {
-                    Debug.WriteLine($"❌ Fallback pickers failed: {ex.Message}");
-                }
-            }
-
-            return null;
-        } catch (Exception ex) {
-            Debug.WriteLine($"❌ BrowseFolder error: {ex}");
-            return null;
-        }
-    }
-
-
-    public async Task OpenMusicFolderDialog() {
-        // Use PickFolderAsync if provided by View code-behind, otherwise fallback to BrowseFolder()
-        var picker = PickFolderAsync ?? BrowseFolder;
-
-        Debug.WriteLine($"🔎 OpenMusicFolderDialog using picker: {(PickFolderAsync != null ? "PickFolderAsync (code-behind)" : "BrowseFolder (vm)")}");
-
-        if (picker is null) {
-            Debug.WriteLine("❌ Kein Folder-Picker verfügbar");
-            return;
-        }
-
-        var path = await picker();
-        Debug.WriteLine($"🔍 Picker returned path: {(path == null ? "<null>" : path)}");
-
-        if (string.IsNullOrEmpty(path)) return;
-
-        SelectedPath = path;
-
-        // Moved over to the Cobdebehind, because of double calling when using the "Open Directory Dialog"
-        // There the SelectedPath-PropertyChanged-Event is listened to which is triggered by the Dialog as well as manually changing the path 
-        // LoadMusicFiles();
-    }
-
-    #endregion
 
 
     #region LoadMusicFiles
+
+    public void LoadFromFolder(string folderPath) {
+        if (string.IsNullOrWhiteSpace(folderPath))
+            return;
+
+        SelectedPath = folderPath.Replace("%20", " ");
+        LoadMusicFiles();
+    }
 
     public void LoadMusicFiles() {
         MusicFiles.Clear();
@@ -261,14 +182,35 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             i++;
             Mp3FileObject mp3 = new Mp3FileObject(path);
             MusicFiles.Add(mp3);
-
-            if (mp3.Id3ArtistCollection.Count != 0) {
-                foreach (string artist in mp3.Id3ArtistCollection) {
-                    EventPublisher.PublishNewArtist(artist);
-                }
-            }
         }
         GC.Collect();
+        PromptForNewCatalogValues();
+    }
+
+    private void PromptForNewCatalogValues() {
+        if (MusicFiles.Count == 0)
+            return;
+
+        var suggestions = CatalogSuggestionCollector.Collect(MusicFiles);
+        if (suggestions.Count == 0)
+            return;
+
+        var dialog = new ImportCatalogSuggestionsWindow();
+        var vm     = new ImportCatalogSuggestionsViewModel(suggestions);
+        dialog.DataContext = vm;
+        vm.CloseRequested += (_, _) => {
+            dialog.Close();
+            ReloadCatalogSuggestions();
+        };
+
+        var owner = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+
+        if (owner is not null)
+            dialog.ShowDialog(owner);
+        else
+            dialog.Show();
     }
 
     #endregion
@@ -283,54 +225,67 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     /// Checks like for preferred names and similar stuff is not part of this method.
     /// </summary>
     /// <param name="sender"></param>
-    private async void FileNameFromId3(object sender) {
+    private async void FileNameFromId3(object? sender) {
+        if (sender is not Mp3FileObject file)
+            return;
+
+        var error = TryRenameFromId3(file);
+        if (error is not null)
+            await BuranMessageBox.Show(error);
+    }
+
+    private async Task BulkFileNameFromId3Async() {
+        var errors = new List<string>();
+        foreach (var file in MusicFiles.Where(f => f.IsSelected).ToList()) {
+            var error = TryRenameFromId3(file);
+            if (error is not null)
+                errors.Add($"{file.FileName}: {error}");
+        }
+
+        if (errors.Count > 0)
+            await BuranMessageBox.Show(string.Join("\n", errors), L.Get("Id3.RenameCaption"));
+    }
+
+    private string? TryRenameFromId3(Mp3FileObject file) {
         try {
-            Mp3FileObject sndr            = (Mp3FileObject)sender;
-            string        artistString    = GetArtistNamesFromId3AsFormattedString(sndr);
-            string        SongTitleString = GetSongTitleFromId3(sndr);
+            if (file.Mp3File is null)
+                return L.Get("Id3.CouldNotReadFile");
 
-            // In Case There Are No Artists Mentioned In The ID3-Tags
-            if (string.IsNullOrEmpty(artistString)) {
-                artistString = GetArtistsFromFileName();
+            var artistString = GetArtistNamesFromId3AsFormattedString(file);
+
+            var title      = GetSongTitleFromId3(file);
+            var original   = file.FileName;
+            var extension  = Path.GetExtension(original);
+            if (string.IsNullOrEmpty(extension)) {
+                var mime = file.FileType?.MimeList?.FirstOrDefault();
+                extension = mime is not null && mime.Contains('/')
+                    ? "." + mime[(mime.IndexOf('/') + 1)..]
+                    : ".mp3";
             }
 
-            string OriginalFileName = sndr.FileName;
+            var newName = artistString + " - " + title + extension;
+            if (string.Equals(original, newName, StringComparison.Ordinal))
+                return null;
 
+            var directory = file.ContainingDirectoryName;
+            var oldPath   = Path.Combine(directory, original);
+            var newPath   = Path.Combine(directory, newName);
 
-            // Sets new Filename
-            string? a = sndr.FileType.MimeList.FirstOrDefault();
-            var     b = a?.Substring(a.IndexOf('/') + 1);
-
-            sndr.FileName = artistString + " - " + SongTitleString + "." + b;
+            file.Mp3File.Save();
             try {
-                // Saves Any Changes To The MetaData
-                sndr.Mp3File.Save();
-
-                // Saves The File Under The New Filename
-                try {
-                    System.IO.File.Move(Path.Combine(sndr.ContainingDirectoryName, OriginalFileName), Path.Combine(sndr.ContainingDirectoryName, sndr.FileName));
-                } catch (IOException IOex) {
-                    //TODO: Datei-Ersetzen-Dialog - Option zum Überschreiben/Überspringen hinzufügen.
-                    await BuranMessageBox.Show($"Es existiert bereits eine Datei mit demselben Namen:\n{IOex.Message}");
-                }
-
-
-                /// Replaces The Mp3FileObject In The ListView.ItemsSource With The One Saved Under The New Filename.
-                /// Otherwise there will be an Exception in [sndr.File.Save();] as soon as you want to save a second change in a row
-                /// because of the sndr.File points to the Filepath it had as it was loaded initially. File.Save() will throw an exception then.
-                MusicFiles[MusicFiles.IndexOf(MusicFiles.First(x => x.FileName == sndr.FileName))] =
-                    new Mp3FileObject(Path.Combine(sndr.ContainingDirectoryName, sndr.FileName));
-            } catch (IndexOutOfRangeException) {
-                await BuranMessageBox.Show(
-                    "The existing Filename could not be found in the List of music files to display.");
-            } catch (NullReferenceException) {
-                await BuranMessageBox.Show(
-                    "The displayed object could not be saved, because the internal path to the file on the file system was not found." +
-                    "This can be casued by an unsuccessful saving-attempt or may be unvalid characters in the file name."
-                );
+                File.Move(oldPath, newPath);
+            } catch (IOException ex) {
+                return ex.Message;
             }
-        } catch (Exception e) {
-            throw; // TODO handle exception
+
+            var index = MusicFiles.IndexOf(file);
+            if (index < 0)
+                return L.Get("Id3.EntryNotInList");
+
+            MusicFiles[index] = new Mp3FileObject(newPath) { IsSelected = file.IsSelected };
+            return null;
+        } catch (Exception ex) {
+            return ex.Message;
         }
     }
 
@@ -397,17 +352,32 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     public void Id3FromFileName(object sender) {
         ArgumentNullException.ThrowIfNull(sender);
-        Mp3FileObject sndr = sender as Mp3FileObject;
-        if (sndr is not Mp3FileObject file) return;
+        if (sender is not Mp3FileObject file) return;
 
         var parser   = new FileNameParser();
-        var metadata = parser.Parse(sndr.FileName, DBConnector.LoadFileNamePatterns());
+        var patterns = DBConnector.LoadFileNamePatterns();
+        ApplyId3FromFileName(file, parser, patterns);
+    }
 
-        if (metadata.MatchedPatternId is int patternId) {
+    private void BulkId3FromFileName() {
+        var parser   = new FileNameParser();
+        var patterns = DBConnector.LoadFileNamePatterns();
+        foreach (var file in MusicFiles.Where(f => f.IsSelected).ToList())
+            ApplyId3FromFileName(file, parser, patterns);
+
+        PromptForNewCatalogValues();
+    }
+
+    private static void ApplyId3FromFileName(
+        Mp3FileObject file,
+        FileNameParser parser,
+        ObservableCollection<DBConnector.FileNamePattern> patterns) {
+        var metadata = parser.Parse(file.FileName, patterns);
+
+        if (metadata.MatchedPatternId is int patternId)
             DBConnector.IncreasePatternConfidence(patternId);
-        } else {
+        else
             parser.LearnNewPattern(file.FileName, metadata);
-        }
 
         ApplyParsedMetadata(file, metadata);
         file.SaveTags();
@@ -435,23 +405,6 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             file.Id3ReleaseYear = (int)year;
     }
 
-    public string GetTitleFromFileName() {
-        return string.Empty;
-    }
-
-
-    public string GetArtistsFromFileName() {
-        return string.Empty;
-    }
-
-    public string GetAlbumFromFileName() {
-        return string.Empty;
-    }
-
-    public string GetTitleNumberFromFileName() {
-        return string.Empty;
-    }
-
     #endregion
 
 
@@ -468,39 +421,62 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     #endregion
 
 
-    #region Bulk_AddArtist
+    #region Bulk_AddTags
 
-    private ICommand _openAddArtistDialogCommand;
-
-    public ICommand OpenAddArtistDialogCommand => _openAddArtistDialogCommand ??= new RelayCommand(OpenAddArtistDialog);
+    public ICommand OpenBulkAddDialogCommand { get; }
+    public ICommand SelectAllFilesCommand       { get; }
+    public ICommand UnselectAllFilesCommand     { get; }
+    public ICommand BulkFileNameFromId3Command  { get; }
+    public ICommand BulkId3FromFileNameCommand  { get; }
 
     public bool HasSelectedFiles   => MusicFiles?.Any(f => f.IsSelected    == true) ?? false;
     public int  SelectedFilesCount => MusicFiles?.Count(f => f?.IsSelected == true) ?? 0;
+    public string SelectedFilesCountText => L.Format("Id3.SelectedCount", SelectedFilesCount);
 
-    private void OpenAddArtistDialog() {
+    private void SelectAllFiles() {
+        if (MusicFiles is null) return;
+        foreach (var file in MusicFiles)
+            file.IsSelected = true;
+    }
+
+    private void UnselectAllFiles() {
+        if (MusicFiles is null) return;
+        foreach (var file in MusicFiles)
+            file.IsSelected = false;
+    }
+
+    private void NotifySelectionCommands() {
+        (SelectAllFilesCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+        (UnselectAllFilesCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+        (BulkFileNameFromId3Command as IRelayCommand)?.NotifyCanExecuteChanged();
+        (BulkId3FromFileNameCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+    }
+
+    private void OpenBulkAddDialog(string? kind) {
+        if (!Enum.TryParse(kind, ignoreCase: true, out CatalogSuggestionKind tagKind))
+            return;
+
         var selectedFiles = MusicFiles.Where(f => f.IsSelected).ToList();
-        if (!selectedFiles.Any()) return;
+        if (selectedFiles.Count == 0)
+            return;
 
-        var dialog = new AddArtistToID3DialogWindow();
-        var vm     = new AddArtistToID3DialogWindowViewModel(selectedFiles);
+        var dialog = new BulkAddTagsWindow();
+        var vm     = new BulkAddTagsViewModel(selectedFiles, tagKind);
         dialog.DataContext = vm;
-
-        vm.OnApplyCompleted += (s, e) => {
+        vm.CloseRequested += (_, _) => {
             dialog.Close();
+            ReloadCatalogSuggestions();
             OnPropertyChanged(nameof(MusicFiles));
         };
-
-        vm.OnCancel += (s, e) => dialog.Close();
-
 
         var owner = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
             ? desktop.MainWindow
             : null;
 
-        // 5. Dialog mit Owner anzeigen (async/await)
-        if (owner != null) {
+        if (owner is not null)
             dialog.ShowDialog(owner);
-        }
+        else
+            dialog.Show();
     }
 
     #endregion
@@ -513,18 +489,32 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     public ICommand AddSingleArtistFromID3TagsCommand    { get; set; }
     public ICommand RemoveSingleArtistFromID3TagsCommand { get; set; }
 
-    public void AddSingleArtistFromID3Tags(Mp3FileObject sender) {
-        if (sender.Id3ArtistCollection.Contains(sender.ArtistToAdd)) return;
-        sender.Id3ArtistCollection = new ObservableCollection<string>(sender.Id3ArtistCollection.Append(sender.ArtistToAdd));
+    public void AddSingleArtistFromID3Tags(Mp3FileObject? sender) {
+        if (sender is null) return;
+        var input = sender.ArtistToAdd?.Trim();
+        if (string.IsNullOrWhiteSpace(input))
+            return;
+
+        var resolved = DBConnector.CheckForPreferredName(input);
+        if (resolved.ArtistNameStatus == ArtistNameStatus.IsNonExistent) {
+            DBConnector.InsertArtistName(resolved.PreferredArtistName, "");
+            ReloadCatalogSuggestions();
+        }
+
+        var name = resolved.PreferredArtistName;
+        var current = sender.Id3ArtistCollection ?? [];
+        if (current.Any(a => a.Equals(name, StringComparison.OrdinalIgnoreCase))) {
+            sender.ArtistToAdd = string.Empty;
+            return;
+        }
+
+        sender.Id3ArtistCollection = new ObservableCollection<string>(current.Append(name));
         sender.ArtistToAdd         = string.Empty;
     }
 
-    public void RemoveSingleArtistFromID3Tags(object parameter) {
-        Debug.WriteLine($"parameter type: {parameter?.GetType().FullName ?? "null"}");
+    public void RemoveSingleArtistFromID3Tags(object? parameter) {
         if (parameter is not ArtistRemoveArgs args) return;
-        var a = args.File.Id3ArtistCollection;
-        a.Remove(args.Artist);
-        args.File.Id3ArtistCollection = a;
+        args.File.Id3ArtistCollection = WithoutTag(args.File.Id3ArtistCollection, args.Artist);
     }
 
     #endregion
@@ -535,18 +525,24 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     public ICommand AddSingleGenreFromID3TagsCommand    { get; set; }
     public ICommand RemoveSingleGenreFromID3TagsCommand { get; set; }
 
-    public void AddSingleGenreFromID3Tags(Mp3FileObject sender) {
-        if (sender.Id3GenreCollection.Contains(sender.GenreToAdd)) return;
-        sender.Id3GenreCollection = new ObservableCollection<string>(sender.Id3GenreCollection.Append(sender.GenreToAdd));
+    public void AddSingleGenreFromID3Tags(Mp3FileObject? sender) {
+        if (sender is null) return;
+        if (!TryAddCatalogTag(sender.GenreToAdd, KnownGenreNames, DBConnector.InsertGenreName, out var name))
+            return;
+
+        var current = sender.Id3GenreCollection ?? [];
+        if (current.Any(g => g.Equals(name, StringComparison.OrdinalIgnoreCase))) {
+            sender.GenreToAdd = string.Empty;
+            return;
+        }
+
+        sender.Id3GenreCollection = new ObservableCollection<string>(current.Append(name));
         sender.GenreToAdd         = string.Empty;
     }
 
-    public void RemoveSingleGenreFromID3Tags(object parameter) {
-        Debug.WriteLine($"parameter type: {parameter?.GetType().FullName ?? "null"}");
+    public void RemoveSingleGenreFromID3Tags(object? parameter) {
         if (parameter is not GenreRemoveArgs args) return;
-        var a = args.File.Id3GenreCollection;
-        a.Remove(args.Genre);
-        args.File.Id3GenreCollection = a;
+        args.File.Id3GenreCollection = WithoutTag(args.File.Id3GenreCollection, args.Genre);
     }
 
     #endregion
@@ -557,18 +553,50 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     public ICommand AddSingleMoodFromID3TagsCommand    { get; set; }
     public ICommand RemoveSingleMoodFromID3TagsCommand { get; set; }
 
-    public void AddSingleMoodFromID3Tags(Mp3FileObject sender) {
-        if (sender.Id3MoodCollection.Contains(sender.MoodToAdd)) return;
-        sender.Id3MoodCollection = new ObservableCollection<string>(sender.Id3MoodCollection.Append(sender.MoodToAdd));
+    public void AddSingleMoodFromID3Tags(Mp3FileObject? sender) {
+        if (sender is null) return;
+        if (!TryAddCatalogTag(sender.MoodToAdd, KnownMoodNames, DBConnector.InsertMoodName, out var name))
+            return;
+
+        var current = sender.Id3MoodCollection ?? [];
+        if (current.Any(m => m.Equals(name, StringComparison.OrdinalIgnoreCase))) {
+            sender.MoodToAdd = string.Empty;
+            return;
+        }
+
+        sender.Id3MoodCollection = new ObservableCollection<string>(current.Append(name));
         sender.MoodToAdd         = string.Empty;
     }
 
-    public void RemoveSingleMoodFromID3Tags(object parameter) {
-        Debug.WriteLine($"parameter type: {parameter?.GetType().FullName ?? "null"}");
+    private bool TryAddCatalogTag(
+        string? raw,
+        ObservableCollection<string> known,
+        Action<string> insert,
+        out string name) {
+        var trimmed = raw?.Trim() ?? string.Empty;
+        name = trimmed;
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return false;
+
+        var existing = known.FirstOrDefault(v => v.Equals(trimmed, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null) {
+            name = existing;
+            return true;
+        }
+
+        insert(name);
+        ReloadCatalogSuggestions();
+        return true;
+    }
+
+    public void RemoveSingleMoodFromID3Tags(object? parameter) {
         if (parameter is not MoodRemoveArgs args) return;
-        var a = args.File.Id3MoodCollection;
-        a.Remove(args.Mood);
-        args.File.Id3MoodCollection = a;
+        args.File.Id3MoodCollection = WithoutTag(args.File.Id3MoodCollection, args.Mood);
+    }
+
+    private static ObservableCollection<string> WithoutTag(IEnumerable<string>? tags, string? value) {
+        var remaining = (tags ?? []).Where(t => !string.Equals(t, value, StringComparison.Ordinal));
+        return new ObservableCollection<string>(remaining);
     }
 
     #endregion

@@ -10,21 +10,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Folder Include="Models\"/>
         <AvaloniaResource Include="Assets\**"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.1.1" />
-        <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.1" />
+        <PackageReference Include="Avalonia" Version="12.1.2" />
+        <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
         <PackageReference Include="HotAvalonia" Version="3.1.4" />
         <PackageReference Include="System.Composition" Version="10.0.11" />
-        <PackageReference Include="Tmds.DBus.Protocol" Version="0.94.2" />
+        <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
     </ItemGroup>
 
     <ItemGroup>
@@ -33,6 +32,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Buran.Interfaces\Buran.Interfaces.csproj" />
+      <ProjectReference Include="..\Buran.Localization\Buran.Localization.csproj" />
       <ProjectReference Include="..\Buran.SQLite\Buran.SQLite.csproj" />
     </ItemGroup>
 </Project>

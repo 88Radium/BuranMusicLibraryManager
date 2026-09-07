@@ -1,10 +1,7 @@
-using System;
-using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Data.Converters;
-using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
+using Avalonia.Input;
 using Buran.ID3Editor.ViewModels;
+using Buran.Types;
 
 namespace Buran.ID3Editor.Views;
 
@@ -12,20 +9,28 @@ public partial class Id3EditorTab : UserControl {
     public Id3EditorTab() {
         InitializeComponent();
 
-        // Set PickFolderAsync in Loaded event so DataContext and TopLevel are available
-        this.Loaded += (_, _) => {
-            if (this.DataContext is Id3EditorTabViewModel vm) {
-                // Use the ViewModel's BrowseFolder implementation (single source of truth)
-                vm.PickFolderAsync = vm.BrowseFolder;
-                System.Diagnostics.Debug.WriteLine("✅ PickFolderAsync initialized in Loaded event (vm.BrowseFolder)");
-            } else {
-                System.Diagnostics.Debug.WriteLine("❌ DataContext is not Id3EditorTabViewModel in Loaded event");
-            }
-        };
     }
 
-    private void DirPath_TextChanged(object sender, TextChangedEventArgs e) {
-        if (DataContext is Id3EditorTabViewModel vm)
-            vm.LoadMusicFiles();
+    private void CatalogAddBox_KeyDown(object? sender, KeyEventArgs e) {
+        if (e.Key != Key.Enter || sender is not AutoCompleteBox { DataContext: Mp3FileObject file } box)
+            return;
+        if (DataContext is not Id3EditorTabViewModel vm)
+            return;
+        if (box.IsDropDownOpen)
+            return;
+
+        switch (box.Tag as string) {
+            case "Artist":
+                vm.AddSingleArtistFromID3Tags(file);
+                break;
+            case "Genre":
+                vm.AddSingleGenreFromID3Tags(file);
+                break;
+            case "Mood":
+                vm.AddSingleMoodFromID3Tags(file);
+                break;
+        }
+
+        e.Handled = true;
     }
 }

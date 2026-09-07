@@ -16,8 +16,9 @@ public class Mp3FileObject : ObservableObject {
             Mp3File               = new Track(path);
             Mp3FileInInitialState = new Track(path); // Duplicate Of Original Values One Can Reset To...
         } catch (Exception ex) {
-            Mp3File = null;
-            Debug.WriteLine($"Fehler beim Laden der Datei {path}: {ex.Message}");
+            Debug.WriteLine($"Failed to load file {path}: {ex.Message}");
+            FileName                = Path.GetFileName(path);
+            ContainingDirectoryName = Path.GetDirectoryName(path) ?? "";
             return;
         }
 
@@ -37,8 +38,8 @@ public class Mp3FileObject : ObservableObject {
 
     #region The TagLib#-Music file(s)
 
-    public Track Mp3File               { get; set; }
-    public Track Mp3FileInInitialState { get; set; }
+    public Track Mp3File               { get; set; } = null!;
+    public Track Mp3FileInInitialState { get; set; } = null!;
 
     #endregion
 
@@ -67,7 +68,7 @@ public class Mp3FileObject : ObservableObject {
     }
 
 
-    private string _fileName;
+    private string _fileName = "";
 
     public string FileName {
         get => _fileName;
@@ -78,7 +79,7 @@ public class Mp3FileObject : ObservableObject {
     }
 
 
-    private string _containingDirectoryName;
+    private string _containingDirectoryName = "";
 
     public string ContainingDirectoryName {
         get => _containingDirectoryName;
@@ -91,7 +92,7 @@ public class Mp3FileObject : ObservableObject {
     public string FullPath => Path.Combine(ContainingDirectoryName, FileName);
 
 
-    private AudioFormat _fileType;
+    private AudioFormat _fileType = null!;
 
     public AudioFormat FileType {
         get => _fileType;
@@ -108,7 +109,7 @@ public class Mp3FileObject : ObservableObject {
 
     #region ID3 Properties
 
-    private string _id3Title;
+    private string _id3Title = "";
 
     public string Id3Title {
         get => _id3Title;
@@ -122,7 +123,7 @@ public class Mp3FileObject : ObservableObject {
     }
 
 
-    private string _id3Album;
+    private string _id3Album = "";
 
     public string Id3Album {
         get => _id3Album;
@@ -149,7 +150,7 @@ public class Mp3FileObject : ObservableObject {
     }
 
 
-    private string _id3Comment;
+    private string _id3Comment = "";
 
     public string Id3Comment {
         get => _id3Comment;
@@ -163,7 +164,7 @@ public class Mp3FileObject : ObservableObject {
     }
 
 
-    private ObservableCollection<string> _id3Artists;
+    private ObservableCollection<string> _id3Artists = [];
 
     public ObservableCollection<string> Id3ArtistCollection {
         get => _id3Artists;
@@ -177,7 +178,7 @@ public class Mp3FileObject : ObservableObject {
     }
 
 
-    private ObservableCollection<string> _id3Genres;
+    private ObservableCollection<string> _id3Genres = [];
 
     public ObservableCollection<string> Id3GenreCollection {
         get => _id3Genres;
@@ -192,7 +193,7 @@ public class Mp3FileObject : ObservableObject {
     }
 
 
-    private ObservableCollection<string> _id3Moods;
+    private ObservableCollection<string> _id3Moods = [];
 
     public ObservableCollection<string> Id3MoodCollection {
         get => _id3Moods;
@@ -245,10 +246,10 @@ public class Mp3FileObject : ObservableObject {
 
             Mp3File.Save();
             WasManipulated = false;
-            Debug.WriteLine($"Tags gespeichert: {FileName}");
+            Debug.WriteLine($"Saved tags: {FileName}");
         } catch (Exception ex) {
-            Debug.WriteLine($"Fehler beim Speichern von {FileName}: {ex.Message}");
-            await BuranMessageBox.Show($"Fehler beim Speichern von {FileName}: {ex.Message}");
+            Debug.WriteLine($"Failed to save {FileName}: {ex.Message}");
+            await BuranMessageBox.Show(Buran.Localization.L.Format("File.SaveFailed", FileName, ex.Message));
             throw;
         }
     }
@@ -276,25 +277,8 @@ public class Mp3FileObject : ObservableObject {
 
         ObservableCollection<string> allArtists = [];
 
-        foreach (var performer in Mp3File.Artist.Split(';')) {
-            if (string.IsNullOrWhiteSpace(performer))
-                continue;
-
-            // Splitte nach allen möglichen Trennzeichen
-            var splitArtists = performer.Split([',', ';', '/', '&', '+'],
-                StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var artist in splitArtists) {
-                var trimmed = artist.Trim();
-
-                // Entferne "feat.", "ft.", etc.
-                trimmed = System.Text.RegularExpressions.Regex.Replace(trimmed, @"\s*(feat\.|ft\.|featuring|with)\s*", "", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
-                if (!string.IsNullOrWhiteSpace(trimmed)) {
-                    allArtists.Add(trimmed);
-                }
-            }
-        }
+        foreach (var artist in CollaborationMarkers.SplitArtistNames(Mp3File.Artist))
+            allArtists.Add(artist);
 
         // Doppelte entfernen
         allArtists = new ObservableCollection<string>(allArtists.Distinct(StringComparer.OrdinalIgnoreCase).ToList());
@@ -305,7 +289,7 @@ public class Mp3FileObject : ObservableObject {
         // Events auslösen
         OnPropertyChanged(nameof(Id3ArtistCollection));
 
-        Debug.WriteLine($"Geparste Künstler für {FileName}: {string.Join(", ", allArtists)}");
+        Debug.WriteLine($"Parsed artists for {FileName}: {string.Join(", ", allArtists)}");
     }
 
     public ObservableCollection<string> GetMoods(Track file) {
@@ -328,8 +312,8 @@ public class Mp3FileObject : ObservableObject {
             }
         } catch (Exception ex) {
             ATL.Logging.Log Logger = new Log();
-            Logger.Error($"Fehler beim Lesen der Moods: {ex.Message}");
-            BuranMessageBox.Show($"Fehler beim Lesen der Moods: {ex.Message}").Wait();
+            Logger.Error($"Failed to read moods: {ex.Message}");
+            BuranMessageBox.Show(Buran.Localization.L.Format("File.ReadMoodsFailed", ex.Message)).Wait();
         }
 
         return moodVal;
@@ -344,7 +328,7 @@ public class Mp3FileObject : ObservableObject {
     private static string JoinTags(IEnumerable<string>? items) => items is null ? string.Empty : string.Join(';', items.Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s.Trim()));
 
 
-    private string _GenreToAdd;
+    private string _GenreToAdd = "";
 
     public string GenreToAdd {
         get => _GenreToAdd;
@@ -354,7 +338,7 @@ public class Mp3FileObject : ObservableObject {
         }
     }
 
-    private string _ArtistToAdd;
+    private string _ArtistToAdd = "";
 
     public string ArtistToAdd {
         get => _ArtistToAdd;
@@ -364,7 +348,7 @@ public class Mp3FileObject : ObservableObject {
         }
     }
 
-    private string _MoodToAdd;
+    private string _MoodToAdd = "";
 
     public string MoodToAdd {
         get => _MoodToAdd;

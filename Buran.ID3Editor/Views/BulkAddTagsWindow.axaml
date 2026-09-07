@@ -1,0 +1,97 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Buran.ID3Editor.ViewModels"
+        xmlns:types="using:Buran.ID3Editor.Types"
+        xmlns:fileTypes="using:Buran.Types"
+        xmlns:loc="using:Buran.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="760" d:DesignHeight="620"
+        Width="780" Height="620"
+        MinWidth="640" MinHeight="480"
+        x:Class="Buran.ID3Editor.Views.BulkAddTagsWindow"
+        x:DataType="vm:BulkAddTagsViewModel"
+        Title="{Binding WindowTitle}"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Spacing="8" Margin="0,12,0,0">
+            <Button Classes="ghost" Content="{loc:Loc Key=Common.Cancel}" Command="{Binding CancelCommand}" />
+            <Button Classes="accent" Content="{loc:Loc Key=Common.Apply}" Command="{Binding ApplyCommand}"
+                    IsEnabled="{Binding CanApply}" />
+        </StackPanel>
+
+        <Grid RowDefinitions="Auto,Auto,*,Auto,*" RowSpacing="10">
+            <GroupBox Grid.Row="0" Header="{Binding ListHeader}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <ListBox ItemsSource="{Binding CurrentTags}" Height="120">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <DockPanel>
+                                    <Button DockPanel.Dock="Right" Content="X" Width="28"
+                                            Command="{Binding $parent[Window].((vm:BulkAddTagsViewModel)DataContext).RemoveTagCommand}"
+                                            CommandParameter="{Binding}" />
+                                    <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel Grid.Column="1" Margin="10,0,0,0" Spacing="6">
+                        <Button Content="{loc:Loc Key=Common.ClearAll}" Command="{Binding ClearTagsCommand}" Width="140" />
+                        <Button Content="{loc:Loc Key=Bulk.LoadFromSelection}" Command="{Binding LoadFromSelectionCommand}" Width="140" />
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
+            <GroupBox Grid.Row="1" Header="{Binding InputHeader}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <AutoCompleteBox x:Name="TagInputBox"
+                                     PlaceholderText="{Binding InputWatermark}"
+                                     FilterMode="ContainsOrdinal"
+                                     MinimumPrefixLength="1"
+                                     MaxDropDownHeight="180"
+                                     Text="{Binding NewTagInput, Mode=TwoWay}"
+                                     ItemsSource="{Binding KnownTags}"
+                                     KeyDown="TagInputBox_KeyDown" />
+                    <Button Grid.Column="1" Content="{loc:Loc Key=Common.Add}" Margin="8,0,0,0" Width="140"
+                            Command="{Binding AddTagCommand}" IsEnabled="{Binding CanAddTag}" />
+                </Grid>
+            </GroupBox>
+
+            <GroupBox Grid.Row="2" Header="{loc:Loc Key=Bulk.SelectedFiles}">
+                <ListBox ItemsSource="{Binding SelectedFiles}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="fileTypes:Mp3FileObject">
+                            <TextBlock Text="{Binding FileName}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </GroupBox>
+
+            <TextBlock Grid.Row="3" Classes="muted"
+                       Text="{loc:Loc Key=Bulk.UnionHint}" />
+
+            <GroupBox Grid.Row="4" Header="{loc:Loc Key=Common.Preview}">
+                <ListBox ItemsSource="{Binding PreviewItems}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="types:TagPreviewItem">
+                            <StackPanel Margin="0,4">
+                                <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Classes="muted" Text="{loc:Loc Key=Common.Previous}" />
+                                    <TextBlock Classes="muted" Text="{Binding OldTags}" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="{loc:Loc Key=Common.New}" />
+                                    <TextBlock Text="{Binding NewTags}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </GroupBox>
+        </Grid>
+    </DockPanel>
+</Window>

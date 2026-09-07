@@ -1,0 +1,153 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Buran.ID3Editor.ViewModels"
+        xmlns:models="using:Buran.ID3Editor.Models"
+        xmlns:sqlite="using:Buran.SQLite"
+        xmlns:loc="using:Buran.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        d:DesignWidth="760" d:DesignHeight="640"
+        Width="1100" Height="680"
+        MinWidth="900" MinHeight="520"
+        x:Class="Buran.ID3Editor.Views.ImportCatalogSuggestionsWindow"
+        x:DataType="vm:ImportCatalogSuggestionsViewModel"
+        Title="{loc:Loc Key=Catalog.Title}"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
+            <TextBlock Text="{loc:Loc Key=Catalog.UnknownFound}" FontSize="{DynamicResource Font.Title}" FontWeight="SemiBold" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="{loc:Loc Key=Catalog.Hint}" />
+            <TextBlock Text="{Binding Summary}" Opacity="0.8" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+            <TextBlock Classes="muted" Text="{Binding ApplyBlockReason}"
+                       IsVisible="{Binding HasApplyBlockReason}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Classes="ghost" Content="{loc:Loc Key=Common.Skip}" Command="{Binding SkipCommand}" />
+                <Button Classes="accent" Content="{loc:Loc Key=Common.Apply}" Command="{Binding ApplyCommand}"
+                        IsEnabled="{Binding CanApply}" />
+            </StackPanel>
+        </StackPanel>
+
+        <Grid ColumnDefinitions="*,12,*,12,*">
+            <GroupBox Grid.Column="0" Header="{loc:Loc Key=Common.Artists}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"
+                               Text="{loc:Loc Key=Catalog.NoNewArtists}"
+                               IsVisible="{Binding !HasArtists}" />
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Artists}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:CatalogSuggestionItem">
+                                    <Border Classes="editor-item">
+                                        <StackPanel Spacing="6">
+                                            <DockPanel>
+                                                <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Include}"
+                                                          VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                <TextBlock DockPanel.Dock="Right" Classes="muted"
+                                                           Text="{Binding Source}" VerticalAlignment="Center"
+                                                           Margin="8,0,0,0" />
+                                                <TextBlock Text="{Binding Value}" FontWeight="SemiBold"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </DockPanel>
+                                            <StackPanel Spacing="6" IsEnabled="{Binding Include}">
+                                                <RadioButton Content="{loc:Loc Key=Catalog.PreferredName}"
+                                                             GroupName="{Binding RadioGroupName}"
+                                                             IsChecked="{Binding IsPreferredName}" />
+                                                <RadioButton Content="{loc:Loc Key=Catalog.AlternativeName}"
+                                                             GroupName="{Binding RadioGroupName}"
+                                                             IsChecked="{Binding IsAlternativeName}" />
+                                                <StackPanel Spacing="6" IsVisible="{Binding IsAlternativeName}">
+                                                    <ComboBox PlaceholderText="{loc:Loc Key=Catalog.ExistingPreferred}"
+                                                              ItemsSource="{Binding $parent[Window].((vm:ImportCatalogSuggestionsViewModel)DataContext).ExistingArtists}"
+                                                              SelectedItem="{Binding RefersToArtist}">
+                                                        <ComboBox.ItemTemplate>
+                                                            <DataTemplate x:DataType="sqlite:DatabaseTable_ArtistNames">
+                                                                <TextBlock Text="{Binding PreferredArtistName}" />
+                                                            </DataTemplate>
+                                                        </ComboBox.ItemTemplate>
+                                                    </ComboBox>
+                                                    <TextBlock Classes="muted"
+                                                               Text="{loc:Loc Key=Catalog.OrCreatePreferred}" />
+                                                    <TextBox PlaceholderText="{loc:Loc Key=Catalog.ExampleArtist}"
+                                                             Text="{Binding NewPreferredName}" />
+                                                    <TextBox PlaceholderText="{loc:Loc Key=Catalog.CivilNameExample}"
+                                                             Text="{Binding NewRealName}" />
+                                                    <Button Content="{loc:Loc Key=Catalog.CreateArtist}"
+                                                            HorizontalAlignment="Left"
+                                                            Command="{Binding $parent[Window].((vm:ImportCatalogSuggestionsViewModel)DataContext).CreatePreferredForCommand}"
+                                                            CommandParameter="{Binding}"
+                                                            IsEnabled="{Binding HasNewPreferredName}" />
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </GroupBox>
+
+            <GroupBox Grid.Column="2" Header="{loc:Loc Key=Common.Genres}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"
+                               Text="{loc:Loc Key=Catalog.NoNewGenres}"
+                               IsVisible="{Binding !HasGenres}" />
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Genres}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:CatalogSuggestionItem">
+                                    <Border Classes="editor-item">
+                                        <DockPanel>
+                                            <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Include}"
+                                                      VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <TextBlock DockPanel.Dock="Right" Classes="muted"
+                                                       Text="{Binding Source}" VerticalAlignment="Center"
+                                                       Margin="8,0,0,0" />
+                                            <TextBlock Text="{Binding Value}" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </GroupBox>
+
+            <GroupBox Grid.Column="4" Header="{loc:Loc Key=Common.Moods}">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"
+                               Text="{loc:Loc Key=Catalog.NoNewMoods}"
+                               IsVisible="{Binding !HasMoods}" />
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Moods}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:CatalogSuggestionItem">
+                                    <Border Classes="editor-item">
+                                        <DockPanel>
+                                            <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Include}"
+                                                      VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <TextBlock DockPanel.Dock="Right" Classes="muted"
+                                                       Text="{Binding Source}" VerticalAlignment="Center"
+                                                       Margin="8,0,0,0" />
+                                            <TextBlock Text="{Binding Value}" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+            </GroupBox>
+        </Grid>
+    </DockPanel>
+</Window>

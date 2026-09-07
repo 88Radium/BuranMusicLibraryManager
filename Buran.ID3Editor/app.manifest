@@ -2,7 +2,7 @@
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
   <!-- Dieses Manifest wird nur unter Windows verwendet.
        Entfernen Sie es nicht, da es Probleme mit Fenstertransparenz und eingebetteten Steuerelementen verursachen kann. -->
-  <assemblyIdentity version="1.0.0.0" name="Buran.ID3Editor"/>
+  <assemblyIdentity version="0.1.0.0" name="Buran.ID3Editor"/>
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
       <!-- Unterstützung für Windows 10 und 11 -->

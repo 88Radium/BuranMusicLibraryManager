@@ -2,6 +2,7 @@ using System.Composition;
 using Avalonia.Controls;
 using Buran.DBEditor.Views;
 using Buran.Interfaces;
+using Buran.Localization;
 
 namespace Buran.DBEditor.Extension;
 
@@ -11,11 +12,11 @@ public class DBEditorExtension : IExtension {
     private readonly DBEditorTab _view;
 
     public DBEditorExtension() {
-        // ✅ Speichere die View als Feld, damit sie nicht vom GC gesammelt wird
         _view = new DBEditorTab();
         Tab = new TabItem {
-            Header  = "DB Editor",
+            Header  = L.Get("Tab.DbEditor"),
             Content = _view
         };
+        L.WhenChanged(() => Tab.Header = L.Get("Tab.DbEditor"));
     }
 }

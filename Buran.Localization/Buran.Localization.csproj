@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Buran.Localization</RootNamespace>
+        <!-- Filename pattern Strings.en.json is otherwise treated as a satellite culture resource. -->
+        <RespectAlreadyAssignedItemCulture>true</RespectAlreadyAssignedItemCulture>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="12.1.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Resources\Strings.en.json" WithCulture="false" LogicalName="Buran.Localization.Strings.en.json" />
+        <EmbeddedResource Include="Resources\Strings.de.json" WithCulture="false" LogicalName="Buran.Localization.Strings.de.json" />
+        <EmbeddedResource Include="Resources\Strings.ru.json" WithCulture="false" LogicalName="Buran.Localization.Strings.ru.json" />
+    </ItemGroup>
+
+</Project>

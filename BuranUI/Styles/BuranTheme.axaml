@@ -1,0 +1,220 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Style Selector="Window">
+        <Setter Property="FontFamily" Value="Inter, ui-sans-serif, sans-serif" />
+        <Setter Property="Foreground" Value="#E8EEF8" />
+        <Setter Property="FontSize" Value="{DynamicResource Font.Body}" />
+    </Style>
+
+    <Style Selector="Border.app-header">
+        <Setter Property="Background" Value="#AA070C16" />
+        <Setter Property="BorderBrush" Value="#2A3B58" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="16,10" />
+    </Style>
+
+    <Style Selector="Border.sidebar">
+        <Setter Property="Background" Value="#B3070C16" />
+        <Setter Property="BorderBrush" Value="#2A3B58" />
+        <Setter Property="BorderThickness" Value="0,0,1,0" />
+        <Setter Property="Padding" Value="12,12,8,12" />
+    </Style>
+
+    <Style Selector="Border.workspace">
+        <Setter Property="Background" Value="#80121A2C" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <Style Selector="TextBlock.app-title">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Title}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="1.2" />
+    </Style>
+
+    <Style Selector="TextBlock.app-subtitle">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Subtitle}" />
+        <Setter Property="Opacity" Value="0.55" />
+        <Setter Property="Margin" Value="0,-2,0,0" />
+    </Style>
+
+    <Style Selector="TextBlock.sidebar-heading">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Heading}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="1.4" />
+        <Setter Property="Opacity" Value="0.55" />
+    </Style>
+
+    <Style Selector="TextBlock.muted">
+        <Setter Property="Opacity" Value="0.55" />
+        <Setter Property="FontSize" Value="{DynamicResource Font.Caption}" />
+    </Style>
+
+    <Style Selector="TextBlock.path">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Caption}" />
+        <Setter Property="Opacity" Value="0.75" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <Style Selector="TextBlock.empty-title">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Empty}" />
+    </Style>
+
+    <Style Selector="Button.ghost">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="#2A3B58" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="10,6" />
+    </Style>
+    <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#182236" />
+    </Style>
+
+    <Style Selector="Button.accent">
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="12,6" />
+    </Style>
+
+    <Style Selector="TabControl.folder-tabs">
+        <Setter Property="Padding" Value="16" />
+        <Setter Property="Background" Value="#B3121A2C" />
+        <Setter Property="BorderBrush" Value="#2A3B58" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="0,10,10,10" />
+    </Style>
+
+    <Style Selector="TabControl.folder-tabs[TabStripPlacement=Top] /template/ ItemsPresenter#PART_ItemsPresenter">
+        <Setter Property="Margin" Value="10,8,10,-1" />
+    </Style>
+
+    <Style Selector="TabControl.folder-tabs TabItem">
+        <Setter Property="FontSize" Value="{DynamicResource Font.Tab}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="#9AA8BC" />
+        <Setter Property="Background" Value="#4A0D1420" />
+        <Setter Property="BorderBrush" Value="#2A3B58" />
+        <Setter Property="BorderThickness" Value="1,1,1,0" />
+        <Setter Property="CornerRadius" Value="10,10,0,0" />
+        <Setter Property="Padding" Value="20,10" />
+        <Setter Property="MinHeight" Value="{DynamicResource Control.TabMinHeight}" />
+        <Setter Property="MinWidth" Value="128" />
+        <Setter Property="Margin" Value="0,8,6,0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+
+    <Style Selector="TabControl.folder-tabs TabItem /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="#4A0D1420" />
+        <Setter Property="BorderBrush" Value="#2A3B58" />
+        <Setter Property="BorderThickness" Value="1,1,1,0" />
+        <Setter Property="CornerRadius" Value="10,10,0,0" />
+    </Style>
+
+    <Style Selector="TabControl.folder-tabs TabItem /template/ Border#PART_SelectedPipe">
+        <Setter Property="IsVisible" Value="False" />
+        <Setter Property="Height" Value="3" />
+        <Setter Property="Margin" Value="14,2,14,0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Background" Value="#5EC8F0" />
+        <Setter Property="CornerRadius" Value="2" />
+    </Style>
+
+    <Style Selector="TabControl.folder-tabs TabItem:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="#6A182236" />
+        <Setter Property="TextElement.Foreground" Value="#D5DEEA" />
+    </Style>
+
+    <Style Selector="TabControl.folder-tabs TabItem:selected">
+        <Setter Property="Foreground" Value="#F2F5FA" />
+        <Setter Property="Background" Value="#D0121A2C" />
+        <Setter Property="Margin" Value="0,2,6,-1" />
+        <Setter Property="ZIndex" Value="1" />
+    </Style>
+
+    <Style Selector="TabControl.folder-tabs TabItem:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="#D0121A2C" />
+        <Setter Property="BorderBrush" Value="#3D5478" />
+        <Setter Property="TextElement.Foreground" Value="#F2F5FA" />
+    </Style>
+
+    <Style Selector="TabControl.folder-tabs TabItem:selected /template/ Border#PART_SelectedPipe">
+        <Setter Property="IsVisible" Value="True" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+    </Style>
+
+    <Style Selector="TabControl.folder-tabs TabItem:selected:pointerover /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="#D0121A2C" />
+        <Setter Property="TextElement.Foreground" Value="#F2F5FA" />
+    </Style>
+
+    <Style Selector="TreeView.library-tree">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <Style Selector="TreeView.library-tree TreeViewItem">
+        <Setter Property="IsExpanded" Value="{ReflectionBinding IsExpanded, Mode=TwoWay}" />
+        <Setter Property="Padding" Value="4,3" />
+        <Setter Property="MinHeight" Value="{DynamicResource Control.MinHeight}" />
+        <Setter Property="FontSize" Value="{DynamicResource Font.Tree}" />
+    </Style>
+
+    <Style Selector="GroupBox">
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="Margin" Value="0" />
+    </Style>
+
+    <Style Selector="GroupBox.editor-column">
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Padding" Value="8" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+    </Style>
+
+    <Style Selector="ListBox.editor-list">
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="#2A3B58" />
+        <Setter Property="Background" Value="#40121A2C" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="CornerRadius" Value="8" />
+    </Style>
+
+    <Style Selector="Border.editor-item">
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="#2A3B58" />
+        <Setter Property="Background" Value="#66182236" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Margin" Value="0,0,0,8" />
+        <Setter Property="Padding" Value="10" />
+    </Style>
+
+    <Style Selector="Border.audio-dot">
+        <Setter Property="Width" Value="7" />
+        <Setter Property="Height" Value="7" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="Background" Value="#5EC8F0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="8,0,4,0" />
+    </Style>
+
+    <Style Selector="Border.toolbar">
+        <Setter Property="Background" Value="#40121A2C" />
+        <Setter Property="BorderBrush" Value="#2A3B58" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12,8" />
+    </Style>
+
+    <Style Selector="TextBox">
+        <Setter Property="MinHeight" Value="{DynamicResource Control.MinHeight}" />
+        <Setter Property="CornerRadius" Value="4" />
+    </Style>
+
+    <Style Selector="ComboBox">
+        <Setter Property="MinHeight" Value="{DynamicResource Control.MinHeight}" />
+        <Setter Property="CornerRadius" Value="4" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+</Styles>

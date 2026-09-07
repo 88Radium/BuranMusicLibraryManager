@@ -8,6 +8,7 @@ using BuranUI.ViewModels;
 using BuranUI.Views;
 using System.Composition;
 using System.Composition.Hosting;
+using System.Diagnostics;
 using System.Reflection;
 using System.IO;
 using System.Collections.ObjectModel;
@@ -15,20 +16,20 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Buran.Localization;
 using Buran.SQLite;
 using Buran.Types;
-using MsBox.Avalonia;
+using BuranUI.Services;
 
 namespace BuranUI;
 
 public class App : Application {
     #region MEF Extension Loading Mechanism
 
-    public  string          ExtensionsDirectory { get; set; }
-    private CompositionHost _container;
+    public  string           ExtensionsDirectory { get; set; } = "";
+    private CompositionHost? _container;
 
-
-    [ImportMany] public IEnumerable<IExtension> collection { get; set; }
+    [ImportMany] public IEnumerable<IExtension> collection { get; set; } = [];
 
 
     public App() {
@@ -37,23 +38,14 @@ public class App : Application {
         
         ExtensionsDirectory = Assembly.GetExecutingAssembly().Location;
         ExtensionsDirectory = ExtensionsDirectory.Substring(0, ExtensionsDirectory.LastIndexOf(separatorChar));
-
-        // if (LoadExtensions(ExtensionsDirectory)) return;
-        //  BuranMessageBox.Show(
-        //     "Es konnten keine Komponenten geladen werden. Bitte stellen Sie sicher, dass sich die Komponenten im Pfad " +
-        //     ExtensionsDirectory.ToString() + "befinden.", "Achtung!").Wait();
-        //
-        // // Shutdown in Avalonia korrekt durchführen
-        // if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
-        //     desktop.Shutdown();
-        // }
+        L.Initialize(UiSettings.Load().Language);
     }
 
     /// <summary>
-    /// Lädt alle Extensions aus dem angegebenen Verzeichnis mit MEF 2
+    /// Loads all extensions from the given directory with MEF 2.
     /// </summary>
-    /// <param name="pExtensionsDir">Pfad zum Extensions-Verzeichnis</param>
-    /// <returns>True wenn erfolgreich, sonst False</returns>
+    /// <param name="pExtensionsDir">Path to the extensions directory</param>
+    /// <returns>True when successful, otherwise false</returns>
     private bool LoadExtensions(string pExtensionsDir) {
         bool everythingsFine = true;
 
@@ -75,13 +67,13 @@ public class App : Application {
                         configuration.WithAssembly(assembly);
                     }
                     catch (Exception ex) {
-                        Console.WriteLine($"Fehler beim Laden von {dllPath}: {ex.Message}");
+                        Debug.WriteLine($"Failed to load {dllPath}: {ex.Message}");
                         everythingsFine = false;
                     }
                 }
             }
             else {
-                Console.WriteLine($"Verzeichnis {pExtensionsDir} existiert nicht!");
+                Debug.WriteLine($"Directory {pExtensionsDir} does not exist.");
                 everythingsFine = false;
             }
 
@@ -93,27 +85,26 @@ public class App : Application {
 
             // 6. Geladene Extensions verarbeiten
             if (collection.Any()) {
+                MainWindowViewModel.LoadedExtensions = collection.ToList();
                 MainWindowViewModel.Tabs ??= new List<TabItem>();
 
-                // Jede Extension als Tab hinzufügen
-                foreach (IExtension e in collection) {
+                foreach (IExtension e in collection)
                     MainWindowViewModel.Tabs.Add(e.Tab);
-                }
             }
             else {
-                Console.WriteLine("Keine Extensions gefunden!");
+                Debug.WriteLine("No extensions found.");
                 everythingsFine = false;
             }
         }
         catch (CompositionFailedException ex) // ersetzt CompositionException
         {
-            Console.WriteLine($"Kompositionsfehler: {ex.Message}");
-            Console.WriteLine(ex.StackTrace);
+            Debug.WriteLine($"Composition error: {ex.Message}");
+            Debug.WriteLine(ex.StackTrace);
             everythingsFine = false;
         }
         catch (Exception ex) {
-            Console.WriteLine($"Allgemeiner Fehler: {ex.Message}");
-            Console.WriteLine(ex.StackTrace);
+            Debug.WriteLine($"Unexpected error: {ex.Message}");
+            Debug.WriteLine(ex.StackTrace);
             everythingsFine = false;
         }
 
@@ -124,6 +115,7 @@ public class App : Application {
 
     public override void Initialize() {
         AvaloniaXamlLoader.Load(this);
+        UiFontScale.Apply(UiSettings.Load().FontSize);
     }
 
     public override void OnFrameworkInitializationCompleted() {
@@ -136,10 +128,10 @@ public class App : Application {
             Dispatcher.UIThread.Post(async () => {
                 var shownAt = DateTime.UtcNow;
                 try {
-                    splash.SetStatus("Datenbank wird geprüft …");
+                    splash.SetStatus(L.Get("Splash.CheckingDatabase"));
                     await Task.Run(DBConnector.TestConnection);
 
-                    splash.SetStatus("Erweiterungen werden geladen …");
+                    splash.SetStatus(L.Get("Splash.LoadingExtensions"));
                     if (!LoadExtensions(ExtensionsDirectory)) {
                         splash.Close();
                         await ShowMissingExtensionsAndShutdown();
@@ -150,7 +142,7 @@ public class App : Application {
                     if (remaining > TimeSpan.Zero)
                         await Task.Delay(remaining);
 
-                    splash.SetStatus("Anwendung wird gestartet …");
+                    splash.SetStatus(L.Get("Splash.Starting"));
                     var main = new MainWindow {
                         DataContext = new MainWindowViewModel(),
                     };
@@ -160,7 +152,7 @@ public class App : Application {
                     splash.Close();
                 }
                 catch (Exception ex) {
-                    Console.WriteLine($"Startfehler: {ex}");
+                    Debug.WriteLine($"Startup error: {ex}");
                     splash.Close();
                     desktop.Shutdown();
                 }
@@ -173,9 +165,8 @@ public class App : Application {
     private async Task ShowMissingExtensionsAndShutdown()
     {
         await BuranMessageBox.Show(
-            "Es konnten keine Komponenten geladen werden. Bitte stellen Sie sicher, dass sich die Komponenten im Pfad " +
-            ExtensionsDirectory + " befinden.",
-            "Achtung!");
+            L.Format("App.NoExtensions", ExtensionsDirectory),
+            L.Get("Common.Warning"));
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             desktop.Shutdown();

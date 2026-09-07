@@ -2,131 +2,321 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="600"
+             mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="600"
              x:Class="Buran.DBEditor.Views.DBEditorTab"
              xmlns:vm="using:Buran.DBEditor.ViewModels"
              xmlns:sqlite="using:Buran.SQLite"
              xmlns:models="using:Buran.DBEditor.Models"
+             xmlns:conv="using:Buran.DBEditor.Converter"
+             xmlns:loc="using:Buran.Localization"
              x:CompileBindings="True"
              x:DataType="vm:DBEditorTabViewModel">
+
+    <UserControl.Resources>
+        <conv:KeywordTypeOptionConverter x:Key="KeywordTypeOptionConverter" />
+    </UserControl.Resources>
 
     <UserControl.DataContext>
         <vm:DBEditorTabViewModel />
     </UserControl.DataContext>
 
-    <Grid ColumnDefinitions="*,4,*,4,*,4,*" Margin="8">
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Classes="toolbar" Margin="8,8,8,0">
+            <Grid ColumnDefinitions="*,8,Auto,8,Auto">
+                <TextBox PlaceholderText="{loc:Loc Key=Db.SearchPlaceholder}"
+                         Text="{Binding ArtistSearchText}" />
+                <Button Grid.Column="2" Classes="ghost"
+                        Content="{loc:Loc Key=Db.ClearSearch}"
+                        Command="{Binding ClearSearchCommand}"
+                        IsVisible="{Binding HasSearchText}" />
+                <Button Grid.Column="4" Classes="ghost"
+                        Content="{loc:Loc Key=Db.Refresh}"
+                        Command="{Binding RefreshCatalogCommand}"
+                        ToolTip.Tip="{loc:Loc Key=Db.RefreshTip}" />
+            </Grid>
+        </Border>
+
+        <Grid ColumnDefinitions="*,4,*,4,*,4,*,4,*,4,0.85*" Margin="8">
 
         <!-- Künstler -->
-        <DockPanel Grid.Column="0">
-            <Label DockPanel.Dock="Top" Content="{Binding ArtistListCaption}" />
-            <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,*" Margin="0,8,0,0">
-                <TextBox Grid.Column="0" Watermark="Künstlername" Text="{Binding NewPreferredArtistName}" Margin="0,0,4,0" />
-                <TextBox Grid.Column="1" Watermark="Bürgerlicher Name" Text="{Binding NewRealName}" />
+        <GroupBox Grid.Column="0" Classes="editor-column" Header="{Binding ArtistListCaption}">
+            <Grid RowDefinitions="*,Auto">
+                <ListBox Classes="editor-list"
+                         ItemsSource="{Binding FilteredArtistNames}"
+                         SelectedItem="{Binding SelectedArtistName}">
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{loc:Loc Key=Db.Remove}" Command="{Binding DeleteArtistCommand}" />
+                            <MenuItem Header="{loc:Loc Key=Db.ClearSelection}" Command="{Binding UnselectArtistCommand}" />
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="sqlite:DatabaseTable_ArtistNames">
+                            <Border Classes="editor-item">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Grid.Column="0" Text="{Binding ID}" Opacity="0.5" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1">
+                                        <TextBox Text="{Binding PreferredArtistName, UpdateSourceTrigger=LostFocus}"
+                                                 PlaceholderText="{loc:Loc Key=Db.ArtistName}" />
+                                        <TextBox Text="{Binding RealName, UpdateSourceTrigger=LostFocus}"
+                                                 PlaceholderText="{loc:Loc Key=Db.LegalName}" Margin="0,4,0,0" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.Add}" Margin="0,8,0,0">
+                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,*" RowSpacing="8" ColumnSpacing="8">
+                        <TextBox Grid.Column="0" PlaceholderText="{loc:Loc Key=Db.ArtistName}" Text="{Binding NewPreferredArtistName}" />
+                        <TextBox Grid.Column="1" PlaceholderText="{loc:Loc Key=Db.LegalName}" Text="{Binding NewRealName}" />
+                        <Button Grid.Row="1" Grid.ColumnSpan="2" Content="{loc:Loc Key=Db.AddArtist}"
+                                Command="{Binding AddArtistCommand}" HorizontalAlignment="Stretch" />
+                    </Grid>
+                </GroupBox>
             </Grid>
-            <Button DockPanel.Dock="Bottom" Content="Künstler hinzufügen" Command="{Binding AddArtistCommand}" Margin="0,4,0,0" />
-            <ListBox ItemsSource="{Binding FilteredArtistNames}" SelectedItem="{Binding SelectedArtistName}">
-                <ListBox.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="Entfernen" Command="{Binding DeleteArtistCommand}" />
-                        <MenuItem Header="Auswahl aufheben" Command="{Binding UnselectArtistCommand}" />
-                    </ContextMenu>
-                </ListBox.ContextMenu>
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="sqlite:DatabaseTable_ArtistNames">
-                        <Border Padding="4">
-                            <Grid ColumnDefinitions="Auto,*">
-                                <TextBlock Grid.Column="0" Text="{Binding ID}" Opacity="0.5" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                <StackPanel Grid.Column="1">
-                                    <TextBox Text="{Binding PreferredArtistName}" Watermark="Künstlername" />
-                                    <TextBox Text="{Binding RealName}" Watermark="Bürgerlicher Name" Margin="0,4,0,0" />
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
+        </GroupBox>
 
         <GridSplitter Grid.Column="1" Width="4" ResizeDirection="Columns" />
 
         <!-- Alternative Namen -->
-        <DockPanel Grid.Column="2">
-            <Label DockPanel.Dock="Top" Content="{Binding AlternativeListCaption}" />
-            <TextBox DockPanel.Dock="Bottom" Watermark="Alternativer Name, z. B. Slim Shady"
-                     Text="{Binding NewAlternativeName}" Margin="0,8,0,0"
-                     IsEnabled="{Binding HasSelectedArtist}" />
-            <Button DockPanel.Dock="Bottom" Content="Variante hinzufügen" Command="{Binding AddAlternativeCommand}" Margin="0,4,0,0" />
-            <ListBox ItemsSource="{Binding FilteredAlternativeArtistNameVariants}" SelectedItem="{Binding SelectedAlternativeName}">
-                <ListBox.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="Entfernen" Command="{Binding DeleteAlternativeCommand}" />
-                    </ContextMenu>
-                </ListBox.ContextMenu>
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="sqlite:DatabaseTable_AlternativeArtistNameVariants">
-                        <Border Padding="4">
-                            <Grid ColumnDefinitions="Auto,*">
-                                <TextBlock Grid.Column="0" Text="{Binding ID}" Opacity="0.5" Margin="0,0,8,0" VerticalAlignment="Center" />
-                                <TextBox Grid.Column="1" Text="{Binding AlternativeArtistName}" />
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
+        <GroupBox Grid.Column="2" Classes="editor-column" Header="{Binding AlternativeListCaption}">
+            <Grid RowDefinitions="*,Auto">
+                <ListBox Classes="editor-list"
+                         ItemsSource="{Binding FilteredAlternativeArtistNameVariants}"
+                         SelectedItem="{Binding SelectedAlternativeName}">
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{loc:Loc Key=Db.Remove}" Command="{Binding DeleteAlternativeCommand}" />
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="sqlite:DatabaseTable_AlternativeArtistNameVariants">
+                            <Border Classes="editor-item">
+                                <Grid ColumnDefinitions="Auto,*">
+                                    <TextBlock Grid.Column="0" Text="{Binding ID}" Opacity="0.5" Margin="0,0,8,0" VerticalAlignment="Center" />
+                                    <TextBox Grid.Column="1" Text="{Binding AlternativeArtistName, UpdateSourceTrigger=LostFocus}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.AddVariant}" Margin="0,8,0,0"
+                          IsEnabled="{Binding HasSelectedArtist}">
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                        <TextBox PlaceholderText="{loc:Loc Key=Db.AlternativeNameExample}"
+                                 Text="{Binding NewAlternativeName}" />
+                        <Button Grid.Row="1" Content="{loc:Loc Key=Db.AddVariant}"
+                                Command="{Binding AddAlternativeCommand}" HorizontalAlignment="Stretch" />
+                    </Grid>
+                </GroupBox>
+            </Grid>
+        </GroupBox>
 
         <GridSplitter Grid.Column="3" Width="4" ResizeDirection="Columns" />
 
-        <!-- Genres -->
-        <DockPanel Grid.Column="4">
-            <Label DockPanel.Dock="Top" Content="Genres" />
-            <TextBox DockPanel.Dock="Bottom" Watermark="Neues Genre" Text="{Binding NewGenreName}" Margin="0,8,0,0" />
-            <Button DockPanel.Dock="Bottom" Content="Genre hinzufügen" Command="{Binding AddGenreCommand}" Margin="0,4,0,0" />
-            <ListBox ItemsSource="{Binding Genres}" SelectedItem="{Binding SelectedGenre}">
-                <ListBox.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="Entfernen" Command="{Binding DeleteGenreCommand}" />
-                        <MenuItem Header="Auswahl aufheben" Command="{Binding UnselectGenreCommand}" />
-                    </ContextMenu>
-                </ListBox.ContextMenu>
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="models:AssignableTag">
-                        <DockPanel Margin="4">
-                            <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsAssigned}"
-                                      IsEnabled="{Binding $parent[UserControl].((vm:DBEditorTabViewModel)DataContext).HasSelectedArtist}"
-                                      VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBox Text="{Binding Name}" />
-                        </DockPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
+        <!-- Mitgliedschaften -->
+        <GroupBox Grid.Column="4" Classes="editor-column" Header="{loc:Loc Key=Db.Memberships}">
+            <Grid RowDefinitions="*,8,*" IsEnabled="{Binding HasSelectedArtist}">
+                <GroupBox Header="{Binding MembersCaption}">
+                    <Grid RowDefinitions="*,Auto">
+                        <ListBox Classes="editor-list"
+                                 ItemsSource="{Binding MembersOfSelected}"
+                                 SelectedItem="{Binding SelectedMember}">
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="{loc:Loc Key=Db.RemoveMember}" Command="{Binding RemoveMemberCommand}" />
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="sqlite:DatabaseTable_ArtistNames">
+                                    <Border Classes="editor-item">
+                                        <TextBlock Text="{Binding PreferredArtistName}" VerticalAlignment="Center" />
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,8,0,0" ColumnSpacing="8">
+                            <AutoCompleteBox PlaceholderText="{loc:Loc Key=Db.MemberExample}"
+                                             FilterMode="ContainsOrdinal"
+                                             MinimumPrefixLength="1"
+                                             Text="{Binding NewMemberName}"
+                                             ItemsSource="{Binding MembershipNameSuggestions}" />
+                            <Button Grid.Column="1" Content="+" Command="{Binding AddMemberCommand}"
+                                    ToolTip.Tip="{loc:Loc Key=Db.AddAsMemberTip}" />
+                        </Grid>
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Grid.Row="2" Header="{Binding GroupsCaption}">
+                    <Grid RowDefinitions="*,Auto">
+                        <ListBox Classes="editor-list"
+                                 ItemsSource="{Binding GroupsOfSelected}"
+                                 SelectedItem="{Binding SelectedGroup}">
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="{loc:Loc Key=Db.RemoveFromGroup}" Command="{Binding RemoveGroupCommand}" />
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate x:DataType="sqlite:DatabaseTable_ArtistNames">
+                                    <Border Classes="editor-item">
+                                        <TextBlock Text="{Binding PreferredArtistName}" VerticalAlignment="Center" />
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,8,0,0" ColumnSpacing="8">
+                            <AutoCompleteBox PlaceholderText="{loc:Loc Key=Db.GroupExample}"
+                                             FilterMode="ContainsOrdinal"
+                                             MinimumPrefixLength="1"
+                                             Text="{Binding NewGroupName}"
+                                             ItemsSource="{Binding MembershipNameSuggestions}" />
+                            <Button Grid.Column="1" Content="+" Command="{Binding AddGroupCommand}"
+                                    ToolTip.Tip="{loc:Loc Key=Db.AddToGroupTip}" />
+                        </Grid>
+                    </Grid>
+                </GroupBox>
+            </Grid>
+        </GroupBox>
 
         <GridSplitter Grid.Column="5" Width="4" ResizeDirection="Columns" />
 
+        <!-- Genres -->
+        <GroupBox Grid.Column="6" Classes="editor-column" Header="{loc:Loc Key=Common.Genres}">
+            <Grid RowDefinitions="*,Auto">
+                <ListBox Classes="editor-list"
+                         ItemsSource="{Binding Genres}"
+                         SelectedItem="{Binding SelectedGenre}">
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{loc:Loc Key=Db.Remove}" Command="{Binding DeleteGenreCommand}" />
+                            <MenuItem Header="{loc:Loc Key=Db.ClearSelection}" Command="{Binding UnselectGenreCommand}" />
+                            <Separator />
+                            <MenuItem Header="{loc:Loc Key=Db.FilterBySelection}" Command="{Binding FilterByGenreCommand}" />
+                            <MenuItem Header="{loc:Loc Key=Db.ClearGenreFilter}" Command="{Binding ClearGenreFilterCommand}" />
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:AssignableTag">
+                            <Border Classes="editor-item">
+                                <DockPanel>
+                                    <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsAssigned}"
+                                              IsEnabled="{Binding CanAssign}"
+                                              VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBlock DockPanel.Dock="Right" Text="●" IsVisible="{Binding IsFilterActive}"
+                                               VerticalAlignment="Center" Margin="8,0,0,0" Opacity="0.7" />
+                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" />
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.AddGenre}" Margin="0,8,0,0">
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                        <TextBox PlaceholderText="{loc:Loc Key=Db.NewGenre}" Text="{Binding NewGenreName}" />
+                        <Button Grid.Row="1" Content="{loc:Loc Key=Db.AddGenre}"
+                                Command="{Binding AddGenreCommand}" HorizontalAlignment="Stretch" />
+                    </Grid>
+                </GroupBox>
+            </Grid>
+        </GroupBox>
+
+        <GridSplitter Grid.Column="7" Width="4" ResizeDirection="Columns" />
+
         <!-- Moods -->
-        <DockPanel Grid.Column="6">
-            <Label DockPanel.Dock="Top" Content="Moods" />
-            <TextBox DockPanel.Dock="Bottom" Watermark="Neues Mood" Text="{Binding NewMoodName}" Margin="0,8,0,0" />
-            <Button DockPanel.Dock="Bottom" Content="Mood hinzufügen" Command="{Binding AddMoodCommand}" Margin="0,4,0,0" />
-            <ListBox ItemsSource="{Binding Moods}" SelectedItem="{Binding SelectedMood}">
-                <ListBox.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem Header="Entfernen" Command="{Binding DeleteMoodCommand}" />
-                        <MenuItem Header="Auswahl aufheben" Command="{Binding UnselectMoodCommand}" />
-                    </ContextMenu>
-                </ListBox.ContextMenu>
-                <ListBox.ItemTemplate>
-                    <DataTemplate x:DataType="models:AssignableTag">
-                        <DockPanel Margin="4">
-                            <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsAssigned}"
-                                      IsEnabled="{Binding $parent[UserControl].((vm:DBEditorTabViewModel)DataContext).HasSelectedArtist}"
-                                      VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBox Text="{Binding Name}" />
-                        </DockPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-        </DockPanel>
-    </Grid>
+        <GroupBox Grid.Column="8" Classes="editor-column" Header="{loc:Loc Key=Common.Moods}">
+            <Grid RowDefinitions="*,Auto">
+                <ListBox Classes="editor-list"
+                         ItemsSource="{Binding Moods}"
+                         SelectedItem="{Binding SelectedMood}">
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{loc:Loc Key=Db.Remove}" Command="{Binding DeleteMoodCommand}" />
+                            <MenuItem Header="{loc:Loc Key=Db.ClearSelection}" Command="{Binding UnselectMoodCommand}" />
+                            <Separator />
+                            <MenuItem Header="{loc:Loc Key=Db.FilterBySelection}" Command="{Binding FilterByMoodCommand}" />
+                            <MenuItem Header="{loc:Loc Key=Db.ClearMoodFilter}" Command="{Binding ClearMoodFilterCommand}" />
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:AssignableTag">
+                            <Border Classes="editor-item">
+                                <DockPanel>
+                                    <CheckBox DockPanel.Dock="Left" IsChecked="{Binding IsAssigned}"
+                                              IsEnabled="{Binding CanAssign}"
+                                              VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBlock DockPanel.Dock="Right" Text="●" IsVisible="{Binding IsFilterActive}"
+                                               VerticalAlignment="Center" Margin="8,0,0,0" Opacity="0.7" />
+                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=LostFocus}" />
+                                </DockPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.AddMood}" Margin="0,8,0,0">
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                        <TextBox PlaceholderText="{loc:Loc Key=Db.NewMood}" Text="{Binding NewMoodName}" />
+                        <Button Grid.Row="1" Content="{loc:Loc Key=Db.AddMood}"
+                                Command="{Binding AddMoodCommand}" HorizontalAlignment="Stretch" />
+                    </Grid>
+                </GroupBox>
+            </Grid>
+        </GroupBox>
+
+        <GridSplitter Grid.Column="9" Width="4" ResizeDirection="Columns" />
+
+        <GroupBox Grid.Column="10" Classes="editor-column"
+                  Header="{loc:Loc Key=Db.Keywords}"
+                  ToolTip.Tip="{loc:Loc Key=Db.KeywordsTip}">
+            <Grid RowDefinitions="*,Auto">
+                <ListBox Classes="editor-list"
+                         ItemsSource="{Binding FilteredFeatureKeywords}"
+                         SelectedItem="{Binding SelectedFeatureKeyword}">
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{loc:Loc Key=Db.Remove}" Command="{Binding DeleteKeywordCommand}" />
+                            <MenuItem Header="{loc:Loc Key=Db.ClearSelection}" Command="{Binding UnselectKeywordCommand}" />
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="sqlite:DatabaseTable_FeatureKeywords">
+                            <Border Classes="editor-item">
+                                <StackPanel Spacing="4">
+                                    <TextBox Text="{Binding Keyword, UpdateSourceTrigger=LostFocus}"
+                                             PlaceholderText="{loc:Loc Key=Db.Keyword}" />
+                                    <ComboBox HorizontalAlignment="Stretch"
+                                              ItemsSource="{x:Static vm:DBEditorTabViewModel.KeywordTypes}"
+                                              SelectedItem="{Binding Type, Converter={StaticResource KeywordTypeOptionConverter}}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="models:KeywordTypeOption">
+                                                <TextBlock Text="{Binding Label}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.AddKeyword}" Margin="0,8,0,0">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                        <TextBox PlaceholderText="{loc:Loc Key=Db.KeywordExample}" Text="{Binding NewKeyword}" />
+                        <ComboBox Grid.Row="1" HorizontalAlignment="Stretch"
+                                  ItemsSource="{x:Static vm:DBEditorTabViewModel.KeywordTypes}"
+                                  SelectedItem="{Binding SelectedKeywordType}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:KeywordTypeOption">
+                                    <TextBlock Text="{Binding Label}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <Button Grid.Row="2" Content="{loc:Loc Key=Db.AddKeyword}"
+                                Command="{Binding AddKeywordCommand}" HorizontalAlignment="Stretch" />
+                    </Grid>
+                </GroupBox>
+            </Grid>
+        </GroupBox>
+        </Grid>
+    </DockPanel>
 </UserControl>

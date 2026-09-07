@@ -7,7 +7,7 @@ namespace Buran.SQLite;
 public class DatabaseTable_AlternativeArtistNameVariants : INotifyPropertyChanged {
     #region PropertyChanged
 
-    public event PropertyChangedEventHandler PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     private void NotifyPropertyChanged([CallerMemberName] string propertyName = "") {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -18,7 +18,7 @@ public class DatabaseTable_AlternativeArtistNameVariants : INotifyPropertyChange
     public DatabaseTable_AlternativeArtistNameVariants(DataRow pEntry) {
         if (pEntry != null) {
             ID                    = Convert.ToInt32(pEntry.ItemArray[0]);
-            AlternativeArtistName = Convert.ToString(pEntry.ItemArray[1]);
+            AlternativeArtistName = Convert.ToString(pEntry.ItemArray[1]) ?? "";
             RefersToArtistName    = Convert.ToInt32(pEntry.ItemArray[3]);
             IsMissSpelled         = Convert.ToInt32(pEntry.ItemArray[2]);
         }
@@ -34,7 +34,7 @@ public class DatabaseTable_AlternativeArtistNameVariants : INotifyPropertyChange
         }
     }
 
-    private string _AlternativeArtistName;
+    private string _AlternativeArtistName = "";
 
     public string AlternativeArtistName {
         get { return _AlternativeArtistName; }

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Data;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Buran.Types;
 using Microsoft.Data.Sqlite;
@@ -7,12 +8,7 @@ using Microsoft.Data.Sqlite;
 namespace Buran.SQLite;
 
 public partial class DBConnector {
-        public enum IWantTo { getArtistNames, getAlternativeArtistNames, insertArtistName, insertAlternativeArtistName };
-
         public static void TestConnection() {
-
-            EventPublisher.ArtistDiscovered += OnArtistDiscovered;
-
             using(SqliteConnection _connection = new SqliteConnection("Data Source=CerberusMusicManager.db")) {
                 _connection.Open();
 
@@ -76,6 +72,13 @@ public partial class DBConnector {
                     PRIMARY KEY(ArtistId, MoodId)
                     )");
 
+                queryExecutor(@"CREATE TABLE IF NOT EXISTS ArtistMemberships(
+                    GroupArtistId INTEGER NOT NULL,
+                    MemberArtistId INTEGER NOT NULL,
+                    PRIMARY KEY(GroupArtistId, MemberArtistId),
+                    CHECK(GroupArtistId != MemberArtistId)
+                    )");
+
                 // Setter "UNIQUE" for "Pattern"-Row is required for the IGNORE statement, otherwise Table will fill up with duplicates
                 string SqlCreateFileNamePatterns = @"CREATE TABLE IF NOT EXISTS FileNamePatterns (
                     Id INTEGER PRIMARY KEY,
@@ -85,7 +88,7 @@ public partial class DBConnector {
                     UserAdded BOOLEAN DEFAULT 1)";
                 queryExecutor(SqlCreateFileNamePatterns);
 
-                // Phase 2: Tabelle für Künstler-Album Beziehungen
+                // Phase 2 (planned): album↔artist mapping for metadata disambiguation. Unused until the resolver is wired.
                 string SqlCreateArtistAlbums = @"CREATE TABLE IF NOT EXISTS ArtistAlbums (
                     Id INTEGER PRIMARY KEY,
                     ArtistId INTEGER NOT NULL,
@@ -94,7 +97,7 @@ public partial class DBConnector {
                     UNIQUE(ArtistId, AlbumName))";
                 queryExecutor(SqlCreateArtistAlbums);
 
-                // Phase 2: Tabelle für mehrdeutige Metadaten (Nutzer-Feedback lernen)
+                // Phase 2 (planned): store user decisions on ambiguous tokens. Unused until the resolver is wired.
                 string SqlCreateAmbiguousMetadata = @"CREATE TABLE IF NOT EXISTS AmbiguousMetadata (
                     Id INTEGER PRIMARY KEY,
                     RawValue TEXT NOT NULL,
@@ -105,7 +108,6 @@ public partial class DBConnector {
                     UNIQUE(RawValue, ResolvedAsType))";
                 queryExecutor(SqlCreateAmbiguousMetadata);
 
-                // Phase 2: Tabelle für Feature-Keywords (feat., vs., &, etc.)
                 string SqlCreateFeatureKeywords = @"CREATE TABLE IF NOT EXISTS FeatureKeywords (
                     Id INTEGER PRIMARY KEY,
                     Keyword TEXT NOT NULL UNIQUE,
@@ -113,22 +115,11 @@ public partial class DBConnector {
                     Weight INTEGER DEFAULT 1)";
                 queryExecutor(SqlCreateFeatureKeywords);
 
-                // Init Feature-Keywords
-                string initFeatureKeywords = @"INSERT OR IGNORE INTO FeatureKeywords (Keyword, Type, Weight) VALUES
-                    ('feat.', 'COLLABORATION', 10),
-                    ('ft.', 'COLLABORATION', 10),
-                    ('featuring', 'COLLABORATION', 9),
-                    ('vs.', 'COLLABORATION', 8),
-                    ('&', 'COLLABORATION', 10),
-                    ('and', 'COLLABORATION', 7),
-                    ('with', 'COLLABORATION', 6),
-                    ('(Live)', 'VERSION', 8),
-                    ('[Live]', 'VERSION', 8),
-                    ('(Remix)', 'VERSION', 7),
-                    ('[Remix]', 'VERSION', 7),
-                    ('(Extended)', 'VERSION', 5),
-                    ('(Remaster)', 'VERSION', 6);";
-                queryExecutor(initFeatureKeywords);
+                var collaborationValues = string.Join(", ",
+                    CollaborationMarkers.DefaultSeeds()
+                        .Select(s => $"('{s.Keyword.Replace("'", "''")}', '{s.Type}', {s.Weight})"));
+                queryExecutor(
+                    $"INSERT OR IGNORE INTO FeatureKeywords (Keyword, Type, Weight) VALUES {collaborationValues}");
 
 
                 // Pattern-Sammlung mit vereinheitlichten Platzhaltern
@@ -153,7 +144,9 @@ public partial class DBConnector {
                     
                     -- Featured/Collaboration Patterns (Künstler im Filename)
                     ('{artist} feat. {artists} - {title}', 'Eminem feat. Rihanna - Love The Way You Lie', 85, 0),
+                    ('{artist} feat {artists} - {title}', 'Eminem feat Rihanna - Love The Way You Lie', 85, 0),
                     ('{artist} ft. {artists} - {title}', 'Eminem ft. Rihanna - Love The Way You Lie', 85, 0),
+                    ('{artist} ft {artists} - {title}', 'Eminem ft Rihanna - Love The Way You Lie', 85, 0),
                     ('{artist} featuring {artists} - {title}', 'Eminem featuring Rihanna - Love The Way You Lie', 83, 0),
                     ('{artist} vs. {artists} - {title}', 'Eminem vs. Rihanna - Love The Way You Lie', 80, 0),
                     ('{artists} & {artists} feat. {artists} - {title}', 'Simon & Garfunkel feat. Disturbed - Sound Of Silence', 82, 0),
@@ -179,75 +172,39 @@ public partial class DBConnector {
                     ('{title} ({artist})', 'Lose Yourself (Eminem)', 55, 0);";
                 queryExecutor(initPatterns);
 
-                // Keep the Format like "'content'"! The inner single-quotas are neccessary for the Database-query. It's possible to rewrite the SQLite-Code to the point where this isn't neccessary anymore but that's something for another time!
-
-                //InsertInto_ArtistNames("'Tom MacDonald'", "'Thomas MacDonald'");
-                //InsertInto_ArtistNames("'Nova Rockafeller'", "'Nova Leigh Paholek'");
-                //InsertInto_ArtistNames("'2Pac'", "'Tupac Amaru Shakur'");
-                //InsertInto_ArtistNames("'Eminem'", "'Marshal Matters'");
-                //InsertInto_ArtistNames("", "'Moshtekk'");
-
-
-                //var TableArtistNames = LoadTableContent_ArtistNames();
-                //InsertInto_AlternativeArtistNameVariants("'Mushitekk'", (TableArtistNames.Where(x => x.PreferredArtistName == "Moshtekk").First() as DatabaseTable_ArtistNames).ID);
-
-
             }
-        }
 
-        private static void OnArtistDiscovered(object sender, NewArtistEvent e) {
-            Console.WriteLine($"DB-Plugin empfängt: {e.PreferredArtistName}");
-            InsertInto_ArtistNames(e.PreferredArtistName, "");
-        }
-
-        public void Unsubscribe() {
-            EventPublisher.ArtistDiscovered -= OnArtistDiscovered;
+            ReloadCollaborationMarkers();
         }
 
 
-        #region Inserts
-        public static void InsertInto_ArtistNames(string pArtistName, string pRealName) {
-            //TODO: Hier aufgehört zu gucken, ob der neue Typ denn überhaupt den Anforderungen entspricht. Zu besoffen hierfür. Mache morgen weiter!
-            NewArtistEvent incommingName = CheckForPreferredName(pArtistName);
-
-            if(incommingName.ArtistNameStatus.Equals(ArtistNameStatus.IsNonExistent)) {
-                string ArtistNameString = "'" + incommingName.PreferredArtistName + "'";
-                string realNameString = "'" + pRealName + "'";
-                queryExecutor($"INSERT INTO ArtistNames (PreferredArtistName, RealName) VALUES ({ArtistNameString}, {realNameString})");
-            }
-        }
-
-        public static void InsertInto_AlternativeArtistNameVariants(string pAlternativeArtistName, int pRefersToArtistName) {
-            queryExecutor($"INSERT INTO AlternativeArtistNameVariants (AlternativeArtistName, RefersToArtistName, IsMissSpelled) VALUES ({pAlternativeArtistName}, {pRefersToArtistName}, {0})");
-        }
-        #endregion
 
 
 
-
-
-        public static NewArtistEvent CheckForPreferredName(string pArtistName, [CallerMemberName] string caller = null) {
+        public static NewArtistEvent CheckForPreferredName(string pArtistName, [CallerMemberName] string? caller = null) {
 
             ObservableCollection<DatabaseTable_ArtistNames> NameTableEntries = DBConnector.LoadTableContent_ArtistNames();
             ObservableCollection<DatabaseTable_AlternativeArtistNameVariants> alternativeNameTableEntries = DBConnector.LoadTableContent_AlternativeArtistNameVariants();
 
 
-            DatabaseTable_ArtistNames isAlreadyExisting = NameTableEntries.FirstOrDefault(x => x.PreferredArtistName.ToLower() == pArtistName.ToLower());
-            DatabaseTable_AlternativeArtistNameVariants isAlternativeName = alternativeNameTableEntries.FirstOrDefault(x => x.AlternativeArtistName.ToLower() == pArtistName.ToLower());
+            var isAlreadyExisting = NameTableEntries.FirstOrDefault(x => x.PreferredArtistName.ToLower() == pArtistName.ToLower());
+            var isAlternativeName = alternativeNameTableEntries.FirstOrDefault(x => x.AlternativeArtistName.ToLower() == pArtistName.ToLower());
 
 
             if(isAlreadyExisting != null) {
-                Console.WriteLine($"Es ist bereits ein Künstler Namens \"{pArtistName}\" in der Datenbank als bevorzugner Name eines Künstlers vorhanden!");
+                Debug.WriteLine($"\"{pArtistName}\" is already stored as a preferred artist name.");
                 return new NewArtistEvent(isAlreadyExisting.PreferredArtistName, "", ArtistNameStatus.AlreadyExisting);
             } else if(isAlternativeName != null) {
-                isAlreadyExisting = NameTableEntries.FirstOrDefault(x => x.ID == isAlternativeName.RefersToArtistName);
+                var preferred = NameTableEntries.FirstOrDefault(x => x.ID == isAlternativeName.RefersToArtistName);
+                if (preferred is null)
+                    return new NewArtistEvent(pArtistName, "", ArtistNameStatus.IsNonExistent);
 
                 if(caller == "ApplyArtist") {
-                    Console.WriteLine($"Der Künstlername \"{pArtistName}\" ist bereits als alternativer Künstlername in der Datenbank vorhanden! Wir weisen den mp3-Dateien daher den bevorzugten Künstlernamen \"{isAlreadyExisting.PreferredArtistName}\" zu.");
+                    Debug.WriteLine($"\"{pArtistName}\" is already an alternative artist name; assigning preferred name \"{preferred.PreferredArtistName}\".");
                 } else {
-                    Console.WriteLine($"Der Künstlername \"{pArtistName}\" ist bereits als alternativer Künstlername in der Datenbank vorhanden!");
+                    Debug.WriteLine($"\"{pArtistName}\" is already stored as an alternative artist name.");
                 }
-                return new NewArtistEvent(isAlreadyExisting.PreferredArtistName, "", ArtistNameStatus.IsAlternativeName);
+                return new NewArtistEvent(preferred.PreferredArtistName, "", ArtistNameStatus.IsAlternativeName);
             } else {
                 return new NewArtistEvent(pArtistName, "", ArtistNameStatus.IsNonExistent);
             }
@@ -256,10 +213,6 @@ public partial class DBConnector {
         }
 
 
-
-        public static void DeleteFrom_ArtistNames(DatabaseTable_ArtistNames ArtistToDelete) {
-            queryExecutor($"DELETE FROM ArtistNames WHERE ID = {ArtistToDelete.ID}");
-        }
 
         public static ObservableCollection<DatabaseTable_ArtistNames> LoadTableContent_ArtistNames() {
             ObservableCollection<DatabaseTable_ArtistNames> tableContent_ArtistNames = new ObservableCollection<DatabaseTable_ArtistNames>();
@@ -311,10 +264,6 @@ public partial class DBConnector {
             return tableContent_AlternativeArtistNameVariants;
         }
 
-        public static void FilterTableContent_AlternativeArtistNameVariants() {
-
-        }
-
         private static void queryExecutor(string pSql) {
             using(SqliteConnection _connection = new SqliteConnection("Data Source=CerberusMusicManager.db")) {
                 _connection.Open();
@@ -353,8 +302,8 @@ public partial class DBConnector {
                 foreach(DataRow row in dataTable.Rows) {
                     patterns.Add(new FileNamePattern {
                         Id = Convert.ToInt32(row["Id"]),
-                        Pattern = row["Pattern"].ToString(),
-                        Example = row["Example"]?.ToString(),
+                        Pattern = row["Pattern"].ToString() ?? "",
+                        Example = row["Example"]?.ToString() ?? "",
                         Confidence = Convert.ToInt32(row["Confidence"]),
                         UserAdded = Convert.ToBoolean(row["UserAdded"])
                     });
@@ -364,7 +313,7 @@ public partial class DBConnector {
             return patterns;
         }
 
-        public static void InsertFileNamePattern(string pattern, string example = null, int confidence = 1, bool userAdded = true) {
+        public static void InsertFileNamePattern(string pattern, string? example = null, int confidence = 1, bool userAdded = true) {
             // Pattern schon vorhanden?
             var existing = LoadFileNamePatterns().FirstOrDefault(p => p.Pattern.Equals(pattern, StringComparison.OrdinalIgnoreCase));
 
@@ -384,18 +333,14 @@ public partial class DBConnector {
             queryExecutor($"UPDATE FileNamePatterns SET Confidence = Confidence + {increment} WHERE Id = {patternId}");
         }
 
-        public static void DecreasePatternConfidence(int patternId, int decrement = 1) {
-            queryExecutor($"UPDATE FileNamePatterns SET Confidence = Confidence - {decrement} WHERE Id = {patternId}");
-        }
-
         #endregion
 
         #region Helper Classes
 
         public class FileNamePattern {
             public int Id { get; set; }
-            public string Pattern { get; set; }
-            public string Example { get; set; }
+            public string Pattern { get; set; } = "";
+            public string Example { get; set; } = "";
             public int Confidence { get; set; }
             public bool UserAdded { get; set; }
         }

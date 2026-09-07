@@ -1,16 +1,22 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:BuranUI.ViewModels"
+        xmlns:models="using:BuranUI.Models"
+        xmlns:loc="using:Buran.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         Width="1400"
-        Height="1200"
+        Height="900"
+        MinWidth="960"
+        MinHeight="640"
         x:Class="BuranUI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/Buran.ico"
-        Opacity="0.8"
-        Title="BuranUI">
+        Opacity="{Binding WindowOpacity}"
+        TransparencyLevelHint="Transparent"
+        Background="#CC0B1220"
+        Title="Buran">
     <!-- x:DataType="vm:MainWindowViewModel" -->
     <!-- xmlns:local="clr-namespace:BuranUI.ViewModels" -->
     
@@ -23,9 +29,125 @@
     </Design.DataContext>
 
 
-    <Grid>
-        <!-- <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/> -->
-        <TabControl x:Name="MainTabControl" Padding="12"/>
-        <!-- <TextBlock Text="Hallo Stefan und Thomas Wunder!" FontSize="56" /> -->
-    </Grid>
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Classes="app-header">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Classes="app-title" Text="BURAN" />
+                    <TextBlock Classes="app-subtitle" Text="{loc:Loc Key=Main.Subtitle}" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="ghost"
+                        Content="{loc:Loc Key=Settings.Title}"
+                        ToolTip.Tip="{loc:Loc Key=Settings.OpenTip}"
+                        VerticalAlignment="Center">
+                    <Button.Flyout>
+                        <Flyout Placement="BottomEdgeAlignedRight">
+                            <StackPanel Width="280" Spacing="14" Margin="4">
+                                <TextBlock Classes="sidebar-heading" Text="{loc:Loc Key=Settings.Title}" />
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="{loc:Loc Key=Language.Label}" Classes="muted" />
+                                    <ComboBox HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding LanguageOptions}"
+                                              SelectedItem="{Binding SelectedLanguage}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="loc:LanguageOption">
+                                                <TextBlock Text="{Binding Label}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="{loc:Loc Key=Settings.FontSize}" Classes="muted" />
+                                    <ComboBox HorizontalAlignment="Stretch"
+                                              ItemsSource="{Binding FontSizeOptions}"
+                                              SelectedItem="{Binding SelectedFontSize}">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate x:DataType="models:FontSizeOption">
+                                                <TextBlock Text="{Binding Label}" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                </StackPanel>
+
+                                <StackPanel Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="{loc:Loc Key=Main.Transparency}" Classes="muted"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Classes="muted"
+                                                   Text="{Binding WindowOpacity, StringFormat='{}{0:P0}'}" />
+                                    </Grid>
+                                    <Slider Minimum="0.4" Maximum="1" TickFrequency="0.05"
+                                            Value="{Binding WindowOpacity}"
+                                            ToolTip.Tip="{loc:Loc Key=Main.TransparencyTip}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+            </Grid>
+        </Border>
+
+        <Grid ColumnDefinitions="280,6,*">
+            <Border Grid.Column="0" Classes="sidebar"
+                    DataContext="{Binding Library}">
+                <DockPanel x:DataType="vm:LibraryBrowserViewModel">
+                    <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
+                        <TextBlock Classes="sidebar-heading" Text="{loc:Loc Key=Library.Heading}" />
+                        <TextBlock Classes="path" Text="{Binding LibraryRootDisplay}"
+                                   ToolTip.Tip="{Binding LibraryRoot}" />
+                        <Grid ColumnDefinitions="*,8,Auto">
+                            <Button Classes="accent" Content="{loc:Loc Key=Library.ChooseFolder}"
+                                    Command="{Binding ChooseLibraryRootCommand}"
+                                    HorizontalAlignment="Stretch" />
+                            <Button Grid.Column="2" Classes="ghost" Content="{loc:Loc Key=Library.Refresh}"
+                                    Command="{Binding RefreshLibraryCommand}"
+                                    IsEnabled="{Binding HasLibraryRoot}" />
+                        </Grid>
+                    </StackPanel>
+
+                    <TextBlock DockPanel.Dock="Bottom" Classes="muted" Margin="0,8,0,0"
+                               Text="{Binding CurrentFolderDisplay}"
+                               TextTrimming="CharacterEllipsis" />
+
+                    <Panel>
+                        <TreeView Classes="library-tree"
+                                  ItemsSource="{Binding FolderNodes}"
+                                  SelectedItem="{Binding SelectedFolder}"
+                                  IsVisible="{Binding HasLibraryRoot}">
+                            <TreeView.ItemTemplate>
+                                <TreeDataTemplate DataType="models:FolderNode"
+                                                  ItemsSource="{Binding Children}">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBlock Text="{Binding Name}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center" />
+                                        <Border Grid.Column="1" Classes="audio-dot"
+                                                IsVisible="{Binding HasAudioFiles}" />
+                                    </Grid>
+                                </TreeDataTemplate>
+                            </TreeView.ItemTemplate>
+                        </TreeView>
+
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Spacing="6" IsVisible="{Binding !HasLibraryRoot}">
+                            <TextBlock Text="{loc:Loc Key=Library.NoLibrary}" Classes="empty-title" Opacity="0.7"
+                                       HorizontalAlignment="Center" />
+                            <TextBlock Classes="muted" TextWrapping="Wrap" Width="200"
+                                       Text="{loc:Loc Key=Library.NoLibraryHint}"
+                                       TextAlignment="Center" />
+                        </StackPanel>
+                    </Panel>
+                </DockPanel>
+            </Border>
+
+            <GridSplitter Grid.Column="1" Width="6" ResizeDirection="Columns"
+                          Background="Transparent" />
+
+            <Border Grid.Column="2" Classes="workspace">
+                <TabControl x:Name="MainTabControl" Classes="folder-tabs" />
+            </Border>
+        </Grid>
+    </DockPanel>
 </Window>

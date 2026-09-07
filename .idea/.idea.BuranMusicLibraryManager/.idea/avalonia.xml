@@ -7,6 +7,7 @@
         <entry key="Buran.ID3Editor/Views/AddArtistToID3DialogWindow.axaml" value="Buran.ID3Editor/Buran.ID3Editor.csproj" />
         <entry key="Buran.ID3Editor/Views/Id3EditorTab.axaml" value="Buran.ID3Editor/Buran.ID3Editor.csproj" />
         <entry key="BuranUI/App.axaml" value="BuranUI/BuranUI.csproj" />
+        <entry key="BuranUI/Styles/BuranTheme.axaml" value="BuranUI/BuranUI.csproj" />
         <entry key="BuranUI/Views/MainWindow.axaml" value="BuranUI/BuranUI.csproj" />
         <entry key="BuranUI/Views/SplashWindow.axaml" value="BuranUI/BuranUI.csproj" />
       </map>

@@ -14,6 +14,8 @@ public partial class AssignableTag : ObservableObject {
 
     [ObservableProperty] private string _name;
     [ObservableProperty] private bool   _isAssigned;
+    [ObservableProperty] private bool   _canAssign;
+    [ObservableProperty] private bool   _isFilterActive;
 
     private readonly Action<AssignableTag, bool>? _onAssignedChanged;
     private          bool                         _suppressAssigned;

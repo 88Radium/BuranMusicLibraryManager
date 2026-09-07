@@ -8,7 +8,11 @@
 
     <ItemGroup>
       <PackageReference Include="MessageBox.Avalonia" Version="12.0.0" />
-      <PackageReference Include="z440.atl.core" Version="7.15.3" />
+      <PackageReference Include="z440.atl.core" Version="7.16.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Buran.Localization\Buran.Localization.csproj" />
     </ItemGroup>
 
     <ItemGroup>
