@@ -10,6 +10,7 @@ using System.Composition;
 using System.Composition.Hosting;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.IO;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -50,6 +51,8 @@ public class App : Application {
         bool everythingsFine = true;
 
         try {
+            EnablePluginDependencyResolution(pExtensionsDir);
+
             // 1. ContainerConfiguration erstellen (ersetzt AggregateCatalog)
             var configuration = new ContainerConfiguration();
 
@@ -85,11 +88,20 @@ public class App : Application {
 
             // 6. Geladene Extensions verarbeiten
             if (collection.Any()) {
-                MainWindowViewModel.LoadedExtensions = collection.ToList();
+                var loaded = collection.ToList();
+                MainWindowViewModel.LoadedExtensions = loaded;
+                ModuleHub.Set(loaded);
                 MainWindowViewModel.Tabs ??= new List<TabItem>();
 
-                foreach (IExtension e in collection)
+                var dock = ModuleHub.Find<IPlayerDock>();
+                if (dock is not null)
+                    MainWindowViewModel.PlayerDock = dock.TakeDock();
+
+                foreach (IExtension e in collection) {
+                    if (e is IPlayerDock && MainWindowViewModel.PlayerDock is not null)
+                        continue;
                     MainWindowViewModel.Tabs.Add(e.Tab);
+                }
             }
             else {
                 Debug.WriteLine("No extensions found.");
@@ -109,6 +121,22 @@ public class App : Application {
         }
 
         return everythingsFine;
+    }
+
+    /// <summary>
+    /// Plugin assemblies are loaded with LoadFrom. Their NuGet dependencies sit next to
+    /// BuranUI.dll but are missing from the host .deps.json, so the default probe skips them.
+    /// </summary>
+    private static void EnablePluginDependencyResolution(string extensionsDir) {
+        AssemblyLoadContext.Default.Resolving += (_, assemblyName) => {
+            if (string.IsNullOrEmpty(assemblyName.Name))
+                return null;
+
+            var path = Path.Combine(extensionsDir, assemblyName.Name + ".dll");
+            return File.Exists(path)
+                ? AssemblyLoadContext.Default.LoadFromAssemblyPath(Path.GetFullPath(path))
+                : null;
+        };
     }
 
     #endregion

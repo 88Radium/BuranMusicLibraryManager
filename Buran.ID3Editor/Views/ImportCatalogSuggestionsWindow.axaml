@@ -21,6 +21,8 @@
             <TextBlock Text="{loc:Loc Key=Catalog.UnknownFound}" FontSize="{DynamicResource Font.Title}" FontWeight="SemiBold" />
             <TextBlock Classes="muted" TextWrapping="Wrap"
                        Text="{loc:Loc Key=Catalog.Hint}" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="{loc:Loc Key=Catalog.BlockHint}" />
             <TextBlock Text="{Binding Summary}" Opacity="0.8" Margin="0,4,0,0" />
         </StackPanel>
 
@@ -34,7 +36,8 @@
             </StackPanel>
         </StackPanel>
 
-        <Grid ColumnDefinitions="*,12,*,12,*">
+        <Grid RowDefinitions="*,Auto">
+        <Grid Grid.Row="0" ColumnDefinitions="*,12,*,12,*">
             <GroupBox Grid.Column="0" Header="{loc:Loc Key=Common.Artists}">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"
@@ -49,9 +52,14 @@
                                             <DockPanel>
                                                 <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Include}"
                                                           VerticalAlignment="Center" Margin="0,0,8,0" />
+                                                <Button DockPanel.Dock="Right" Classes="ghost"
+                                                        Content="{loc:Loc Key=Catalog.Block}"
+                                                        ToolTip.Tip="{loc:Loc Key=Catalog.BlockTip}"
+                                                        Command="{Binding $parent[Window].((vm:ImportCatalogSuggestionsViewModel)DataContext).BlockValueCommand}"
+                                                        CommandParameter="{Binding}" />
                                                 <TextBlock DockPanel.Dock="Right" Classes="muted"
                                                            Text="{Binding Source}" VerticalAlignment="Center"
-                                                           Margin="8,0,0,0" />
+                                                           Margin="8,8,8,0" />
                                                 <TextBlock Text="{Binding Value}" FontWeight="SemiBold"
                                                            VerticalAlignment="Center"
                                                            TextTrimming="CharacterEllipsis" />
@@ -64,15 +72,22 @@
                                                              GroupName="{Binding RadioGroupName}"
                                                              IsChecked="{Binding IsAlternativeName}" />
                                                 <StackPanel Spacing="6" IsVisible="{Binding IsAlternativeName}">
-                                                    <ComboBox PlaceholderText="{loc:Loc Key=Catalog.ExistingPreferred}"
-                                                              ItemsSource="{Binding $parent[Window].((vm:ImportCatalogSuggestionsViewModel)DataContext).ExistingArtists}"
-                                                              SelectedItem="{Binding RefersToArtist}">
-                                                        <ComboBox.ItemTemplate>
+                                                    <AutoCompleteBox PlaceholderText="{loc:Loc Key=Catalog.ExistingPreferred}"
+                                                                     ItemsSource="{Binding $parent[Window].((vm:ImportCatalogSuggestionsViewModel)DataContext).ExistingArtists}"
+                                                                     SelectedItem="{Binding RefersToArtist}"
+                                                                     FilterMode="StartsWith"
+                                                                     MinimumPrefixLength="0"
+                                                                     MaxDropDownHeight="240"
+                                                                     ClearSelectionOnLostFocus="False">
+                                                        <AutoCompleteBox.ValueMemberBinding>
+                                                            <Binding Path="PreferredArtistName" x:DataType="sqlite:DatabaseTable_ArtistNames" />
+                                                        </AutoCompleteBox.ValueMemberBinding>
+                                                        <AutoCompleteBox.ItemTemplate>
                                                             <DataTemplate x:DataType="sqlite:DatabaseTable_ArtistNames">
                                                                 <TextBlock Text="{Binding PreferredArtistName}" />
                                                             </DataTemplate>
-                                                        </ComboBox.ItemTemplate>
-                                                    </ComboBox>
+                                                        </AutoCompleteBox.ItemTemplate>
+                                                    </AutoCompleteBox>
                                                     <TextBlock Classes="muted"
                                                                Text="{loc:Loc Key=Catalog.OrCreatePreferred}" />
                                                     <TextBox PlaceholderText="{loc:Loc Key=Catalog.ExampleArtist}"
@@ -105,15 +120,47 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="models:CatalogSuggestionItem">
                                     <Border Classes="editor-item">
+                                        <StackPanel Spacing="6">
                                         <DockPanel>
                                             <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Include}"
                                                       VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <Button DockPanel.Dock="Right" Classes="ghost"
+                                                    Content="{loc:Loc Key=Catalog.Block}"
+                                                    ToolTip.Tip="{loc:Loc Key=Catalog.BlockTip}"
+                                                    Command="{Binding $parent[Window].((vm:ImportCatalogSuggestionsViewModel)DataContext).BlockValueCommand}"
+                                                    CommandParameter="{Binding}" />
                                             <TextBlock DockPanel.Dock="Right" Classes="muted"
                                                        Text="{Binding Source}" VerticalAlignment="Center"
-                                                       Margin="8,0,0,0" />
+                                                       Margin="8,8,8,0" />
                                             <TextBlock Text="{Binding Value}" FontWeight="SemiBold"
                                                        VerticalAlignment="Center" />
                                         </DockPanel>
+                                        <StackPanel Spacing="6" IsEnabled="{Binding Include}">
+                                            <RadioButton Content="{loc:Loc Key=Catalog.PreferredName}"
+                                                         GroupName="{Binding RadioGroupName}"
+                                                         IsChecked="{Binding IsPreferredName}" />
+                                            <RadioButton Content="{loc:Loc Key=Catalog.AlternativeName}"
+                                                         GroupName="{Binding RadioGroupName}"
+                                                         IsChecked="{Binding IsAlternativeName}" />
+                                            <AutoCompleteBox IsVisible="{Binding IsAlternativeName}"
+                                                             PlaceholderText="{loc:Loc Key=Catalog.ExistingPreferredGenre}"
+                                                             ItemsSource="{Binding ExistingGenres}"
+                                                             SelectedItem="{Binding RefersToGenre}"
+                                                             FilterMode="StartsWith"
+                                                             MinimumPrefixLength="0"
+                                                             MaxDropDownHeight="240"
+                                                             ClearSelectionOnLostFocus="False">
+                                                <AutoCompleteBox.ValueMemberBinding>
+                                                    <Binding Path="GenreName" x:DataType="sqlite:DatabaseTable_GenreNames" />
+                                                </AutoCompleteBox.ValueMemberBinding>
+                                                <AutoCompleteBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="sqlite:DatabaseTable_GenreNames">
+                                                        <TextBlock Text="{Binding GenreName}" />
+                                                    </DataTemplate>
+                                                </AutoCompleteBox.ItemTemplate>
+                                            </AutoCompleteBox>
+                                        </StackPanel>
+                                        </StackPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -132,15 +179,47 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="models:CatalogSuggestionItem">
                                     <Border Classes="editor-item">
+                                        <StackPanel Spacing="6">
                                         <DockPanel>
                                             <CheckBox DockPanel.Dock="Left" IsChecked="{Binding Include}"
                                                       VerticalAlignment="Center" Margin="0,0,8,0" />
+                                            <Button DockPanel.Dock="Right" Classes="ghost"
+                                                    Content="{loc:Loc Key=Catalog.Block}"
+                                                    ToolTip.Tip="{loc:Loc Key=Catalog.BlockTip}"
+                                                    Command="{Binding $parent[Window].((vm:ImportCatalogSuggestionsViewModel)DataContext).BlockValueCommand}"
+                                                    CommandParameter="{Binding}" />
                                             <TextBlock DockPanel.Dock="Right" Classes="muted"
                                                        Text="{Binding Source}" VerticalAlignment="Center"
-                                                       Margin="8,0,0,0" />
+                                                       Margin="8,8,8,0" />
                                             <TextBlock Text="{Binding Value}" FontWeight="SemiBold"
                                                        VerticalAlignment="Center" />
                                         </DockPanel>
+                                        <StackPanel Spacing="6" IsEnabled="{Binding Include}">
+                                            <RadioButton Content="{loc:Loc Key=Catalog.PreferredName}"
+                                                         GroupName="{Binding RadioGroupName}"
+                                                         IsChecked="{Binding IsPreferredName}" />
+                                            <RadioButton Content="{loc:Loc Key=Catalog.AlternativeName}"
+                                                         GroupName="{Binding RadioGroupName}"
+                                                         IsChecked="{Binding IsAlternativeName}" />
+                                            <AutoCompleteBox IsVisible="{Binding IsAlternativeName}"
+                                                             PlaceholderText="{loc:Loc Key=Catalog.ExistingPreferredMood}"
+                                                             ItemsSource="{Binding ExistingMoods}"
+                                                             SelectedItem="{Binding RefersToMood}"
+                                                             FilterMode="StartsWith"
+                                                             MinimumPrefixLength="0"
+                                                             MaxDropDownHeight="240"
+                                                             ClearSelectionOnLostFocus="False">
+                                                <AutoCompleteBox.ValueMemberBinding>
+                                                    <Binding Path="MoodName" x:DataType="sqlite:DatabaseTable_MoodNames" />
+                                                </AutoCompleteBox.ValueMemberBinding>
+                                                <AutoCompleteBox.ItemTemplate>
+                                                    <DataTemplate x:DataType="sqlite:DatabaseTable_MoodNames">
+                                                        <TextBlock Text="{Binding MoodName}" />
+                                                    </DataTemplate>
+                                                </AutoCompleteBox.ItemTemplate>
+                                            </AutoCompleteBox>
+                                        </StackPanel>
+                                        </StackPanel>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -148,6 +227,32 @@
                     </ScrollViewer>
                 </DockPanel>
             </GroupBox>
+        </Grid>
+
+        <GroupBox Grid.Row="1" Header="{loc:Loc Key=Catalog.Blocked}" Margin="0,12,0,0"
+                  MaxHeight="180">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"
+                           Text="{loc:Loc Key=Catalog.NoBlocked}"
+                           IsVisible="{Binding !HasBlocked}" />
+                <ListBox Classes="editor-list" ItemsSource="{Binding BlockedValues}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="sqlite:DatabaseTable_BlockedCatalogValues">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Classes="ghost"
+                                        Content="{loc:Loc Key=Catalog.Unblock}"
+                                        Command="{Binding $parent[Window].((vm:ImportCatalogSuggestionsViewModel)DataContext).UnblockValueCommand}"
+                                        CommandParameter="{Binding}" />
+                                <TextBlock DockPanel.Dock="Left" Classes="muted" Width="90"
+                                           Text="{Binding KindLabel}" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding Value}" VerticalAlignment="Center"
+                                           TextTrimming="CharacterEllipsis" />
+                            </DockPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </GroupBox>
         </Grid>
     </DockPanel>
 </Window>

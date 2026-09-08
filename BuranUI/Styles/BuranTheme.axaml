@@ -217,4 +217,9 @@
         <Setter Property="CornerRadius" Value="4" />
         <Setter Property="HorizontalAlignment" Value="Stretch" />
     </Style>
+
+    <Style Selector="AutoCompleteBox">
+        <Setter Property="MinHeight" Value="{DynamicResource Control.MinHeight}" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
 </Styles>

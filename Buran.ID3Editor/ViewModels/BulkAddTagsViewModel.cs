@@ -21,17 +21,13 @@ public partial class BulkAddTagsViewModel : ObservableObject {
         Kind          = kind;
         _files        = files.ToList();
         SelectedFiles = new ObservableCollection<Mp3FileObject>(_files);
-        CurrentTags   = new ObservableCollection<string>();
+        CurrentTags   = new ObservableCollection<BulkTagItem>();
         KnownTags     = new ObservableCollection<string>();
         PreviewItems  = new ObservableCollection<TagPreviewItem>();
 
         ReloadKnownTags();
+        CurrentTags.CollectionChanged += (_, _) => RefreshAfterListChange();
         LoadFromSelection();
-        CurrentTags.CollectionChanged += (_, _) => {
-            UpdatePreview();
-            OnPropertyChanged(nameof(CanApply));
-        };
-        UpdatePreview();
         L.WhenChanged(() => {
             OnPropertyChanged(nameof(WindowTitle));
             OnPropertyChanged(nameof(ListHeader));
@@ -46,7 +42,7 @@ public partial class BulkAddTagsViewModel : ObservableObject {
     public CatalogSuggestionKind Kind { get; }
 
     public ObservableCollection<Mp3FileObject> SelectedFiles { get; }
-    public ObservableCollection<string>        CurrentTags   { get; }
+    public ObservableCollection<BulkTagItem>   CurrentTags   { get; }
     public ObservableCollection<string>        KnownTags     { get; }
     public ObservableCollection<TagPreviewItem> PreviewItems { get; }
 
@@ -76,13 +72,20 @@ public partial class BulkAddTagsViewModel : ObservableObject {
 
     [ObservableProperty] private string _newTagInput = "";
 
-    public bool CanAddTag =>
-        !string.IsNullOrWhiteSpace(NewTagInput) &&
-        !CurrentTags.Contains(ResolveName(NewTagInput.Trim()), StringComparer.OrdinalIgnoreCase);
+    public bool CanAddTag {
+        get {
+            if (string.IsNullOrWhiteSpace(NewTagInput))
+                return false;
 
-    public bool CanApply =>
-        _files.Count > 0 &&
-        !_baselineTags.SetEquals(CurrentTags);
+            var name     = ResolveName(NewTagInput.Trim());
+            var existing = FindTag(name);
+            if (existing?.ApplyToAll == true)
+                return false;
+            return existing is null || !IsOnAllFiles(name);
+        }
+    }
+
+    public bool CanApply => _files.Count > 0 && HasDelta();
 
     partial void OnNewTagInputChanged(string value) => OnPropertyChanged(nameof(CanAddTag));
 
@@ -91,36 +94,54 @@ public partial class BulkAddTagsViewModel : ObservableObject {
         if (!CanAddTag)
             return;
 
-        var name = PersistAndResolve(NewTagInput.Trim());
-        if (!CurrentTags.Contains(name, StringComparer.OrdinalIgnoreCase))
-            CurrentTags.Add(name);
+        var name     = PersistAndResolve(NewTagInput.Trim());
+        var existing = FindTag(name);
+        if (existing is null)
+            CurrentTags.Add(new BulkTagItem(name, applyToAll: true));
+        else
+            existing.ApplyToAll = true;
 
         NewTagInput = "";
-        OnPropertyChanged(nameof(CanAddTag));
+        RefreshAfterListChange();
     }
 
     [RelayCommand]
-    private void RemoveTag(string? tag) {
-        if (!string.IsNullOrWhiteSpace(tag))
-            CurrentTags.Remove(tag);
+    private void RemoveTag(object? tag) {
+        var name = tag switch {
+            BulkTagItem item => item.Name,
+            string text      => text,
+            _                => tag?.ToString()
+        };
+        if (string.IsNullOrWhiteSpace(name))
+            return;
+
+        var match = CurrentTags.FirstOrDefault(t =>
+            t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (match is not null)
+            CurrentTags.Remove(match);
+
+        RefreshAfterListChange();
     }
 
     [RelayCommand]
-    private void ClearTags() => CurrentTags.Clear();
+    private void ClearTags() {
+        CurrentTags.Clear();
+        RefreshAfterListChange();
+    }
 
     [RelayCommand]
     private void LoadFromSelection() {
         CurrentTags.Clear();
         foreach (var file in _files) {
             foreach (var tag in ReadTags(file)) {
-                if (!string.IsNullOrWhiteSpace(tag) &&
-                    !CurrentTags.Contains(tag, StringComparer.OrdinalIgnoreCase))
-                    CurrentTags.Add(tag);
+                var name = tag.Trim();
+                if (name.Length > 0 && !HasTag(name))
+                    CurrentTags.Add(new BulkTagItem(name));
             }
         }
 
-        _baselineTags = new HashSet<string>(CurrentTags, StringComparer.OrdinalIgnoreCase);
-        OnPropertyChanged(nameof(CanApply));
+        _baselineTags = new HashSet<string>(CurrentTagNames(), StringComparer.OrdinalIgnoreCase);
+        RefreshAfterListChange();
     }
 
     [RelayCommand]
@@ -128,13 +149,8 @@ public partial class BulkAddTagsViewModel : ObservableObject {
         if (!CanApply)
             return;
 
-        var current = CurrentTags
-            .Select(PersistAndResolve)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        var currentSet = new HashSet<string>(current, StringComparer.OrdinalIgnoreCase);
-        var toAdd = current.Where(t => !_baselineTags.Contains(t)).ToList();
-        var toRemove = _baselineTags.Where(t => !currentSet.Contains(t)).ToList();
+        GetDelta(out var toAdd, out var toRemove);
+        toAdd = toAdd.Select(PersistAndResolve).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         foreach (var file in _files)
             WriteTags(file, MergeTags(ReadTags(file), toAdd, toRemove));
@@ -144,6 +160,40 @@ public partial class BulkAddTagsViewModel : ObservableObject {
 
     [RelayCommand]
     private void Cancel() => CloseRequested?.Invoke(this, EventArgs.Empty);
+
+    private void RefreshAfterListChange() {
+        UpdatePreview();
+        OnPropertyChanged(nameof(CanAddTag));
+        OnPropertyChanged(nameof(CanApply));
+        ApplyCommand.NotifyCanExecuteChanged();
+        AddTagCommand.NotifyCanExecuteChanged();
+    }
+
+    private bool HasTag(string name) => FindTag(name) is not null;
+
+    private BulkTagItem? FindTag(string name) =>
+        CurrentTags.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    private bool IsOnAllFiles(string name) =>
+        _files.Count > 0 &&
+        _files.All(f => ReadTags(f).Any(t => t.Trim().Equals(name, StringComparison.OrdinalIgnoreCase)));
+
+    private IEnumerable<string> CurrentTagNames() => CurrentTags.Select(t => t.Name);
+
+    private bool HasDelta() {
+        GetDelta(out var toAdd, out var toRemove);
+        return toAdd.Count > 0 || toRemove.Count > 0;
+    }
+
+    private void GetDelta(out List<string> toAdd, out List<string> toRemove) {
+        var currentSet = new HashSet<string>(CurrentTagNames(), StringComparer.OrdinalIgnoreCase);
+        toRemove = _baselineTags.Where(t => !currentSet.Contains(t)).ToList();
+        toAdd = CurrentTags
+            .Where(t => t.ApplyToAll || !_baselineTags.Contains(t.Name))
+            .Select(t => t.Name)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
 
     private void ReloadKnownTags() {
         KnownTags.Clear();
@@ -161,19 +211,28 @@ public partial class BulkAddTagsViewModel : ObservableObject {
         switch (Kind) {
             case CatalogSuggestionKind.Artist: {
                 var resolved = DBConnector.CheckForPreferredName(name);
-                if (resolved.ArtistNameStatus == ArtistNameStatus.IsNonExistent)
+                if (resolved.ArtistNameStatus == ArtistNameStatus.IsNonExistent &&
+                    !DBConnector.IsCatalogValueBlocked(DatabaseTable_BlockedCatalogValues.KindArtist, resolved.PreferredArtistName))
                     DBConnector.InsertArtistName(resolved.PreferredArtistName, "");
                 name = resolved.PreferredArtistName;
                 break;
             }
-            case CatalogSuggestionKind.Genre:
-                if (!KnownTags.Any(g => g.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            case CatalogSuggestionKind.Genre: {
+                var resolved = DBConnector.ResolveGenreName(name);
+                name = resolved.PreferredName;
+                if (!resolved.IsKnown &&
+                    !DBConnector.IsCatalogValueBlocked(DatabaseTable_BlockedCatalogValues.KindGenre, name))
                     DBConnector.InsertGenreName(name);
                 break;
-            default:
-                if (!KnownTags.Any(m => m.Equals(name, StringComparison.OrdinalIgnoreCase)))
+            }
+            default: {
+                var resolved = DBConnector.ResolveMoodName(name);
+                name = resolved.PreferredName;
+                if (!resolved.IsKnown &&
+                    !DBConnector.IsCatalogValueBlocked(DatabaseTable_BlockedCatalogValues.KindMood, name))
                     DBConnector.InsertMoodName(name);
                 break;
+            }
         }
 
         ReloadKnownTags();
@@ -196,7 +255,8 @@ public partial class BulkAddTagsViewModel : ObservableObject {
         IReadOnlyList<string> toAdd,
         IReadOnlyList<string> toRemove) {
         var next = existing
-            .Where(t => !string.IsNullOrWhiteSpace(t) &&
+            .Select(t => t.Trim())
+            .Where(t => t.Length > 0 &&
                         toRemove.All(r => !t.Equals(r, StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
@@ -224,13 +284,14 @@ public partial class BulkAddTagsViewModel : ObservableObject {
     }
 
     private void UpdatePreview() {
-        var currentSet = new HashSet<string>(CurrentTags, StringComparer.OrdinalIgnoreCase);
-        var toAdd      = CurrentTags.Where(t => !_baselineTags.Contains(t)).ToList();
-        var toRemove   = _baselineTags.Where(t => !currentSet.Contains(t)).ToList();
+        GetDelta(out var toAdd, out var toRemove);
 
         PreviewItems.Clear();
         foreach (var file in _files) {
-            var oldTags = ReadTags(file).Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
+            var oldTags = ReadTags(file)
+                .Select(t => t.Trim())
+                .Where(t => t.Length > 0)
+                .ToList();
             var newTags = MergeTags(oldTags, toAdd, toRemove);
             PreviewItems.Add(new TagPreviewItem {
                 FileName = file.FileName,

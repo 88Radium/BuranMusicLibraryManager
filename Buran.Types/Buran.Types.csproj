@@ -7,18 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="MessageBox.Avalonia" Version="12.0.0" />
-      <PackageReference Include="z440.atl.core" Version="7.16.0" />
+      <PackageReference Include="CommunityToolkit.Mvvm" />
+      <PackageReference Include="MessageBox.Avalonia" />
+      <PackageReference Include="z440.atl.core" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\Buran.Localization\Buran.Localization.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Reference Include="CommunityToolkit.Mvvm">
-        <HintPath>..\..\..\..\..\..\..\..\home\alex\.nuget\packages\communitytoolkit.mvvm\8.4.2\lib\net8.0\CommunityToolkit.Mvvm.dll</HintPath>
-      </Reference>
     </ItemGroup>
 
 </Project>

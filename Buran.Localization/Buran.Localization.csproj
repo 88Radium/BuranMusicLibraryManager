@@ -10,13 +10,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.1.2" />
+        <PackageReference Include="Avalonia" />
     </ItemGroup>
 
     <ItemGroup>
         <EmbeddedResource Include="Resources\Strings.en.json" WithCulture="false" LogicalName="Buran.Localization.Strings.en.json" />
         <EmbeddedResource Include="Resources\Strings.de.json" WithCulture="false" LogicalName="Buran.Localization.Strings.de.json" />
         <EmbeddedResource Include="Resources\Strings.ru.json" WithCulture="false" LogicalName="Buran.Localization.Strings.ru.json" />
+        <EmbeddedResource Include="Resources\Help.en.md" WithCulture="false" LogicalName="Buran.Localization.Help.en.md" />
+        <EmbeddedResource Include="Resources\Help.de.md" WithCulture="false" LogicalName="Buran.Localization.Help.de.md" />
+        <EmbeddedResource Include="Resources\Help.ru.md" WithCulture="false" LogicalName="Buran.Localization.Help.ru.md" />
     </ItemGroup>
 
 </Project>

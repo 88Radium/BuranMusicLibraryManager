@@ -5,5 +5,7 @@ namespace Buran.Interfaces;
 /// ein Ordner gewählt wird.
 /// </summary>
 public interface IMusicFolderConsumer {
-    void LoadMusicFolder(string folderPath);
+    void LoadMusicFolder(string folderPath) => LoadMusicFolder(folderPath, includeSubfolders: false);
+
+    void LoadMusicFolder(string folderPath, bool includeSubfolders);
 }

@@ -1,0 +1,111 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Buran.Player.ViewModels"
+             xmlns:models="using:Buran.Player.Models"
+             xmlns:loc="using:Buran.Localization"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="640"
+             x:Class="Buran.Player.Views.PlayerTab"
+             x:DataType="vm:PlayerTabViewModel"
+             x:CompileBindings="True">
+
+    <Design.DataContext>
+        <vm:PlayerTabViewModel />
+    </Design.DataContext>
+
+    <Grid Margin="4">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="{Binding ChromeRowHeight}" MinHeight="0" />
+            <RowDefinition Height="{Binding SplitterRowHeight}" />
+            <RowDefinition Height="*" MinHeight="120" />
+        </Grid.RowDefinitions>
+
+        <ContentControl x:Name="ChromeHost" MinHeight="160"
+                        IsVisible="{Binding !IsDocked}" />
+
+        <GridSplitter Grid.Row="1" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                      Background="#3A4F70"
+                      IsVisible="{Binding !IsDocked}" />
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,6,*">
+            <GroupBox Header="{loc:Loc Key=Player.FolderQueue}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                        <Button Content="{loc:Loc Key=Player.AddToPlaylist}"
+                                Command="{Binding AddFolderSelectionToPlaylistCommand}"
+                                IsEnabled="{Binding HasFolderTracks}" />
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"
+                               Text="{loc:Loc Key=Player.NoFolderTracks}"
+                               IsVisible="{Binding !HasFolderTracks}" />
+                    <ListBox ItemsSource="{Binding FolderTracks}"
+                             SelectedItem="{Binding SelectedFolderTrack}"
+                             DoubleTapped="FolderTracks_DoubleTapped">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:PlaylistTrack">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBlock Text="{Binding DisplayTitle}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1" Classes="muted" Text="{Binding DurationText}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </GroupBox>
+
+            <GridSplitter Grid.Column="1" ResizeDirection="Columns" ResizeBehavior="PreviousAndNext"
+                          HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                          Background="#3A4F70" />
+
+            <GroupBox Grid.Column="2" Header="{loc:Loc Key=Player.Playlists}">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,8">
+                        <ComboBox HorizontalAlignment="Stretch"
+                                  ItemsSource="{Binding Playlists}"
+                                  SelectedItem="{Binding SelectedPlaylist}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="models:Playlist">
+                                    <TextBlock Text="{Binding Name}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBox PlaceholderText="{loc:Loc Key=Player.PlaylistName}"
+                                 Text="{Binding SelectedPlaylistName}"
+                                 IsEnabled="{Binding HasPlaylists}" />
+                        <WrapPanel Orientation="Horizontal">
+                            <Button Margin="0,0,8,8" Content="{loc:Loc Key=Player.NewPlaylist}" Command="{Binding NewPlaylistCommand}" />
+                            <Button Margin="0,0,8,8" Content="{loc:Loc Key=Player.DeletePlaylist}" Command="{Binding DeletePlaylistCommand}"
+                                    IsEnabled="{Binding HasPlaylists}" />
+                            <Button Margin="0,0,8,8" Content="{loc:Loc Key=Player.ImportM3u}" Command="{Binding ImportM3uCommand}" />
+                            <Button Margin="0,0,8,8" Content="{loc:Loc Key=Player.ExportM3u}" Command="{Binding ExportM3uCommand}"
+                                    IsEnabled="{Binding HasPlaylistTracks}" />
+                        </WrapPanel>
+                    </StackPanel>
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                        <Button Content="{loc:Loc Key=Common.Remove}"
+                                Command="{Binding RemovePlaylistTrackCommand}"
+                                IsEnabled="{Binding SelectedPlaylistTrack, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    </StackPanel>
+                    <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"
+                               Text="{loc:Loc Key=Player.NoPlaylistTracks}"
+                               IsVisible="{Binding !HasPlaylistTracks}" />
+                    <ListBox ItemsSource="{Binding PlaylistTracks}"
+                             SelectedItem="{Binding SelectedPlaylistTrack}"
+                             DoubleTapped="PlaylistTracks_DoubleTapped">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:PlaylistTrack">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                    <TextBlock Text="{Binding DisplayTitle}"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1" Classes="muted" Text="{Binding DurationText}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </GroupBox>
+        </Grid>
+    </Grid>
+</UserControl>

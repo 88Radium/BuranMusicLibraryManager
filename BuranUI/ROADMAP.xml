@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <roadmap>
   <metadata>
-    <lastUpdated>2026-08-09T14:37:00</lastUpdated>
+    <lastUpdated>2026-09-07T12:00:00</lastUpdated>
     <project>BuranMusicLibraryManager - Metadata Resolution Refactoring</project>
-    <status>IN_PROGRESS - Phase 2 Starting</status>
+    <status>IN_PROGRESS - Catalog/DB editor ahead of Phase 2; player not started</status>
   </metadata>
 
   <intentions>
     <overallGoal>
-      Transform BuranMusicLibraryManager from a simple metadata editor into an intelligent, 
-      context-aware music library manager that can accurately parse filenames, validate metadata 
-      against authoritative sources (DB + external APIs), and help users resolve ambiguities.
+      Transform BuranMusicLibraryManager from a simple metadata editor into an intelligent,
+      context-aware music library manager that can accurately parse filenames, validate metadata
+      against authoritative sources (DB + external APIs), help users resolve ambiguities,
+      and play library files with visualization (including a spectrum analyzer).
     </overallGoal>
     
     <corePhilosophy>
@@ -35,7 +36,7 @@
       
       <businessRationale>
         WHY: Current patterns had {artist}, {artist1}, {artist2}, {featured} = confusing/unmaintainable.
-        Many real files have multiple collaborators (feat., &, vs.) but we couldn't capture them all.
+        Many real files have multiple collaborators (feat., &amp;, vs.) but we couldn't capture them all.
         
         GOAL: Single unified approach that scales to N artists in a pattern.
         IMPACT: More accurate parsing, user sees all artists not just first one.
@@ -91,7 +92,7 @@
       <keyFeatures>
         - ArtistAlbums table: Track which albums belong to which artists
         - AmbiguousMetadata table: Log user decisions, build confidence models
-        - FeatureKeywords table: "feat.", "vs.", "&" etc. (configurable)
+        - FeatureKeywords table: "feat.", "vs.", "&amp;" etc. (configurable)
         - MetadataResolver service: Scoring + decision logic
         - Optional: Future ML model training on AmbiguousMetadata
       </keyFeatures>
@@ -155,6 +156,50 @@
         ML FUTURE: Speech recognition for remix sample detection.
       </technicalRationale>
     </phase>
+
+    <!-- PHASE 5: PLAYBACK + VISUALIZATION -->
+    <phase number="5">
+      <name>Music Player with Visualization and Spectrum Analyzer</name>
+      <status>IN_PROGRESS - MEF module Buran.Player: transport, spectrum, playlists, M3U</status>
+      <duration>TBD</duration>
+
+      <businessRationale>
+        WHY: Editing tags without hearing the file is guesswork. Users need to preview the
+        selected track (and the folder) while working in the ID3 editor.
+        GOAL: Play MP3 and FLAC from the library, with transport controls and a live visualizer.
+        IMPACT: Faster tag decisions, fewer wrong-file edits, the app becomes a library you can listen to.
+      </businessRationale>
+
+      <technicalRationale>
+        PLAYBACK: Decode MP3/FLAC, output to the system audio device, keep UI thread free.
+        TRANSPORT: Play, pause, stop, seek, volume; current file follows ID3-editor selection
+        (and optional folder queue / next-previous).
+        PLAYLISTS: Named lists of absolute file paths that may span folders. Persist in the app
+        and export/import extended M3U (.m3u / .m3u8). Missing files stay in the playlist as missing.
+        Do not copy audio into SQLite. A library index table is only needed later for catalog-wide search.
+        SPECTRUM: FFT on the PCM stream → frequency bands drawn in Avalonia (spectrum analyzer).
+        VISUALIZATION: Additional time-domain view (waveform / oscilloscope) from the same samples.
+        CONSTRAINT: Visualization must not block tag editing or catalog work. Stop on folder change
+        or when the playing file is renamed/deleted (compare-files / File.Move).
+        NOTE: Phase 4 (fingerprinting) identifies audio. Phase 5 plays and displays it. Separate concerns.
+      </technicalRationale>
+
+      <keyFeatures>
+        - Play / pause / stop / seek / volume for the selected MP3 or FLAC
+        - Optional queue: previous / next in the current folder
+        - Playlists: add tracks from different folders, play the list, save/load .m3u
+        - Spectrum analyzer (FFT bars) driven by the live PCM stream
+        - Waveform or oscilloscope visualization
+        - Player chrome in the ID3 editor (or a dedicated player strip) without leaving the catalog workflow
+      </keyFeatures>
+
+      <outcomes>
+        ✅ Selected library file can be played and scrubbed
+        ✅ Spectrum analyzer and at least one extra visualization react to playback
+        ✅ Playback survives UI work in ID3 and DB editor; stops cleanly on file/folder change
+        ✅ Playlist of paths from mixed folders can be built, played, and written as .m3u
+      </outcomes>
+    </phase>
   </phases>
 
   <architecture>
@@ -162,12 +207,15 @@
       <layer name="UI" description="Avalonia XAML + ViewModels">
         <component>Id3EditorTabViewModel - displays files, artists, metadata</component>
         <component>MetadataResolutionDialogViewModel (Phase 2) - asks user for disambiguation</component>
+        <component>PlayerViewModel (Phase 5) - transport, position, volume</component>
+        <component>SpectrumAnalyzer / waveform visualizer (Phase 5)</component>
       </layer>
       
       <layer name="Domain" description="Business logic">
         <component>FileNameParser - pattern matching + extraction</component>
         <component>MetadataResolver (Phase 2) - confidence scoring + disambiguation</component>
         <component>MetadataResolutionService (Phase 3) - orchestrates external APIs</component>
+        <component>PlaybackService (Phase 5) - decode, output device, PCM tap for FFT</component>
       </layer>
       
       <layer name="Data" description="Persistence &amp; external APIs">
@@ -256,8 +304,8 @@
       </test>
       
       <test name="Multi-Artist with Ampersand">
-        <input>Eminem & Rihanna - Love The Way You Lie</input>
-        <pattern>{artists} & {artists} - {title}</pattern>
+        <input>Eminem &amp; Rihanna - Love The Way You Lie</input>
+        <pattern>{artists} &amp; {artists} - {title}</pattern>
         <expectedArtists>["Eminem", "Rihanna"]</expectedArtists>
         <expectedComments>[]</expectedComments>
       </test>
@@ -270,8 +318,8 @@
       </test>
       
       <test name="Complex Mixed">
-        <input>Simon & Garfunkel feat. Disturbed - Sound Of Silence [Remix] (Live)</input>
-        <pattern>{artists} & {artists} feat. {artists} - {title} [{comment}] ({comment})</pattern>
+        <input>Simon &amp; Garfunkel feat. Disturbed - Sound Of Silence [Remix] (Live)</input>
+        <pattern>{artists} &amp; {artists} feat. {artists} - {title} [{comment}] ({comment})</pattern>
         <expectedArtists>["Simon", "Garfunkel", "Disturbed"]</expectedArtists>
         <expectedComments>["Remix", "Live"]</expectedComments>
       </test>
@@ -331,340 +379,11 @@
       Example: "Album 'Disturbed' exists (points to artist), but title also common (2 matches).
       Which interpretation is correct?"
     </note>
-  </importantNotes>
 
-</roadmap>
-
-    <!-- PHASE 1: ARTISTS UNIFICATION -->
-    <phase number="1">
-      <name>Unify Artists and Comments Placeholders</name>
-      <status>IN_PROGRESS</status>
-      <duration>30 minutes</duration>
-      <rationale>
-        Core foundation for intelligent metadata parsing. Consolidate {artist}, {artist1}, 
-        {artist2}, {artists}, {featured} into single {artists} placeholder that supports 
-        multiple occurrences per pattern. Prevents ambiguous metadata capture.
-      </rationale>
-      
-      <tasks>
-        <task id="1.1" status="pending">
-          <description>Update DBConnector.cs - Patterns with unified {artists}</description>
-          <files>Buran.SQLite/DBConnector.cs (lines 64-95)</files>
-          <changes>
-            - Replace {artist1}, {artist2}, {featured} with {artists}
-            - Allow multiple {artists} in single pattern
-            - Examples: '{artists} & {artists} - {title}', '{artists} feat. {artists} - {title}'
-            - Keep {artist} for single-artist patterns (backward compat)
-          </changes>
-        </task>
-        
-        <task id="1.2" status="pending">
-          <description>Update FileNameParser.cs - ConvertToRegex() for multiple {artists}</description>
-          <files>Buran.SQLite/FileNameParser.cs (lines 66-102)</files>
-          <changes>
-            - Add counter for multiple {artists} → artists_1, artists_2, etc.
-            - Same for {comment} → comment_1, comment_2
-            - Generate named groups dynamically
-          </changes>
-        </task>
-        
-        <task id="1.3" status="pending">
-          <description>Update FileNameParser.cs - TryPattern() to collect multiple groups</description>
-          <files>Buran.SQLite/FileNameParser.cs (lines 44-64)</files>
-          <changes>
-            - Extract all artists_N and comment_N groups from regex match
-            - Combine into ParsedMetadata.Artists and ParsedMetadata.Comments
-            - Remove duplicates (case-insensitive)
-          </changes>
-        </task>
-        
-        <task id="1.4" status="pending">
-          <description>Update FileNameParser.cs - ApplyToMP3FileObject() validation</description>
-          <files>Buran.SQLite/FileNameParser.cs (lines 171-215)</files>
-          <changes>
-            - Validate multiple Artists against DB
-            - Keep existing db-check logic
-            - No changes needed to final assignment (already handles array)
-          </changes>
-        </task>
-        
-        <task id="1.5" status="pending">
-          <description>Test build and validate patterns work</description>
-          <files>All modified files</files>
-          <changes>
-            - Build project → must compile without errors
-            - Load patterns from DB
-            - Parse test filenames with multiple artists
-            - Verify Mp3FileObject.Id3Artists populated correctly
-          </changes>
-        </task>
-      </tasks>
-      
-      <deliverables>
-        - App compiles and runs
-        - Patterns match multi-artist scenarios
-        - ParsedMetadata.Artists contains all extracted artists
-        - No data loss in existing functionality
-      </deliverables>
-      
-      <risks>
-        - Regex complexity increases (mitigated by careful test cases)
-        - Backward compat with old patterns (mitigation: test both old and new)
-      </risks>
-    </phase>
-
-    <!-- PHASE 2: DISAMBIGUATION SYSTEM -->
-    <phase number="2">
-      <name>Implement Disambiguation Dialog &amp; Context-Aware Resolution</name>
-      <status>planned</status>
-      <duration>45 minutes</duration>
-      <rationale>
-        Handle edge cases where extracted metadata is ambiguous (e.g., "Disturbed" as artist AND title).
-        Album-aware resolution using existing DB relationships. User dialog for unresolvable cases.
-      </rationale>
-      
-      <tasks>
-        <task id="2.1" status="planned">
-          <description>Create DB tables: ArtistAlbums, AmbiguousMetadata, FeatureKeywords</description>
-          <files>Buran.SQLite/DBConnector.cs</files>
-        </task>
-        
-        <task id="2.2" status="planned">
-          <description>Implement MetadataResolver service with confidence scoring</description>
-          <files>New: Buran.SQLite/MetadataResolver.cs</files>
-          <changes>
-            - Layer 1: Album→Artist mapping (VeryHigh confidence)
-            - Layer 2: DB frequency stats (High confidence)
-            - Layer 3: Pattern context (Medium confidence)
-            - Layer 4: Format heuristics (Low confidence)
-          </changes>
-        </task>
-        
-        <task id="2.3" status="planned">
-          <description>Create disambiguation dialog ViewModel</description>
-          <files>New: Buran.ID3Editor/ViewModels/MetadataResolutionDialogViewModel.cs</files>
-        </task>
-        
-        <task id="2.4" status="planned">
-          <description>Integrate resolver into FileNameParser</description>
-          <files>Buran.SQLite/FileNameParser.cs</files>
-          <changes>
-            - Call MetadataResolver.Resolve() for each extracted value
-            - If Confidence &lt; 70%, prompt user dialog (async)
-            - Store user feedback in AmbiguousMetadata
-          </changes>
-        </task>
-      </tasks>
-      
-      <deliverables>
-        - Dialog UI for ambiguous metadata
-        - Confidence scoring system working
-        - User feedback persistent in DB
-        - Album-artist relationships tracked
-      </deliverables>
-    </phase>
-
-    <!-- PHASE 3: EXTERNAL API INTEGRATION -->
-    <phase number="3">
-      <name>External API Integration (MusicBrainz, Spotify, Last.fm)</name>
-      <status>planned</status>
-      <duration>120 minutes (spread across sessions)</duration>
-      <rationale>
-        Validate and enrich metadata using authoritative external sources. Implement cache layer 
-        to respect rate limits and support offline mode. Progressive enhancement (fallback to local DB).
-      </rationale>
-      
-      <tasks>
-        <task id="3.1" status="planned">
-          <description>Create Buran.MetadataProviders project + interfaces</description>
-          <files>New Project: Buran.MetadataProviders</files>
-          <changes>
-            - IMetadataProvider interface
-            - IMusicBrainzProvider, ISpotifyProvider, ILastFmProvider
-            - Response/result DTOs
-          </changes>
-        </task>
-        
-        <task id="3.2" status="planned">
-          <description>Implement MusicBrainz provider (free tier, community)</description>
-          <files>Buran.MetadataProviders/MusicBrainzProvider.cs</files>
-        </task>
-        
-        <task id="3.3" status="planned">
-          <description>Create MetadataCache table and caching service</description>
-          <files>Buran.SQLite/DBConnector.cs, New: Buran.SQLite/MetadataCacheService.cs</files>
-          <changes>
-            - Cache responses with TTL (30 days default)
-            - Avoid duplicate API calls
-            - Support offline fallback
-          </changes>
-        </task>
-        
-        <task id="3.4" status="planned">
-          <description>Implement MetadataResolutionService (voting + ranking)</description>
-          <files>New: Buran.SQLite/MetadataResolutionService.cs</files>
-          <changes>
-            - Parallel provider queries (with timeout)
-            - Confidence voting across providers
-            - Rate limit respecting
-          </changes>
-        </task>
-        
-        <task id="3.5" status="planned">
-          <description>Add "Verify Against API" UI button (optional auto-correct)</description>
-          <files>Buran.ID3Editor/Views/*, ViewModels/*</files>
-          <changes>
-            - Manual verification flow
-            - Auto-correct threshold (>90% confidence)
-            - Show provider sources for transparency
-          </changes>
-        </task>
-      </tasks>
-      
-      <deliverables>
-        - MetadataResolutionService working with MusicBrainz
-        - Cache layer preventing duplicate API calls
-        - Graceful fallback to local DB if APIs unavailable
-        - User can verify metadata against APIs
-      </deliverables>
-      
-      <notes>
-        - MusicBrainz: FREE, set User-Agent header properly
-        - Spotify: requires OAuth setup (phase 3.6 later)
-        - Last.fm: FREE with API key
-      </notes>
-    </phase>
-
-    <!-- PHASE 4: AUDIO FINGERPRINTING (FUTURE) -->
-    <phase number="4">
-      <name>Audio Fingerprinting &amp; Advanced Identification (Future)</name>
-      <status>planned</status>
-      <duration>TBD</duration>
-      <rationale>
-        Future-proof: Handle remix identification, corrupted filenames, and Shazam-like functionality 
-        via audio fingerprints (Chromaprint) and AcousticBrainz.
-      </rationale>
-      
-      <tasks>
-        <task id="4.1" status="planned">
-          <description>Integrate Chromaprint (ffmpeg-based fingerprinting)</description>
-          <files>New: Buran.Audio/AudioFingerprintService.cs</files>
-        </task>
-        
-        <task id="4.2" status="planned">
-          <description>Query AcousticBrainz with fingerprints</description>
-          <files>Buran.MetadataProviders/AcousticBrainzProvider.cs</files>
-        </task>
-        
-        <task id="4.3" status="planned">
-          <description>Optional: ACRCloud integration for real-time Shazam-like lookup</description>
-          <files>Buran.MetadataProviders/ACRCloudProvider.cs</files>
-          <notes>PAID service, evaluate ROI later</notes>
-        </task>
-        
-        <task id="4.4" status="planned">
-          <description>Speech recognition for remix sample detection (ML-based)</description>
-          <files>TBD - Azure Speech or similar</files>
-          <notes>Highly experimental, deprioritized</notes>
-        </task>
-      </tasks>
-    </phase>
-  </phases>
-
-  <architecture>
-    <layers>
-      <layer name="UI" description="Avalonia XAML + ViewModels">
-        <component>Id3EditorTabViewModel</component>
-        <component>MetadataResolutionDialogViewModel (Phase 2)</component>
-      </layer>
-      
-      <layer name="Domain" description="Business logic">
-        <component>FileNameParser (Phase 1, 2)</component>
-        <component>MetadataResolver (Phase 2)</component>
-        <component>MetadataResolutionService (Phase 3)</component>
-      </layer>
-      
-      <layer name="Data" description="Persistence &amp; external APIs">
-        <component>DBConnector (existing + Phase 1, 2, 3)</component>
-        <component>MetadataProviders/* (Phase 3)</component>
-        <component>MetadataCacheService (Phase 3)</component>
-      </layer>
-      
-      <layer name="Types" description="DTOs &amp; enums">
-        <component>ParsedMetadata (Phase 1)</component>
-        <component>MetadataResolutionResult (Phase 2)</component>
-        <component>DisambiguationConfidence enum (Phase 2)</component>
-      </layer>
-    </layers>
-    
-    <dependencies>
-      <dependency from="FileNameParser" to="DBConnector">Validate artists against DB</dependency>
-      <dependency from="FileNameParser" to="MetadataResolver">Resolve ambiguous metadata</dependency>
-      <dependency from="MetadataResolutionService" to="MetadataProviders">Query external APIs</dependency>
-      <dependency from="MetadataResolutionService" to="MetadataCacheService">Cache API responses</dependency>
-    </dependencies>
-  </architecture>
-
-  <importantNotes>
     <note priority="HIGH">
-      Keep local DB as PRIMARY source of truth. External APIs are ENRICHMENT only.
-      Always fallback gracefully if APIs unavailable.
-    </note>
-    
-    <note priority="HIGH">
-      After EACH phase, app must compile and run. Test with sample MP3 files to ensure 
-      no regression in existing functionality.
-    </note>
-    
-    <note priority="MEDIUM">
-      Phase 1 is foundation for everything else. Get it right, test thoroughly.
-      Multiple {artists} in pattern is new concept → regex complexity increases.
-    </note>
-    
-    <note priority="MEDIUM">
-      Consider creating unit tests for FileNameParser regex patterns (especially Phase 1).
-      Test cases: single artist, multi-artist, feat./vs./&amp; variations, duplicates.
-    </note>
-    
-    <note priority="LOW">
-      For Phase 3: Start with MusicBrainz only. Add Spotify/Last.fm in separate PRs
-      to keep review scope manageable and allow incremental feedback.
+      Phase 5 (player + spectrum) is playback, not identification. Do not fold it into Phase 4.
+      Play the selected ID3-editor file; visualization reads the same PCM stream as the output device.
     </note>
   </importantNotes>
-
-  <testCases>
-    <phase1>
-      <test name="Single Artist Pattern">
-        <input>Eminem - Lose Yourself</input>
-        <pattern>{artist} - {title}</pattern>
-        <expectedArtists>["Eminem"]</expectedArtists>
-      </test>
-      
-      <test name="Multi-Artist with Ampersand">
-        <input>Eminem & Rihanna - Love The Way You Lie</input>
-        <pattern>{artists} & {artists} - {title}</pattern>
-        <expectedArtists>["Eminem", "Rihanna"]</expectedArtists>
-      </test>
-      
-      <test name="Multi-Artist with feat.">
-        <input>Eminem feat. Rihanna - Love The Way You Lie</input>
-        <pattern>{artists} feat. {artists} - {title}</pattern>
-        <expectedArtists>["Eminem", "Rihanna"]</expectedArtists>
-      </test>
-      
-      <test name="Multiple Comments">
-        <input>Queen - Bohemian Rhapsody [Extended Remix] (Live)</input>
-        <pattern>{artist} - {title} [{comment}] ({comment})</pattern>
-        <expectedComments>["Extended Remix", "Live"]</expectedComments>
-      </test>
-      
-      <test name="Complex Mixed">
-        <input>Simon & Garfunkel feat. Disturbed - Sound Of Silence [Remix] (Live)</input>
-        <pattern>{artists} & {artists} feat. {artists} - {title} [{comment}] ({comment})</pattern>
-        <expectedArtists>["Simon", "Garfunkel", "Disturbed"]</expectedArtists>
-        <expectedComments>["Remix", "Live"]</expectedComments>
-      </test>
-    </phase1>
-  </testCases>
 
 </roadmap>

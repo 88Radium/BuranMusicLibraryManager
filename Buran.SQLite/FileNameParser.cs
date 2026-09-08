@@ -13,27 +13,24 @@ public class FileNameParser {
             var result = TryPattern(cleanName, pattern.Pattern);
             if (result != null && IsPlausibleResult(result)) {
                 result.MatchedPatternId = pattern.Id;
+                CollaborationMarkers.PromoteFeaturedArtistsAndVersions(result, cleanName);
+                AttachYearIfMissing(result, cleanName);
                 return result;
             }
         }
 
-        return FallbackParse(cleanName);
+        var fallback = FallbackParse(cleanName);
+        CollaborationMarkers.PromoteFeaturedArtistsAndVersions(fallback, cleanName);
+        AttachYearIfMissing(fallback, cleanName);
+        return fallback;
     }
 
     private string CleanFileName(string fileName) {
-        // File name only, without path or extension
         string name = Path.GetFileNameWithoutExtension(fileName);
-
-        // Common replacements
         name = name.Replace('_', ' ')
-            .Replace('[', ' ').Replace(']', ' ')
-            .Replace('(', ' ').Replace(')', ' ')
-            .Replace('{', ' ').Replace('}', ' ')
-            .Trim();
-
-        // Collapse consecutive whitespace
-        name = Regex.Replace(name, @"\s+", " ");
-
+            .Replace('\u2013', '-')
+            .Replace('\u2014', '-');
+        name = Regex.Replace(name, @"\s+", " ").Trim();
         return name;
     }
 
@@ -50,21 +47,12 @@ public class FileNameParser {
                     Year        = GetGroupValue(match, "year")
                 };
 
-                // Collect all artists ({artist} and {artists_N})
+                // {artist} and {artists} both become numbered groups artists_1..N
                 var allArtists = new List<string>();
-
-                // Single {artist}
-                var artist = GetGroupValue(match, "artist");
-                if (!string.IsNullOrWhiteSpace(artist)) {
-                    allArtists.AddRange(ParseArtistsString(artist));
-                }
-
-                // Repeated {artists_N}
                 for (int i = 1; i <= 10; i++) {
                     var artistN = GetGroupValue(match, $"artists_{i}");
-                    if (!string.IsNullOrWhiteSpace(artistN)) {
+                    if (!string.IsNullOrWhiteSpace(artistN))
                         allArtists.AddRange(ParseArtistsString(artistN));
-                    }
                 }
 
                 // Drop duplicates (case-insensitive)
@@ -90,56 +78,47 @@ public class FileNameParser {
     }
 
     private string ConvertToRegex(string pattern) {
-        // Treat parentheses in the pattern as literals
-        pattern = pattern.Replace("(", @"\(").Replace(")", @"\)");
-
-        // Counters for placeholders that can appear more than once
         var artistCount  = 0;
         var commentCount = 0;
 
-        // Repeated {artists} → artists_1, artists_2, etc.
-        pattern = System.Text.RegularExpressions.Regex.Replace(pattern, @"\{artists\}",
-            m => $"___ARTISTS_{++artistCount}___");
+        // {artist} and {artists} are the same slot type; {Artist} is accepted too
+        pattern = Regex.Replace(pattern, @"\{artists?\}",
+            _ => $"___ARTISTS_{++artistCount}___",
+            RegexOptions.IgnoreCase);
+        pattern = Regex.Replace(pattern, @"\{comment\}",
+            _ => $"___COMMENT_{++commentCount}___",
+            RegexOptions.IgnoreCase);
+        pattern = Regex.Replace(pattern, @"\{title\}",  "___TITLE___",  RegexOptions.IgnoreCase);
+        pattern = Regex.Replace(pattern, @"\{album\}",  "___ALBUM___",  RegexOptions.IgnoreCase);
+        pattern = Regex.Replace(pattern, @"\{track\}",  "___TRACK___",  RegexOptions.IgnoreCase);
+        pattern = Regex.Replace(pattern, @"\{year\}",   "___YEAR___",   RegexOptions.IgnoreCase);
 
-        // Repeated {comment} → comment_1, comment_2, etc.
-        pattern = System.Text.RegularExpressions.Regex.Replace(pattern, @"\{comment\}",
-            m => $"___COMMENT_{++commentCount}___");
+        string escaped = Regex.Escape(pattern);
 
-        // Single {artist} (no counter; one per pattern)
-        pattern = pattern.Replace("{artist}", "___ARTIST___")
-            .Replace("{title}", "___TITLE___")
-            .Replace("{album}", "___ALBUM___")
-            .Replace("{track}", "___TRACK___")
-            .Replace("{year}",  "___YEAR___");
+        for (int i = 1; i <= artistCount; i++)
+            escaped = ReplaceGroup(escaped, $"___ARTISTS_{i}___", $"artists_{i}");
 
-        // Escape so remaining special characters are literal
-        string escaped = System.Text.RegularExpressions.Regex.Escape(pattern);
+        escaped = ReplaceGroup(escaped, "___TITLE___", "title");
+        escaped = ReplaceGroup(escaped, "___ALBUM___", "album");
+        escaped = escaped.Replace("___TRACK___", @"(?<track>.+?)")
+            .Replace("___YEAR___",  @"(?<year>\d{4})");
 
-        // Replace temporary markers with named regex groups
-        escaped = escaped.Replace("___ARTIST___", "(?<artist>.+?)");
+        for (int i = 1; i <= commentCount; i++)
+            escaped = ReplaceGroup(escaped, $"___COMMENT_{i}___", $"comment_{i}");
 
-        // Repeated {artists_N} → matching groups
-        for (int i = 1; i <= artistCount; i++) {
-            escaped = escaped.Replace($"___ARTISTS_{i}___", $"(?<artists_{i}>.+?)");
-        }
-
-        escaped = escaped.Replace("___TITLE___", "(?<title>.+?)")
-            .Replace("___ALBUM___", "(?<album>.+?)")
-            .Replace("___TRACK___", "(?<track>.+?)")
-            .Replace("___YEAR___",  "(?<year>.+?)");
-
-        // Repeated {comment_N} → matching groups
-        for (int i = 1; i <= commentCount; i++) {
-            escaped = escaped.Replace($"___COMMENT_{i}___", $"(?<comment_{i}>.+?)");
-        }
-
-        // Hyphen with optional surrounding whitespace
-        escaped = escaped.Replace(@"\ \- ", @"\s*-\s*");
+        escaped = escaped.Replace(@"\ \-\ ", @"\s*-\s*")
+            .Replace(@"\ \-", @"\s*-\s*")
+            .Replace(@"\-\ ", @"\s*-\s*");
 
         if (!escaped.StartsWith("^")) escaped = "^"     + escaped;
         if (!escaped.EndsWith("$")) escaped   = escaped + "$";
 
         return escaped;
+    }
+
+    private static string ReplaceGroup(string escaped, string token, string groupName) {
+        var body = escaped.Contains(token + @"\)", StringComparison.Ordinal) ? "[^)]+" : ".+?";
+        return escaped.Replace(token, $"(?<{groupName}>{body})");
     }
 
     private string? GetGroupValue(Match match, string groupName) {
@@ -191,6 +170,17 @@ public class FileNameParser {
     private List<string> ParseArtistsString(string artistsString) =>
         CollaborationMarkers.SplitArtistNames(artistsString);
 
+    private static readonly Regex YearInName = new(@"\b((?:19|20)\d{2})\b", RegexOptions.Compiled);
+
+    private static void AttachYearIfMissing(ParsedMetadata metadata, string fileName) {
+        if (!string.IsNullOrWhiteSpace(metadata.Year) && Regex.IsMatch(metadata.Year, @"^\d{4}$"))
+            return;
+
+        var match = YearInName.Match(fileName);
+        if (match.Success)
+            metadata.Year = match.Groups[1].Value;
+    }
+
     /// <summary>
     /// Learns a new pattern from a user correction.
     /// </summary>
@@ -219,6 +209,9 @@ public class FileNameParser {
 
         if (!string.IsNullOrEmpty(metadata.TrackNumber))
             pattern = pattern.Replace(metadata.TrackNumber, "{track}");
+
+        if (!string.IsNullOrEmpty(metadata.Year))
+            pattern = pattern.Replace(metadata.Year, "{year}");
 
         // Keep only if at least two placeholders were substituted
         var placeholderCount = Regex.Matches(pattern, @"\{\w+\}").Count;

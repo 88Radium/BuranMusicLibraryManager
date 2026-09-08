@@ -13,6 +13,7 @@ public partial class DBConnector {
     public static event EventHandler? CatalogChanged;
 
     public static void NotifyCatalogChanged() {
+        RefreshKnownArtistNames();
         CatalogChanged?.Invoke(null, EventArgs.Empty);
     }
 
@@ -47,6 +48,7 @@ public partial class DBConnector {
             new SqliteParameter("$n", artist.PreferredArtistName ?? ""),
             new SqliteParameter("$r", artist.RealName ?? ""),
             new SqliteParameter("$id", artist.ID));
+        RefreshKnownArtistNames();
     }
 
     public static void DeleteArtist(int artistId) {
@@ -59,6 +61,7 @@ public partial class DBConnector {
     }
 
     public static void InsertAlternativeArtistName(string name, int artistId) {
+        DeleteBlockedCatalogValueCore(DatabaseTable_BlockedCatalogValues.KindArtist, name);
         Execute(
             "INSERT INTO AlternativeArtistNameVariants (AlternativeArtistName, RefersToArtistName, IsMissSpelled) VALUES ($n, $a, 0)",
             new SqliteParameter("$n", name),
@@ -72,6 +75,7 @@ public partial class DBConnector {
             new SqliteParameter("$n", variant.AlternativeArtistName ?? ""),
             new SqliteParameter("$a", variant.RefersToArtistName),
             new SqliteParameter("$id", variant.ID));
+        RefreshKnownArtistNames();
     }
 
     public static void DeleteAlternativeArtistName(int id) {
@@ -87,6 +91,7 @@ public partial class DBConnector {
     }
 
     public static void InsertGenreName(string name) {
+        DeleteBlockedCatalogValueCore(DatabaseTable_BlockedCatalogValues.KindGenre, name);
         Execute("INSERT INTO GenreNames (GenreName) VALUES ($n)", new SqliteParameter("$n", name));
         NotifyCatalogChanged();
     }
@@ -113,6 +118,7 @@ public partial class DBConnector {
     }
 
     public static void InsertMoodName(string name) {
+        DeleteBlockedCatalogValueCore(DatabaseTable_BlockedCatalogValues.KindMood, name);
         Execute("INSERT INTO MoodNames (MoodName) VALUES ($n)", new SqliteParameter("$n", name));
         NotifyCatalogChanged();
     }
@@ -212,6 +218,7 @@ public partial class DBConnector {
     }
 
     public static int InsertArtistName(string preferredName, string realName) {
+        DeleteBlockedCatalogValueCore(DatabaseTable_BlockedCatalogValues.KindArtist, preferredName);
         using var connection = OpenCatalogConnection();
         using var cmd = new SqliteCommand(
             "INSERT INTO ArtistNames (PreferredArtistName, RealName) VALUES ($n, $r); SELECT last_insert_rowid();",
@@ -233,6 +240,151 @@ public partial class DBConnector {
     public static void ReloadCollaborationMarkers() {
         CollaborationMarkers.Apply(
             LoadTableContent_FeatureKeywords().Select(k => (k.Keyword, k.Type)));
+        RefreshKnownArtistNames();
+    }
+
+    private static void RefreshKnownArtistNames() {
+        CollaborationMarkers.SetKnownArtistNames(
+            LoadTableContent_ArtistNames().Select(a => a.PreferredArtistName)
+                .Concat(LoadTableContent_AlternativeArtistNameVariants().Select(v => v.AlternativeArtistName)));
+    }
+
+    public static ObservableCollection<DatabaseTable_BlockedCatalogValues> LoadTableContent_BlockedCatalogValues() {
+        var result = new ObservableCollection<DatabaseTable_BlockedCatalogValues>();
+        foreach (DataRow row in QueryTable(
+                     "SELECT * FROM BlockedCatalogValues ORDER BY Kind, Value COLLATE NOCASE").Rows)
+            result.Add(new DatabaseTable_BlockedCatalogValues(row));
+        return result;
+    }
+
+    public static bool IsCatalogValueBlocked(string kind, string value) {
+        var normalized = (value ?? "").Trim();
+        if (normalized.Length == 0)
+            return false;
+
+        using var connection = OpenCatalogConnection();
+        using var cmd = new SqliteCommand(
+            "SELECT 1 FROM BlockedCatalogValues WHERE Kind = $k AND Value = $v COLLATE NOCASE LIMIT 1",
+            connection);
+        cmd.Parameters.Add(new SqliteParameter("$k", kind));
+        cmd.Parameters.Add(new SqliteParameter("$v", normalized));
+        return cmd.ExecuteScalar() is not null and not DBNull;
+    }
+
+    public static void InsertBlockedCatalogValue(string kind, string value) {
+        InsertBlockedCatalogValueCore(kind, value);
+        NotifyCatalogChanged();
+    }
+
+    public static void BlockCatalogValue(string kind, string value) {
+        var name = (value ?? "").Trim();
+        if (name.Length == 0)
+            return;
+
+        var normalizedKind = (kind ?? "").Trim().ToUpperInvariant();
+        InsertBlockedCatalogValueCore(normalizedKind, name);
+
+        var removed = normalizedKind switch {
+            DatabaseTable_BlockedCatalogValues.KindArtist => RemoveBlockedArtist(name),
+            DatabaseTable_BlockedCatalogValues.KindGenre  => RemoveBlockedGenre(name),
+            DatabaseTable_BlockedCatalogValues.KindMood   => RemoveBlockedMood(name),
+            _                                             => false
+        };
+
+        if (!removed)
+            NotifyCatalogChanged();
+    }
+
+    public static void DeleteBlockedCatalogValue(int id) {
+        Execute("DELETE FROM BlockedCatalogValues WHERE Id = $id", new SqliteParameter("$id", id));
+        NotifyCatalogChanged();
+    }
+
+    public static void DeleteBlockedCatalogValue(string kind, string value) {
+        DeleteBlockedCatalogValueCore(kind, value);
+        NotifyCatalogChanged();
+    }
+
+    private static void InsertBlockedCatalogValueCore(string kind, string value) {
+        var normalized = (value ?? "").Trim();
+        if (normalized.Length == 0)
+            return;
+
+        Execute(
+            "INSERT OR IGNORE INTO BlockedCatalogValues (Kind, Value) VALUES ($k, $v)",
+            new SqliteParameter("$k", kind),
+            new SqliteParameter("$v", normalized));
+    }
+
+    private static void DeleteBlockedCatalogValueCore(string kind, string value) {
+        var normalized = (value ?? "").Trim();
+        if (normalized.Length == 0)
+            return;
+
+        Execute(
+            "DELETE FROM BlockedCatalogValues WHERE Kind = $k AND Value = $v COLLATE NOCASE",
+            new SqliteParameter("$k", kind),
+            new SqliteParameter("$v", normalized));
+    }
+
+    private static bool RemoveBlockedArtist(string name) {
+        var preferred = LoadTableContent_ArtistNames()
+            .FirstOrDefault(a => a.PreferredArtistName.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (preferred is not null) {
+            foreach (var alt in LoadTableContent_AlternativeArtistNameVariants()
+                         .Where(v => v.RefersToArtistName == preferred.ID))
+                InsertBlockedCatalogValueCore(DatabaseTable_BlockedCatalogValues.KindArtist, alt.AlternativeArtistName);
+            DeleteArtist(preferred.ID);
+            return true;
+        }
+
+        var alternative = LoadTableContent_AlternativeArtistNameVariants()
+            .FirstOrDefault(v => v.AlternativeArtistName.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (alternative is null)
+            return false;
+
+        DeleteAlternativeArtistName(alternative.ID);
+        return true;
+    }
+
+    private static bool RemoveBlockedGenre(string name) {
+        var preferred = LoadTableContent_GenreNames()
+            .FirstOrDefault(g => g.GenreName.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (preferred is not null) {
+            foreach (var alt in LoadTableContent_AlternativeGenreNameVariants()
+                         .Where(v => v.RefersToGenreName == preferred.ID))
+                InsertBlockedCatalogValueCore(DatabaseTable_BlockedCatalogValues.KindGenre, alt.GenreNameVariant);
+            DeleteGenre(preferred.ID);
+            return true;
+        }
+
+        var alternative = LoadTableContent_AlternativeGenreNameVariants()
+            .FirstOrDefault(v => v.GenreNameVariant.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (alternative is null)
+            return false;
+
+        DeleteAlternativeGenreName(alternative.Id);
+        return true;
+    }
+
+    private static bool RemoveBlockedMood(string name) {
+        var preferred = LoadTableContent_MoodNames()
+            .FirstOrDefault(m => m.MoodName.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (preferred is not null) {
+            foreach (var alt in LoadTableContent_AlternativeMoodNameVariants()
+                         .Where(v => v.RefersToMoodName == preferred.ID))
+                InsertBlockedCatalogValueCore(DatabaseTable_BlockedCatalogValues.KindMood, alt.MoodNameVariant);
+            DeleteMood(preferred.ID);
+            return true;
+        }
+
+        var alternative = LoadTableContent_AlternativeMoodNameVariants()
+            .FirstOrDefault(v => v.MoodNameVariant.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (alternative is null)
+            return false;
+
+        DeleteAlternativeMoodName(alternative.Id);
+        return true;
     }
 
     public static void InsertFeatureKeyword(string keyword, string type, int weight = 5) {

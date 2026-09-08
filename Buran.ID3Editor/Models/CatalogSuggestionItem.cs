@@ -31,6 +31,12 @@ public partial class CatalogSuggestionItem : ObservableObject {
     public IReadOnlyList<DatabaseTable_ArtistNames> ExistingArtists { get; init; } =
         Array.Empty<DatabaseTable_ArtistNames>();
 
+    public IReadOnlyList<DatabaseTable_GenreNames> ExistingGenres { get; init; } =
+        Array.Empty<DatabaseTable_GenreNames>();
+
+    public IReadOnlyList<DatabaseTable_MoodNames> ExistingMoods { get; init; } =
+        Array.Empty<DatabaseTable_MoodNames>();
+
     public bool IsArtist => Kind == CatalogSuggestionKind.Artist;
     public bool IsGenre  => Kind == CatalogSuggestionKind.Genre;
     public bool IsMood   => Kind == CatalogSuggestionKind.Mood;
@@ -50,13 +56,22 @@ public partial class CatalogSuggestionItem : ObservableObject {
 
     [ObservableProperty] private DatabaseTable_ArtistNames? _refersToArtist;
 
+    [ObservableProperty] private DatabaseTable_GenreNames? _refersToGenre;
+
+    [ObservableProperty] private DatabaseTable_MoodNames? _refersToMood;
+
     [ObservableProperty] private string _newPreferredName = "";
 
     [ObservableProperty] private string _newRealName = "";
 
     public bool HasNewPreferredName => !string.IsNullOrWhiteSpace(NewPreferredName);
 
-    public bool HasAlternativeTarget => RefersToArtist is not null || HasNewPreferredName;
+    public bool HasAlternativeTarget => Kind switch {
+        CatalogSuggestionKind.Artist => RefersToArtist is not null || HasNewPreferredName,
+        CatalogSuggestionKind.Genre  => RefersToGenre is not null,
+        CatalogSuggestionKind.Mood   => RefersToMood is not null,
+        _                            => false
+    };
 
     public bool IsPreferredName {
         get => ArtistMode == ArtistInsertMode.Preferred;
@@ -78,9 +93,11 @@ public partial class CatalogSuggestionItem : ObservableObject {
         OnPropertyChanged(nameof(IsPreferredName));
         OnPropertyChanged(nameof(IsAlternativeName));
         if (value == ArtistInsertMode.Preferred) {
-            RefersToArtist    = null;
-            NewPreferredName  = "";
-            NewRealName       = "";
+            RefersToArtist   = null;
+            RefersToGenre    = null;
+            RefersToMood     = null;
+            NewPreferredName = "";
+            NewRealName      = "";
         }
     }
 
@@ -90,6 +107,14 @@ public partial class CatalogSuggestionItem : ObservableObject {
     }
 
     partial void OnRefersToArtistChanged(DatabaseTable_ArtistNames? value) {
+        OnPropertyChanged(nameof(HasAlternativeTarget));
+    }
+
+    partial void OnRefersToGenreChanged(DatabaseTable_GenreNames? value) {
+        OnPropertyChanged(nameof(HasAlternativeTarget));
+    }
+
+    partial void OnRefersToMoodChanged(DatabaseTable_MoodNames? value) {
         OnPropertyChanged(nameof(HasAlternativeTarget));
     }
 }

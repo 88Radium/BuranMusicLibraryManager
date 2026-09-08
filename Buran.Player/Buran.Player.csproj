@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <AvaloniaNameGeneratorBehavior>OnlyProperties</AvaloniaNameGeneratorBehavior>
+        <LangVersion>default</LangVersion>
+        <!-- Class libraries do not copy NuGet DLLs otherwise; MEF loads this from the host output. -->
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <AvaloniaResource Include="Assets\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" />
+        <PackageReference Include="Avalonia.Desktop" />
+        <PackageReference Include="Avalonia.Themes.Fluent" />
+        <PackageReference Include="Avalonia.Fonts.Inter" />
+        <PackageReference Include="AvaloniaUI.DiagnosticsSupport" />
+        <PackageReference Include="CommunityToolkit.Mvvm" />
+        <PackageReference Include="LibVLCSharp" />
+        <PackageReference Include="MessageBox.Avalonia" />
+        <PackageReference Include="System.Composition" />
+        <PackageReference Include="z440.atl.core" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Buran.Interfaces\Buran.Interfaces.csproj" />
+      <ProjectReference Include="..\Buran.Localization\Buran.Localization.csproj" />
+      <ProjectReference Include="..\Buran.Types\Buran.Types.csproj" />
+    </ItemGroup>
+
+    <Import Project="..\PluginToHost.targets" />
+</Project>

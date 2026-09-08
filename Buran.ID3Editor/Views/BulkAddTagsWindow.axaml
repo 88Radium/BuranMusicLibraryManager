@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Buran.ID3Editor.ViewModels"
         xmlns:types="using:Buran.ID3Editor.Types"
+        xmlns:models="using:Buran.ID3Editor.Models"
         xmlns:fileTypes="using:Buran.Types"
         xmlns:loc="using:Buran.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -28,12 +29,16 @@
                 <Grid ColumnDefinitions="*,Auto">
                     <ListBox ItemsSource="{Binding CurrentTags}" Height="120">
                         <ListBox.ItemTemplate>
-                            <DataTemplate x:DataType="x:String">
+                            <DataTemplate x:DataType="models:BulkTagItem">
                                 <DockPanel>
                                     <Button DockPanel.Dock="Right" Content="X" Width="28"
                                             Command="{Binding $parent[Window].((vm:BulkAddTagsViewModel)DataContext).RemoveTagCommand}"
                                             CommandParameter="{Binding}" />
-                                    <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                                    <TextBlock DockPanel.Dock="Right" Classes="muted" Margin="8,0,8,0"
+                                               Text="{loc:Loc Key=Bulk.OnAllFiles}"
+                                               IsVisible="{Binding ApplyToAll}"
+                                               VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
                                 </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

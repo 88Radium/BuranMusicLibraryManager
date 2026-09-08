@@ -14,16 +14,16 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia" Version="12.1.2" />
-        <PackageReference Include="Avalonia.Desktop" Version="12.1.2" />
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.2" />
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.2" />
-        <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-        <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.3" />
-        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-        <PackageReference Include="HotAvalonia" Version="3.1.4" />
-        <PackageReference Include="System.Composition" Version="10.0.11" />
-        <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
+        <PackageReference Include="Avalonia" />
+        <PackageReference Include="Avalonia.Controls.DataGrid" />
+        <PackageReference Include="Avalonia.Desktop" />
+        <PackageReference Include="Avalonia.Themes.Fluent" />
+        <PackageReference Include="Avalonia.Fonts.Inter" />
+        <PackageReference Include="Avalonia.Markup.Xaml.Loader" PrivateAssets="All" />
+        <PackageReference Include="AvaloniaUI.DiagnosticsSupport" />
+        <PackageReference Include="CommunityToolkit.Mvvm" />
+        <PackageReference Include="HotAvalonia" PrivateAssets="All" />
+        <PackageReference Include="System.Composition" />
     </ItemGroup>
 
     <ItemGroup>
@@ -35,4 +35,6 @@
       <ProjectReference Include="..\Buran.Localization\Buran.Localization.csproj" />
       <ProjectReference Include="..\Buran.SQLite\Buran.SQLite.csproj" />
     </ItemGroup>
+
+    <Import Project="..\Buran.Player\NativeLibVlc.targets" />
 </Project>

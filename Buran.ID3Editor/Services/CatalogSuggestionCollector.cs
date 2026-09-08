@@ -45,18 +45,27 @@ public static class CatalogSuggestionCollector {
 
         var knownArtists = LoadKnownArtistNames();
         var knownGenres  = LoadKnownLabels(
-            DBConnector.LoadTableContent_GenreNames().Select(g => g.GenreName));
+            DBConnector.LoadTableContent_GenreNames().Select(g => g.GenreName)
+                .Concat(DBConnector.LoadTableContent_AlternativeGenreNameVariants().Select(v => v.GenreNameVariant)));
         var knownMoods = LoadKnownLabels(
-            DBConnector.LoadTableContent_MoodNames().Select(m => m.MoodName));
+            DBConnector.LoadTableContent_MoodNames().Select(m => m.MoodName)
+                .Concat(DBConnector.LoadTableContent_AlternativeMoodNameVariants().Select(v => v.MoodNameVariant)));
+        var blocked = LoadBlockedValues();
 
         var existingArtists = DBConnector.LoadTableContent_ArtistNames()
             .OrderBy(a => a.PreferredArtistName, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
+        var existingGenres = DBConnector.LoadTableContent_GenreNames()
+            .OrderBy(g => g.GenreName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        var existingMoods = DBConnector.LoadTableContent_MoodNames()
+            .OrderBy(m => m.MoodName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
 
         var result = new List<CatalogSuggestionItem>();
-        result.AddRange(ToItems(CatalogSuggestionKind.Artist, artistSources, knownArtists, existingArtists));
-        result.AddRange(ToItems(CatalogSuggestionKind.Genre, genreSources, knownGenres, existingArtists));
-        result.AddRange(ToItems(CatalogSuggestionKind.Mood, moodSources, knownMoods, existingArtists));
+        result.AddRange(ToItems(CatalogSuggestionKind.Artist, artistSources, knownArtists, blocked, existingArtists, existingGenres, existingMoods));
+        result.AddRange(ToItems(CatalogSuggestionKind.Genre, genreSources, knownGenres, blocked, existingArtists, existingGenres, existingMoods));
+        result.AddRange(ToItems(CatalogSuggestionKind.Mood, moodSources, knownMoods, blocked, existingArtists, existingGenres, existingMoods));
         return result;
     }
 
@@ -64,14 +73,21 @@ public static class CatalogSuggestionCollector {
         CatalogSuggestionKind kind,
         Dictionary<string, HashSet<string>> sources,
         HashSet<string> known,
-        IReadOnlyList<DatabaseTable_ArtistNames> existingArtists) {
+        HashSet<string> blocked,
+        IReadOnlyList<DatabaseTable_ArtistNames> existingArtists,
+        IReadOnlyList<DatabaseTable_GenreNames> existingGenres,
+        IReadOnlyList<DatabaseTable_MoodNames> existingMoods) {
 
         foreach (var (value, labels) in sources.OrderBy(p => p.Key, StringComparer.CurrentCultureIgnoreCase)) {
             if (known.Contains(value))
                 continue;
+            if (blocked.Contains(BlockKey(kind, value)))
+                continue;
 
             yield return new CatalogSuggestionItem(kind, value, string.Join(" + ", labels.OrderBy(s => s))) {
-                ExistingArtists = existingArtists
+                ExistingArtists = existingArtists,
+                ExistingGenres  = existingGenres,
+                ExistingMoods   = existingMoods
             };
         }
     }
@@ -118,4 +134,26 @@ public static class CatalogSuggestionCollector {
         if (value is not null)
             known.Add(value);
     }
+
+    private static HashSet<string> LoadBlockedValues() {
+        var blocked = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var row in DBConnector.LoadTableContent_BlockedCatalogValues()) {
+            var value = Normalize(row.Value);
+            if (value is not null)
+                blocked.Add(BlockKey(row.Kind, value));
+        }
+        return blocked;
+    }
+
+    private static string BlockKey(CatalogSuggestionKind kind, string value) =>
+        BlockKey(KindCode(kind), value);
+
+    private static string BlockKey(string kind, string value) =>
+        $"{kind}\u001f{value}";
+
+    public static string KindCode(CatalogSuggestionKind kind) => kind switch {
+        CatalogSuggestionKind.Artist => DatabaseTable_BlockedCatalogValues.KindArtist,
+        CatalogSuggestionKind.Genre  => DatabaseTable_BlockedCatalogValues.KindGenre,
+        _                            => DatabaseTable_BlockedCatalogValues.KindMood
+    };
 }

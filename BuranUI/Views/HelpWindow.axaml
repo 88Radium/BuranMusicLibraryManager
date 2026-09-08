@@ -1,0 +1,72 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BuranUI.ViewModels"
+        xmlns:loc="using:Buran.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="860" d:DesignHeight="720"
+        Width="880" Height="740"
+        MinWidth="640" MinHeight="480"
+        x:Class="BuranUI.Views.HelpWindow"
+        x:DataType="vm:HelpWindowViewModel"
+        Title="{Binding Title}"
+        Icon="/Assets/Buran.ico"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+    <Window.Styles>
+        <Style Selector="SelectableTextBlock.help-title">
+            <Setter Property="FontSize" Value="{DynamicResource Font.Title}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="SelectableTextBlock.help-heading">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,18,0,8" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="SelectableTextBlock.help-subheading">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Opacity" Value="0.9" />
+            <Setter Property="Margin" Value="0,12,0,4" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <Style Selector="SelectableTextBlock.help-body">
+            <Setter Property="Opacity" Value="0.88" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="LineHeight" Value="20" />
+        </Style>
+        <Style Selector="SelectableTextBlock.help-bullet">
+            <Setter Property="Opacity" Value="0.88" />
+            <Setter Property="Margin" Value="16,0,0,4" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Window.Styles>
+
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <Button Classes="accent" HorizontalAlignment="Right"
+                    Content="{loc:Loc Key=Help.Close}"
+                    Click="Close_Click" />
+        </StackPanel>
+
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Blocks}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="loc:HelpBlock">
+                        <SelectableTextBlock Text="{Binding Text}"
+                                             Classes.help-title="{Binding IsTitle}"
+                                             Classes.help-heading="{Binding IsHeading}"
+                                             Classes.help-subheading="{Binding IsSubheading}"
+                                             Classes.help-body="{Binding IsParagraph}"
+                                             Classes.help-bullet="{Binding IsBullet}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

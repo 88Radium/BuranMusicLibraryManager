@@ -82,6 +82,11 @@
                                             Value="{Binding WindowOpacity}"
                                             ToolTip.Tip="{loc:Loc Key=Main.TransparencyTip}" />
                                 </StackPanel>
+
+                                <Button Classes="ghost" HorizontalAlignment="Stretch"
+                                        Content="{loc:Loc Key=Help.Open}"
+                                        ToolTip.Tip="{loc:Loc Key=Help.OpenTip}"
+                                        Command="{Binding OpenHelpCommand}" />
                             </StackPanel>
                         </Flyout>
                     </Button.Flyout>
@@ -96,15 +101,26 @@
                     <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
                         <TextBlock Classes="sidebar-heading" Text="{loc:Loc Key=Library.Heading}" />
                         <TextBlock Classes="path" Text="{Binding LibraryRootDisplay}"
-                                   ToolTip.Tip="{Binding LibraryRoot}" />
-                        <Grid ColumnDefinitions="*,8,Auto">
-                            <Button Classes="accent" Content="{loc:Loc Key=Library.ChooseFolder}"
+                                   ToolTip.Tip="{Binding LibraryRootsTooltip}" />
+                        <Grid ColumnDefinitions="*,8,Auto,8,Auto">
+                            <Button Classes="accent" Content="{loc:Loc Key=Library.AddFolder}"
                                     Command="{Binding ChooseLibraryRootCommand}"
                                     HorizontalAlignment="Stretch" />
-                            <Button Grid.Column="2" Classes="ghost" Content="{loc:Loc Key=Library.Refresh}"
+                            <Button Grid.Column="2" Classes="ghost" Content="{loc:Loc Key=Library.RemoveFolder}"
+                                    Command="{Binding RemoveLibraryRootCommand}"
+                                    IsEnabled="{Binding CanRemoveLibraryRoot}"
+                                    ToolTip.Tip="{loc:Loc Key=Library.RemoveFolderTip}" />
+                            <Button Grid.Column="4" Classes="ghost" Content="{loc:Loc Key=Library.Refresh}"
                                     Command="{Binding RefreshLibraryCommand}"
                                     IsEnabled="{Binding HasLibraryRoot}" />
                         </Grid>
+                        <CheckBox Content="{loc:Loc Key=Library.IncludeSubfolders}"
+                                  IsChecked="{Binding IncludeSubfolders}"
+                                  IsEnabled="{Binding HasLibraryRoot}" />
+                        <Button Classes="ghost" Content="{loc:Loc Key=Library.IndexLibrary}"
+                                Command="{Binding IndexLibraryCommand}"
+                                IsEnabled="{Binding HasLibraryRoot}"
+                                HorizontalAlignment="Stretch" />
                     </StackPanel>
 
                     <TextBlock DockPanel.Dock="Bottom" Classes="muted" Margin="0,8,0,0"
@@ -116,6 +132,13 @@
                                   ItemsSource="{Binding FolderNodes}"
                                   SelectedItem="{Binding SelectedFolder}"
                                   IsVisible="{Binding HasLibraryRoot}">
+                            <TreeView.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="{loc:Loc Key=Library.RemoveFolder}"
+                                              Command="{Binding RemoveLibraryRootCommand}"
+                                              IsEnabled="{Binding CanRemoveLibraryRoot}" />
+                                </ContextMenu>
+                            </TreeView.ContextMenu>
                             <TreeView.ItemTemplate>
                                 <TreeDataTemplate DataType="models:FolderNode"
                                                   ItemsSource="{Binding Children}">
@@ -146,7 +169,26 @@
                           Background="Transparent" />
 
             <Border Grid.Column="2" Classes="workspace">
-                <TabControl x:Name="MainTabControl" Classes="folder-tabs" />
+                <Grid x:Name="WorkspaceGrid">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="7*" MinHeight="120" />
+                        <RowDefinition Height="6" />
+                        <RowDefinition Height="3*" MinHeight="160" />
+                    </Grid.RowDefinitions>
+                    <TabControl x:Name="MainTabControl" Classes="folder-tabs" Grid.Row="0" />
+                    <GridSplitter x:Name="PlayerSplitter" Grid.Row="1"
+                                  ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
+                                  Background="#3A4F70" />
+                    <DockPanel x:Name="PlayerBarHost" Grid.Row="2">
+                        <Button DockPanel.Dock="Right" Classes="ghost" Width="36"
+                                VerticalAlignment="Stretch"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                Command="{Binding SwapPlayerAndTabsCommand}"
+                                ToolTip.Tip="{loc:Loc Key=Player.SwapLayout}"
+                                Content="⇅" />
+                    </DockPanel>
+                </Grid>
             </Border>
         </Grid>
     </DockPanel>

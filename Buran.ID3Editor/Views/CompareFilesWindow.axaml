@@ -1,0 +1,94 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Buran.ID3Editor.ViewModels"
+        xmlns:models="using:Buran.ID3Editor.Models"
+        xmlns:loc="using:Buran.Localization"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="860" d:DesignHeight="620"
+        Width="880" Height="640"
+        MinWidth="720" MinHeight="480"
+        x:Class="Buran.ID3Editor.Views.CompareFilesWindow"
+        x:DataType="vm:CompareFilesViewModel"
+        Title="{loc:Loc Key=Compare.Title}"
+        WindowStartupLocation="CenterOwner"
+        CanResize="True">
+
+    <Window.Styles>
+        <Style Selector="Border.compare-row">
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="#40121A2C" />
+        </Style>
+        <Style Selector="Border.compare-row.different">
+            <Setter Property="Background" Value="#332A6A8A" />
+            <Setter Property="BorderBrush" Value="#5EC8F0" />
+            <Setter Property="BorderThickness" Value="3,0,0,0" />
+        </Style>
+        <Style Selector="TextBlock.compare-value">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+    </Window.Styles>
+
+    <DockPanel Margin="16">
+        <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
+            <TextBlock Text="{loc:Loc Key=Compare.Title}" FontSize="{DynamicResource Font.Title}" FontWeight="SemiBold" />
+            <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding Hint}" />
+            <TextBlock Text="{Binding DifferenceText}" Opacity="0.8" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+            <Grid ColumnDefinitions="*,Auto">
+                <Button Classes="ghost" HorizontalAlignment="Left"
+                        Content="{loc:Loc Key=Compare.KeepBoth}"
+                        ToolTip.Tip="{loc:Loc Key=Compare.KeepBothTip}"
+                        Command="{Binding ChooseKeepBothCommand}" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button Classes="ghost"
+                            Content="{loc:Loc Key=Compare.KeepExisting}"
+                            ToolTip.Tip="{loc:Loc Key=Compare.KeepExistingTip}"
+                            Command="{Binding ChooseUseExistingCommand}" />
+                    <Button Classes="accent"
+                            Content="{loc:Loc Key=Compare.KeepCurrent}"
+                            ToolTip.Tip="{loc:Loc Key=Compare.KeepCurrentTip}"
+                            Command="{Binding ChooseUseCurrentCommand}" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+
+        <Border Classes="editor-item" Padding="0" Margin="0">
+            <DockPanel>
+                <Border DockPanel.Dock="Top" Padding="10,8" Background="#66182236">
+                    <Grid ColumnDefinitions="160,*,*" ColumnSpacing="12">
+                        <TextBlock Classes="muted" Text="{loc:Loc Key=Compare.Property}" />
+                        <TextBlock Grid.Column="1" FontWeight="SemiBold"
+                                   Text="{Binding CurrentColumnHeader}"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding CurrentPath}" />
+                        <TextBlock Grid.Column="2" FontWeight="SemiBold"
+                                   Text="{Binding ExistingColumnHeader}"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip.Tip="{Binding ExistingPath}" />
+                    </Grid>
+                </Border>
+                <ScrollViewer>
+                    <ItemsControl ItemsSource="{Binding Rows}" Margin="4">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:FileCompareRow">
+                                <Border Classes="compare-row" Classes.different="{Binding IsDifferent}">
+                                    <Grid ColumnDefinitions="160,*,*" ColumnSpacing="12">
+                                        <TextBlock Classes="muted" Text="{Binding Label}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Classes="compare-value" Text="{Binding CurrentValue}" />
+                                        <TextBlock Grid.Column="2" Classes="compare-value" Text="{Binding ExistingValue}" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </DockPanel>
+        </Border>
+    </DockPanel>
+</Window>

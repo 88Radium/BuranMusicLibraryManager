@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Composition;
 using Avalonia.Controls;
 using Buran.ID3Editor.ViewModels;
@@ -8,7 +9,7 @@ using Buran.Localization;
 namespace Buran.ID3Editor.Extension;
 
 [Export(typeof(IExtension))]
-public class Id3EditorExtension : IExtension, IMusicFolderConsumer {
+public class Id3EditorExtension : IExtension, IMusicFolderConsumer, ITrackListHost {
     public           TabItem      Tab { get; set; }
     private readonly Id3EditorTab _view;
 
@@ -21,8 +22,18 @@ public class Id3EditorExtension : IExtension, IMusicFolderConsumer {
         L.WhenChanged(() => Tab.Header = L.Get("Tab.Id3Editor"));
     }
 
-    public void LoadMusicFolder(string folderPath) {
+    public void LoadMusicFolder(string folderPath, bool includeSubfolders) {
         if (_view.DataContext is Id3EditorTabViewModel vm)
-            vm.LoadFromFolder(folderPath);
+            vm.LoadFromFolder(folderPath, includeSubfolders);
+    }
+
+    public void ShowTracks(IReadOnlyList<string> paths, string caption) {
+        if (_view.DataContext is Id3EditorTabViewModel vm)
+            vm.LoadFromPaths(paths, caption);
+    }
+
+    public void IndexLibrary(IReadOnlyList<string> rootPaths) {
+        if (_view.DataContext is Id3EditorTabViewModel vm)
+            vm.StartLibraryIndex(rootPaths);
     }
 }

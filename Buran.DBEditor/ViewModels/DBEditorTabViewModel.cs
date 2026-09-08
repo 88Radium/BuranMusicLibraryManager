@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -8,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using Buran.DBEditor.Models;
+using Buran.Interfaces;
 using Buran.Localization;
 using Buran.SQLite;
 using Buran.Types;
@@ -23,6 +25,8 @@ public partial class DBEditorTabViewModel : ObservableObject {
     [ObservableProperty] private DatabaseTable_ArtistNames? _selectedGroup;
     [ObservableProperty] private AssignableTag? _selectedGenre;
     [ObservableProperty] private AssignableTag? _selectedMood;
+    [ObservableProperty] private DatabaseTable_AlternativeGenreNameVariants? _selectedGenreVariant;
+    [ObservableProperty] private DatabaseTable_AlternativeMoodNameVariants? _selectedMoodVariant;
     [ObservableProperty] private AssignableTag? _genreFilter;
     [ObservableProperty] private AssignableTag? _moodFilter;
 
@@ -34,9 +38,23 @@ public partial class DBEditorTabViewModel : ObservableObject {
     [ObservableProperty] private ObservableCollection<DatabaseTable_ArtistNames> _groupsOfSelected = [];
     [ObservableProperty] private ObservableCollection<AssignableTag> _genres = [];
     [ObservableProperty] private ObservableCollection<AssignableTag> _moods = [];
+    [ObservableProperty] private ObservableCollection<DatabaseTable_AlternativeGenreNameVariants> _genreVariants = [];
+    [ObservableProperty] private ObservableCollection<DatabaseTable_AlternativeGenreNameVariants> _filteredGenreVariants = [];
+    [ObservableProperty] private ObservableCollection<DatabaseTable_AlternativeMoodNameVariants> _moodVariants = [];
+    [ObservableProperty] private ObservableCollection<DatabaseTable_AlternativeMoodNameVariants> _filteredMoodVariants = [];
     [ObservableProperty] private ObservableCollection<DatabaseTable_FeatureKeywords> _featureKeywords = [];
     [ObservableProperty] private ObservableCollection<DatabaseTable_FeatureKeywords> _filteredFeatureKeywords = [];
     [ObservableProperty] private DatabaseTable_FeatureKeywords? _selectedFeatureKeyword;
+    [ObservableProperty] private DatabaseTable_ArtistNames? _selectedArtistForNewAlternative;
+    [ObservableProperty] private AssignableTag? _selectedGenreForNewAlternative;
+    [ObservableProperty] private AssignableTag? _selectedMoodForNewAlternative;
+    [ObservableProperty] private CatalogInsertMode _artistInsertMode = CatalogInsertMode.Preferred;
+    [ObservableProperty] private CatalogInsertMode _genreInsertMode = CatalogInsertMode.Preferred;
+    [ObservableProperty] private CatalogInsertMode _moodInsertMode = CatalogInsertMode.Preferred;
+
+    [ObservableProperty] private ObservableCollection<DatabaseTable_BlockedCatalogValues> _blockedArtists = [];
+    [ObservableProperty] private ObservableCollection<DatabaseTable_BlockedCatalogValues> _blockedGenres = [];
+    [ObservableProperty] private ObservableCollection<DatabaseTable_BlockedCatalogValues> _blockedMoods = [];
 
     [ObservableProperty] private string _newPreferredArtistName = "";
     [ObservableProperty] private string _newRealName = "";
@@ -45,6 +63,8 @@ public partial class DBEditorTabViewModel : ObservableObject {
     [ObservableProperty] private string _newGroupName = "";
     [ObservableProperty] private string _newGenreName = "";
     [ObservableProperty] private string _newMoodName = "";
+    [ObservableProperty] private string _newGenreVariant = "";
+    [ObservableProperty] private string _newMoodVariant = "";
     [ObservableProperty] private string _newKeyword = "";
     [ObservableProperty] private string _artistSearchText = "";
 
@@ -58,8 +78,52 @@ public partial class DBEditorTabViewModel : ObservableObject {
     private int _catalogReloadQueued;
 
     public bool HasSelectedArtist => SelectedArtistName is not null;
+    public bool HasSelectedGenre  => SelectedGenre is not null;
+    public bool HasSelectedMood   => SelectedMood is not null;
+    public bool HasBlockedArtists => BlockedArtists.Count > 0;
+    public bool HasBlockedGenres  => BlockedGenres.Count  > 0;
+    public bool HasBlockedMoods   => BlockedMoods.Count   > 0;
 
     public bool HasSearchText => !string.IsNullOrWhiteSpace(ArtistSearchText);
+
+    public bool AddArtistAsPreferred {
+        get => ArtistInsertMode == CatalogInsertMode.Preferred;
+        set { if (value) ArtistInsertMode = CatalogInsertMode.Preferred; }
+    }
+
+    public bool AddArtistAsAlternative {
+        get => ArtistInsertMode == CatalogInsertMode.Alternative;
+        set { if (value) ArtistInsertMode = CatalogInsertMode.Alternative; }
+    }
+
+    public bool AddGenreAsPreferred {
+        get => GenreInsertMode == CatalogInsertMode.Preferred;
+        set { if (value) GenreInsertMode = CatalogInsertMode.Preferred; }
+    }
+
+    public bool AddGenreAsAlternative {
+        get => GenreInsertMode == CatalogInsertMode.Alternative;
+        set { if (value) GenreInsertMode = CatalogInsertMode.Alternative; }
+    }
+
+    public bool AddMoodAsPreferred {
+        get => MoodInsertMode == CatalogInsertMode.Preferred;
+        set { if (value) MoodInsertMode = CatalogInsertMode.Preferred; }
+    }
+
+    public bool AddMoodAsAlternative {
+        get => MoodInsertMode == CatalogInsertMode.Alternative;
+        set { if (value) MoodInsertMode = CatalogInsertMode.Alternative; }
+    }
+
+    public string AddArtistActionCaption =>
+        AddArtistAsAlternative ? L.Get("Db.AddVariant") : L.Get("Db.AddArtist");
+
+    public string AddGenreActionCaption =>
+        AddGenreAsAlternative ? L.Get("Db.AddGenreVariant") : L.Get("Db.AddGenre");
+
+    public string AddMoodActionCaption =>
+        AddMoodAsAlternative ? L.Get("Db.AddMoodVariant") : L.Get("Db.AddMood");
 
     public string ArtistListCaption {
         get {
@@ -125,8 +189,11 @@ public partial class DBEditorTabViewModel : ObservableObject {
     }
 
     public void LoadAll() {
-        var artistId = SelectedArtistName?.ID;
-        var altId    = SelectedAlternativeName?.ID;
+        var artistId        = SelectedArtistName?.ID;
+        var altId           = SelectedAlternativeName?.ID;
+        var artistForAltId  = SelectedArtistForNewAlternative?.ID;
+        var genreForAltId   = SelectedGenreForNewAlternative?.Id;
+        var moodForAltId    = SelectedMoodForNewAlternative?.Id;
 
         UnsubscribeCatalog();
 
@@ -142,14 +209,31 @@ public partial class DBEditorTabViewModel : ObservableObject {
 
         RebuildTags();
         RebuildKeywords();
-        SelectedArtistName      = ArtistNames.FirstOrDefault(a => a.ID == artistId);
-        SelectedAlternativeName = AlternativeArtistNameVariants.FirstOrDefault(a => a.ID == altId);
+        RebuildLabelVariants();
+        RebuildBlockedValues();
+        SelectedArtistName               = ArtistNames.FirstOrDefault(a => a.ID == artistId);
+        SelectedAlternativeName          = AlternativeArtistNameVariants.FirstOrDefault(a => a.ID == altId);
+        SelectedArtistForNewAlternative  = ArtistNames.FirstOrDefault(a => a.ID == artistForAltId) ?? SelectedArtistName;
+        SelectedGenreForNewAlternative   = Genres.FirstOrDefault(g => g.Id == genreForAltId) ?? SelectedGenre;
+        SelectedMoodForNewAlternative    = Moods.FirstOrDefault(m => m.Id == moodForAltId) ?? SelectedMood;
         RefreshFilteredArtists();
         RefreshFilteredAlternatives();
         RefreshFilteredKeywords();
+        RefreshFilteredGenreVariants();
+        RefreshFilteredMoodVariants();
         RefreshAssignments();
         RefreshMemberships();
         RaiseCaptions();
+    }
+
+    private void RebuildBlockedValues() {
+        var blocked = DBConnector.LoadTableContent_BlockedCatalogValues();
+        BlockedArtists = new ObservableCollection<DatabaseTable_BlockedCatalogValues>(
+            blocked.Where(b => b.Kind.Equals(DatabaseTable_BlockedCatalogValues.KindArtist, StringComparison.OrdinalIgnoreCase)));
+        BlockedGenres = new ObservableCollection<DatabaseTable_BlockedCatalogValues>(
+            blocked.Where(b => b.Kind.Equals(DatabaseTable_BlockedCatalogValues.KindGenre, StringComparison.OrdinalIgnoreCase)));
+        BlockedMoods = new ObservableCollection<DatabaseTable_BlockedCatalogValues>(
+            blocked.Where(b => b.Kind.Equals(DatabaseTable_BlockedCatalogValues.KindMood, StringComparison.OrdinalIgnoreCase)));
     }
 
     private void UnsubscribeCatalog() {
@@ -157,6 +241,10 @@ public partial class DBEditorTabViewModel : ObservableObject {
             artist.PropertyChanged -= OnArtistPropertyChanged;
         foreach (var variant in AlternativeArtistNameVariants)
             variant.PropertyChanged -= OnAlternativePropertyChanged;
+        foreach (var variant in GenreVariants)
+            variant.PropertyChanged -= OnGenreVariantPropertyChanged;
+        foreach (var variant in MoodVariants)
+            variant.PropertyChanged -= OnMoodVariantPropertyChanged;
         foreach (var keyword in FeatureKeywords)
             keyword.PropertyChanged -= OnKeywordPropertyChanged;
     }
@@ -241,6 +329,57 @@ public partial class DBEditorTabViewModel : ObservableObject {
             keyword.PropertyChanged += OnKeywordPropertyChanged;
 
         SelectedFeatureKeyword = FeatureKeywords.FirstOrDefault(k => k.Id == selectedId);
+    }
+
+    private void RebuildLabelVariants() {
+        foreach (var variant in GenreVariants)
+            variant.PropertyChanged -= OnGenreVariantPropertyChanged;
+        foreach (var variant in MoodVariants)
+            variant.PropertyChanged -= OnMoodVariantPropertyChanged;
+
+        var genreVariantId = SelectedGenreVariant?.Id;
+        var moodVariantId  = SelectedMoodVariant?.Id;
+        GenreVariants = new ObservableCollection<DatabaseTable_AlternativeGenreNameVariants>(
+            DBConnector.LoadTableContent_AlternativeGenreNameVariants());
+        MoodVariants = new ObservableCollection<DatabaseTable_AlternativeMoodNameVariants>(
+            DBConnector.LoadTableContent_AlternativeMoodNameVariants());
+        foreach (var variant in GenreVariants)
+            variant.PropertyChanged += OnGenreVariantPropertyChanged;
+        foreach (var variant in MoodVariants)
+            variant.PropertyChanged += OnMoodVariantPropertyChanged;
+
+        SelectedGenreVariant = GenreVariants.FirstOrDefault(v => v.Id == genreVariantId);
+        SelectedMoodVariant  = MoodVariants.FirstOrDefault(v => v.Id == moodVariantId);
+    }
+
+    private void RefreshFilteredGenreVariants() {
+        IEnumerable<DatabaseTable_AlternativeGenreNameVariants> query = GenreVariants;
+        if (SelectedGenre is not null)
+            query = query.Where(v => v.RefersToGenreName == SelectedGenre.Id);
+        else
+            query = [];
+        FilteredGenreVariants = new ObservableCollection<DatabaseTable_AlternativeGenreNameVariants>(query);
+    }
+
+    private void RefreshFilteredMoodVariants() {
+        IEnumerable<DatabaseTable_AlternativeMoodNameVariants> query = MoodVariants;
+        if (SelectedMood is not null)
+            query = query.Where(v => v.RefersToMoodName == SelectedMood.Id);
+        else
+            query = [];
+        FilteredMoodVariants = new ObservableCollection<DatabaseTable_AlternativeMoodNameVariants>(query);
+    }
+
+    private void OnGenreVariantPropertyChanged(object? sender, PropertyChangedEventArgs e) {
+        if (sender is DatabaseTable_AlternativeGenreNameVariants variant &&
+            e.PropertyName == nameof(DatabaseTable_AlternativeGenreNameVariants.GenreNameVariant))
+            DBConnector.UpdateAlternativeGenreName(variant);
+    }
+
+    private void OnMoodVariantPropertyChanged(object? sender, PropertyChangedEventArgs e) {
+        if (sender is DatabaseTable_AlternativeMoodNameVariants variant &&
+            e.PropertyName == nameof(DatabaseTable_AlternativeMoodNameVariants.MoodNameVariant))
+            DBConnector.UpdateAlternativeMoodName(variant);
     }
 
     private void RefreshFilteredKeywords() {
@@ -333,28 +472,96 @@ public partial class DBEditorTabViewModel : ObservableObject {
 
     private void RaiseCaptions() {
         OnPropertyChanged(nameof(HasSelectedArtist));
+        OnPropertyChanged(nameof(HasSelectedGenre));
+        OnPropertyChanged(nameof(HasSelectedMood));
+        OnPropertyChanged(nameof(HasBlockedArtists));
+        OnPropertyChanged(nameof(HasBlockedGenres));
+        OnPropertyChanged(nameof(HasBlockedMoods));
         OnPropertyChanged(nameof(ArtistListCaption));
         OnPropertyChanged(nameof(AlternativeListCaption));
         OnPropertyChanged(nameof(MembersCaption));
         OnPropertyChanged(nameof(GroupsCaption));
         OnPropertyChanged(nameof(MembershipNameSuggestions));
+        OnPropertyChanged(nameof(AddArtistAsPreferred));
+        OnPropertyChanged(nameof(AddArtistAsAlternative));
+        OnPropertyChanged(nameof(AddGenreAsPreferred));
+        OnPropertyChanged(nameof(AddGenreAsAlternative));
+        OnPropertyChanged(nameof(AddMoodAsPreferred));
+        OnPropertyChanged(nameof(AddMoodAsAlternative));
+        OnPropertyChanged(nameof(AddArtistActionCaption));
+        OnPropertyChanged(nameof(AddGenreActionCaption));
+        OnPropertyChanged(nameof(AddMoodActionCaption));
         AddArtistCommand.NotifyCanExecuteChanged();
         AddAlternativeCommand.NotifyCanExecuteChanged();
         AddMemberCommand.NotifyCanExecuteChanged();
         AddGroupCommand.NotifyCanExecuteChanged();
         AddGenreCommand.NotifyCanExecuteChanged();
         AddMoodCommand.NotifyCanExecuteChanged();
+        AddGenreVariantCommand.NotifyCanExecuteChanged();
+        AddMoodVariantCommand.NotifyCanExecuteChanged();
         AddKeywordCommand.NotifyCanExecuteChanged();
+        BlockNewArtistCommand.NotifyCanExecuteChanged();
+        BlockNewGenreCommand.NotifyCanExecuteChanged();
+        BlockNewMoodCommand.NotifyCanExecuteChanged();
+        BlockNewAlternativeCommand.NotifyCanExecuteChanged();
+        BlockNewGenreVariantCommand.NotifyCanExecuteChanged();
+        BlockNewMoodVariantCommand.NotifyCanExecuteChanged();
         foreach (var keyword in FeatureKeywords)
             keyword.NotifyTypeLabel();
     }
 
     partial void OnSelectedArtistNameChanged(DatabaseTable_ArtistNames? value) {
+        if (value is not null)
+            SelectedArtistForNewAlternative = value;
         RefreshFilteredAlternatives();
         RefreshAssignments();
         RefreshMemberships();
         RaiseCaptions();
     }
+
+    partial void OnSelectedGenreChanged(AssignableTag? value) {
+        if (value is not null)
+            SelectedGenreForNewAlternative = value;
+        RefreshFilteredGenreVariants();
+        RaiseCaptions();
+    }
+
+    partial void OnSelectedMoodChanged(AssignableTag? value) {
+        if (value is not null)
+            SelectedMoodForNewAlternative = value;
+        RefreshFilteredMoodVariants();
+        RaiseCaptions();
+    }
+
+    partial void OnArtistInsertModeChanged(CatalogInsertMode value) {
+        OnPropertyChanged(nameof(AddArtistAsPreferred));
+        OnPropertyChanged(nameof(AddArtistAsAlternative));
+        OnPropertyChanged(nameof(AddArtistActionCaption));
+        AddArtistCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnGenreInsertModeChanged(CatalogInsertMode value) {
+        OnPropertyChanged(nameof(AddGenreAsPreferred));
+        OnPropertyChanged(nameof(AddGenreAsAlternative));
+        OnPropertyChanged(nameof(AddGenreActionCaption));
+        AddGenreCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnMoodInsertModeChanged(CatalogInsertMode value) {
+        OnPropertyChanged(nameof(AddMoodAsPreferred));
+        OnPropertyChanged(nameof(AddMoodAsAlternative));
+        OnPropertyChanged(nameof(AddMoodActionCaption));
+        AddMoodCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnSelectedArtistForNewAlternativeChanged(DatabaseTable_ArtistNames? value) =>
+        AddArtistCommand.NotifyCanExecuteChanged();
+
+    partial void OnSelectedGenreForNewAlternativeChanged(AssignableTag? value) =>
+        AddGenreCommand.NotifyCanExecuteChanged();
+
+    partial void OnSelectedMoodForNewAlternativeChanged(AssignableTag? value) =>
+        AddMoodCommand.NotifyCanExecuteChanged();
 
     private void UpdateFilterFlags() {
         foreach (var genre in Genres)
@@ -390,12 +597,32 @@ public partial class DBEditorTabViewModel : ObservableObject {
     [RelayCommand(CanExecute = nameof(CanClearSearch))]
     private void ClearSearch() => ArtistSearchText = "";
 
-    partial void OnNewPreferredArtistNameChanged(string value) => AddArtistCommand.NotifyCanExecuteChanged();
-    partial void OnNewAlternativeNameChanged(string value) => AddAlternativeCommand.NotifyCanExecuteChanged();
+    partial void OnNewPreferredArtistNameChanged(string value) {
+        AddArtistCommand.NotifyCanExecuteChanged();
+        BlockNewArtistCommand.NotifyCanExecuteChanged();
+    }
+    partial void OnNewAlternativeNameChanged(string value) {
+        AddAlternativeCommand.NotifyCanExecuteChanged();
+        BlockNewAlternativeCommand.NotifyCanExecuteChanged();
+    }
     partial void OnNewMemberNameChanged(string value) => AddMemberCommand.NotifyCanExecuteChanged();
     partial void OnNewGroupNameChanged(string value) => AddGroupCommand.NotifyCanExecuteChanged();
-    partial void OnNewGenreNameChanged(string value) => AddGenreCommand.NotifyCanExecuteChanged();
-    partial void OnNewMoodNameChanged(string value) => AddMoodCommand.NotifyCanExecuteChanged();
+    partial void OnNewGenreNameChanged(string value) {
+        AddGenreCommand.NotifyCanExecuteChanged();
+        BlockNewGenreCommand.NotifyCanExecuteChanged();
+    }
+    partial void OnNewMoodNameChanged(string value) {
+        AddMoodCommand.NotifyCanExecuteChanged();
+        BlockNewMoodCommand.NotifyCanExecuteChanged();
+    }
+    partial void OnNewGenreVariantChanged(string value) {
+        AddGenreVariantCommand.NotifyCanExecuteChanged();
+        BlockNewGenreVariantCommand.NotifyCanExecuteChanged();
+    }
+    partial void OnNewMoodVariantChanged(string value) {
+        AddMoodVariantCommand.NotifyCanExecuteChanged();
+        BlockNewMoodVariantCommand.NotifyCanExecuteChanged();
+    }
     partial void OnNewKeywordChanged(string value) => AddKeywordCommand.NotifyCanExecuteChanged();
 
     private void OnArtistPropertyChanged(object? sender, PropertyChangedEventArgs e) {
@@ -426,12 +653,30 @@ public partial class DBEditorTabViewModel : ObservableObject {
         RefreshFilteredArtists();
     }
 
-    private bool CanAddArtist() => !string.IsNullOrWhiteSpace(NewPreferredArtistName);
+    private bool CanAddArtist() =>
+        !string.IsNullOrWhiteSpace(NewPreferredArtistName) &&
+        (ArtistInsertMode != CatalogInsertMode.Alternative || SelectedArtistForNewAlternative is not null);
+
     private bool CanAddAlternative() => HasSelectedArtist && !string.IsNullOrWhiteSpace(NewAlternativeName);
     private bool CanAddMember() => HasSelectedArtist && !string.IsNullOrWhiteSpace(NewMemberName);
     private bool CanAddGroup() => HasSelectedArtist && !string.IsNullOrWhiteSpace(NewGroupName);
-    private bool CanAddGenre() => !string.IsNullOrWhiteSpace(NewGenreName);
-    private bool CanAddMood() => !string.IsNullOrWhiteSpace(NewMoodName);
+
+    private bool CanAddGenre() =>
+        !string.IsNullOrWhiteSpace(NewGenreName) &&
+        (GenreInsertMode != CatalogInsertMode.Alternative || SelectedGenreForNewAlternative is not null);
+
+    private bool CanAddMood() =>
+        !string.IsNullOrWhiteSpace(NewMoodName) &&
+        (MoodInsertMode != CatalogInsertMode.Alternative || SelectedMoodForNewAlternative is not null);
+
+    private bool CanBlockNewArtist()      => !string.IsNullOrWhiteSpace(NewPreferredArtistName);
+    private bool CanBlockNewGenre()       => !string.IsNullOrWhiteSpace(NewGenreName);
+    private bool CanBlockNewMood()        => !string.IsNullOrWhiteSpace(NewMoodName);
+    private bool CanBlockNewAlternative() => !string.IsNullOrWhiteSpace(NewAlternativeName);
+    private bool CanBlockNewGenreVariant() => !string.IsNullOrWhiteSpace(NewGenreVariant);
+    private bool CanBlockNewMoodVariant()  => !string.IsNullOrWhiteSpace(NewMoodVariant);
+    private bool CanAddGenreVariant() => HasSelectedGenre && !string.IsNullOrWhiteSpace(NewGenreVariant);
+    private bool CanAddMoodVariant() => HasSelectedMood && !string.IsNullOrWhiteSpace(NewMoodVariant);
     private bool CanAddKeyword() => !string.IsNullOrWhiteSpace(NewKeyword);
 
     [RelayCommand(CanExecute = nameof(CanAddArtist))]
@@ -448,6 +693,21 @@ public partial class DBEditorTabViewModel : ObservableObject {
             await BuranMessageBox.Show(
                 L.Format("Db.ArtistIsAlternative", preferred, check.PreferredArtistName),
                 L.Get("Common.Warning"));
+            return;
+        }
+
+        if (ArtistInsertMode == CatalogInsertMode.Alternative) {
+            if (SelectedArtistForNewAlternative is null) {
+                await BuranMessageBox.Show(L.Get("Catalog.NeedPreferredForAlt"), L.Get("Common.Warning"));
+                return;
+            }
+
+            var ownerId = SelectedArtistForNewAlternative.ID;
+            DBConnector.InsertAlternativeArtistName(preferred, ownerId);
+            NewPreferredArtistName = "";
+            NewRealName            = "";
+            LoadAll();
+            SelectedArtistName = ArtistNames.FirstOrDefault(a => a.ID == ownerId);
             return;
         }
 
@@ -560,10 +820,30 @@ public partial class DBEditorTabViewModel : ObservableObject {
     [RelayCommand(CanExecute = nameof(CanAddGenre))]
     private async Task AddGenre() {
         var name = NewGenreName.Trim();
-        if (Genres.Any(g => string.Equals(g.Name, name, StringComparison.CurrentCultureIgnoreCase))) {
-            await BuranMessageBox.Show(L.Format("Db.GenreExists", name), L.Get("Common.Warning"));
+        var resolved = DBConnector.ResolveGenreName(name);
+        if (resolved.Status == ArtistNameStatus.AlreadyExisting) {
+            await BuranMessageBox.Show(L.Format("Db.GenreExists", resolved.PreferredName), L.Get("Common.Warning"));
             return;
         }
+        if (resolved.Status == ArtistNameStatus.IsAlternativeName) {
+            await BuranMessageBox.Show(L.Format("Db.GenreIsAlternative", name, resolved.PreferredName), L.Get("Common.Warning"));
+            return;
+        }
+
+        if (GenreInsertMode == CatalogInsertMode.Alternative) {
+            if (SelectedGenreForNewAlternative is null) {
+                await BuranMessageBox.Show(L.Get("Catalog.NeedPreferredForAlt"), L.Get("Common.Warning"));
+                return;
+            }
+
+            var genreId = SelectedGenreForNewAlternative.Id;
+            DBConnector.InsertAlternativeGenreName(name, genreId);
+            NewGenreName = "";
+            LoadAll();
+            SelectedGenre = Genres.FirstOrDefault(g => g.Id == genreId);
+            return;
+        }
+
         DBConnector.InsertGenreName(name);
         NewGenreName = "";
         LoadAll();
@@ -597,10 +877,30 @@ public partial class DBEditorTabViewModel : ObservableObject {
     [RelayCommand(CanExecute = nameof(CanAddMood))]
     private async Task AddMood() {
         var name = NewMoodName.Trim();
-        if (Moods.Any(m => string.Equals(m.Name, name, StringComparison.CurrentCultureIgnoreCase))) {
-            await BuranMessageBox.Show(L.Format("Db.MoodExists", name), L.Get("Common.Warning"));
+        var resolved = DBConnector.ResolveMoodName(name);
+        if (resolved.Status == ArtistNameStatus.AlreadyExisting) {
+            await BuranMessageBox.Show(L.Format("Db.MoodExists", resolved.PreferredName), L.Get("Common.Warning"));
             return;
         }
+        if (resolved.Status == ArtistNameStatus.IsAlternativeName) {
+            await BuranMessageBox.Show(L.Format("Db.MoodIsAlternative", name, resolved.PreferredName), L.Get("Common.Warning"));
+            return;
+        }
+
+        if (MoodInsertMode == CatalogInsertMode.Alternative) {
+            if (SelectedMoodForNewAlternative is null) {
+                await BuranMessageBox.Show(L.Get("Catalog.NeedPreferredForAlt"), L.Get("Common.Warning"));
+                return;
+            }
+
+            var moodId = SelectedMoodForNewAlternative.Id;
+            DBConnector.InsertAlternativeMoodName(name, moodId);
+            NewMoodName = "";
+            LoadAll();
+            SelectedMood = Moods.FirstOrDefault(m => m.Id == moodId);
+            return;
+        }
+
         DBConnector.InsertMoodName(name);
         NewMoodName = "";
         LoadAll();
@@ -630,6 +930,66 @@ public partial class DBEditorTabViewModel : ObservableObject {
 
     [RelayCommand]
     private void ClearMoodFilter() => MoodFilter = null;
+
+    [RelayCommand(CanExecute = nameof(CanAddGenreVariant))]
+    private async Task AddGenreVariant() {
+        if (SelectedGenre is null) return;
+        var name = NewGenreVariant.Trim();
+        var resolved = DBConnector.ResolveGenreName(name);
+        if (resolved.IsKnown) {
+            await BuranMessageBox.Show(L.Format("Db.GenreExists", resolved.PreferredName), L.Get("Common.Warning"));
+            return;
+        }
+
+        var genreId = SelectedGenre.Id;
+        DBConnector.InsertAlternativeGenreName(name, genreId);
+        NewGenreVariant = "";
+        LoadAll();
+        SelectedGenre = Genres.FirstOrDefault(g => g.Id == genreId);
+    }
+
+    [RelayCommand]
+    private async Task DeleteGenreVariant() {
+        if (SelectedGenreVariant is null) {
+            await BuranMessageBox.Show(L.Get("Db.SelectGenreVariantToDelete"), L.Get("Common.Warning"));
+            return;
+        }
+        var genreId = SelectedGenre?.Id;
+        DBConnector.DeleteAlternativeGenreName(SelectedGenreVariant.Id);
+        SelectedGenreVariant = null;
+        LoadAll();
+        SelectedGenre = Genres.FirstOrDefault(g => g.Id == genreId);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanAddMoodVariant))]
+    private async Task AddMoodVariant() {
+        if (SelectedMood is null) return;
+        var name = NewMoodVariant.Trim();
+        var resolved = DBConnector.ResolveMoodName(name);
+        if (resolved.IsKnown) {
+            await BuranMessageBox.Show(L.Format("Db.MoodExists", resolved.PreferredName), L.Get("Common.Warning"));
+            return;
+        }
+
+        var moodId = SelectedMood.Id;
+        DBConnector.InsertAlternativeMoodName(name, moodId);
+        NewMoodVariant = "";
+        LoadAll();
+        SelectedMood = Moods.FirstOrDefault(m => m.Id == moodId);
+    }
+
+    [RelayCommand]
+    private async Task DeleteMoodVariant() {
+        if (SelectedMoodVariant is null) {
+            await BuranMessageBox.Show(L.Get("Db.SelectMoodVariantToDelete"), L.Get("Common.Warning"));
+            return;
+        }
+        var moodId = SelectedMood?.Id;
+        DBConnector.DeleteAlternativeMoodName(SelectedMoodVariant.Id);
+        SelectedMoodVariant = null;
+        LoadAll();
+        SelectedMood = Moods.FirstOrDefault(m => m.Id == moodId);
+    }
 
     [RelayCommand(CanExecute = nameof(CanAddKeyword))]
     private async Task AddKeyword() {
@@ -663,4 +1023,180 @@ public partial class DBEditorTabViewModel : ObservableObject {
 
     [RelayCommand]
     private void UnselectKeyword() => SelectedFeatureKeyword = null;
+
+    [RelayCommand(CanExecute = nameof(CanBlockNewArtist))]
+    private void BlockNewArtist() {
+        var name = NewPreferredArtistName.Trim();
+        NewPreferredArtistName = "";
+        NewRealName            = "";
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindArtist, name);
+        LoadAll();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanBlockNewGenre))]
+    private void BlockNewGenre() {
+        var name = NewGenreName.Trim();
+        NewGenreName = "";
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindGenre, name);
+        LoadAll();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanBlockNewMood))]
+    private void BlockNewMood() {
+        var name = NewMoodName.Trim();
+        NewMoodName = "";
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindMood, name);
+        LoadAll();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanBlockNewAlternative))]
+    private void BlockNewAlternative() {
+        var name = NewAlternativeName.Trim();
+        NewAlternativeName = "";
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindArtist, name);
+        LoadAll();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanBlockNewGenreVariant))]
+    private void BlockNewGenreVariant() {
+        var name    = NewGenreVariant.Trim();
+        var genreId = SelectedGenre?.Id;
+        NewGenreVariant = "";
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindGenre, name);
+        LoadAll();
+        SelectedGenre = Genres.FirstOrDefault(g => g.Id == genreId);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanBlockNewMoodVariant))]
+    private void BlockNewMoodVariant() {
+        var name   = NewMoodVariant.Trim();
+        var moodId = SelectedMood?.Id;
+        NewMoodVariant = "";
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindMood, name);
+        LoadAll();
+        SelectedMood = Moods.FirstOrDefault(m => m.Id == moodId);
+    }
+
+    [RelayCommand]
+    private async Task BlockSelectedArtist() {
+        if (SelectedArtistName is null) {
+            await BuranMessageBox.Show(L.Get("Db.SelectToBlock"), L.Get("Common.Warning"));
+            return;
+        }
+
+        var name = SelectedArtistName.PreferredArtistName;
+        SelectedArtistName = null;
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindArtist, name);
+        LoadAll();
+    }
+
+    [RelayCommand]
+    private async Task BlockSelectedAlternative() {
+        if (SelectedAlternativeName is null) {
+            await BuranMessageBox.Show(L.Get("Db.SelectToBlock"), L.Get("Common.Warning"));
+            return;
+        }
+
+        var name = SelectedAlternativeName.AlternativeArtistName;
+        SelectedAlternativeName = null;
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindArtist, name);
+        LoadAll();
+    }
+
+    [RelayCommand]
+    private async Task BlockSelectedGenre() {
+        if (SelectedGenre is null) {
+            await BuranMessageBox.Show(L.Get("Db.SelectToBlock"), L.Get("Common.Warning"));
+            return;
+        }
+
+        var name = SelectedGenre.Name;
+        if (GenreFilter?.Id == SelectedGenre.Id)
+            GenreFilter = null;
+        SelectedGenre = null;
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindGenre, name);
+        LoadAll();
+    }
+
+    [RelayCommand]
+    private async Task BlockSelectedGenreVariant() {
+        if (SelectedGenreVariant is null) {
+            await BuranMessageBox.Show(L.Get("Db.SelectToBlock"), L.Get("Common.Warning"));
+            return;
+        }
+
+        var name    = SelectedGenreVariant.GenreNameVariant;
+        var genreId = SelectedGenre?.Id;
+        SelectedGenreVariant = null;
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindGenre, name);
+        LoadAll();
+        SelectedGenre = Genres.FirstOrDefault(g => g.Id == genreId);
+    }
+
+    [RelayCommand]
+    private async Task BlockSelectedMood() {
+        if (SelectedMood is null) {
+            await BuranMessageBox.Show(L.Get("Db.SelectToBlock"), L.Get("Common.Warning"));
+            return;
+        }
+
+        var name = SelectedMood.Name;
+        if (MoodFilter?.Id == SelectedMood.Id)
+            MoodFilter = null;
+        SelectedMood = null;
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindMood, name);
+        LoadAll();
+    }
+
+    [RelayCommand]
+    private async Task BlockSelectedMoodVariant() {
+        if (SelectedMoodVariant is null) {
+            await BuranMessageBox.Show(L.Get("Db.SelectToBlock"), L.Get("Common.Warning"));
+            return;
+        }
+
+        var name   = SelectedMoodVariant.MoodNameVariant;
+        var moodId = SelectedMood?.Id;
+        SelectedMoodVariant = null;
+        DBConnector.BlockCatalogValue(DatabaseTable_BlockedCatalogValues.KindMood, name);
+        LoadAll();
+        SelectedMood = Moods.FirstOrDefault(m => m.Id == moodId);
+    }
+
+    [RelayCommand]
+    private void UnblockValue(DatabaseTable_BlockedCatalogValues? item) {
+        if (item is null)
+            return;
+
+        DBConnector.DeleteBlockedCatalogValue(item.Id);
+        LoadAll();
+    }
+
+    [RelayCommand]
+    private void ShowTracksForArtist() {
+        if (SelectedArtistName is not null)
+            ShowIndexedTracks("artist", SelectedArtistName.PreferredArtistName);
+    }
+
+    [RelayCommand]
+    private void ShowTracksForGenre() {
+        if (SelectedGenre is not null)
+            ShowIndexedTracks("genre", SelectedGenre.Name);
+    }
+
+    [RelayCommand]
+    private void ShowTracksForMood() {
+        if (SelectedMood is not null)
+            ShowIndexedTracks("mood", SelectedMood.Name);
+    }
+
+    private void ShowIndexedTracks(string kind, string name) {
+        var hits  = DBConnector.FindIndexedTracks(kind, name);
+        var paths = hits.Select(h => h.Path).Where(File.Exists).ToList();
+        var host  = ModuleHub.Find<ITrackListHost>();
+        if (host is null)
+            return;
+        host.ShowTracks(paths, L.Format("Db.TracksFor", name));
+        ModuleHub.ShowId3Editor();
+    }
 }

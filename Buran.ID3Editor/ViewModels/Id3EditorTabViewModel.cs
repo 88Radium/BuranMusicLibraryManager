@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Buran.Interfaces;
@@ -43,11 +44,15 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         AddSingleMoodFromID3TagsCommand      =  new RelayCommand<Mp3FileObject>(AddSingleMoodFromID3Tags);
         ResetId3ToDefaultCommand             =  new RelayCommand<object>(ResetID3ToDefault!);
         OpenBulkAddDialogCommand             =  new RelayCommand<string>(OpenBulkAddDialog);
+        OpenBulkCommentsDialogCommand        =  new RelayCommand(OpenBulkCommentsDialog, () => HasSelectedFiles);
+        PlaySelectedCommand                  =  new RelayCommand(PlaySelected, () => HasSelectedFiles && HasPlayerModule);
+        AddSelectedToPlaylistCommand         =  new RelayCommand(AddSelectedToPlaylist, () => HasSelectedFiles && HasPlayerModule);
         SelectAllFilesCommand                =  new RelayCommand(SelectAllFiles, () => HasMusicFiles);
         UnselectAllFilesCommand              =  new RelayCommand(UnselectAllFiles, () => HasSelectedFiles);
         BulkFileNameFromId3Command           =  new AsyncRelayCommand(BulkFileNameFromId3Async, () => HasSelectedFiles);
         BulkId3FromFileNameCommand           =  new RelayCommand(BulkId3FromFileName, () => HasSelectedFiles);
         MusicFiles                           =  new ObservableCollection<Buran.Types.Mp3FileObject>();
+        InitColumns();
         MusicFiles.CollectionChanged         += (s, e) => {
             OnPropertyChanged(nameof(HasMusicFiles));
             NotifySelectionCommands();
@@ -55,7 +60,10 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         MusicFiles.CollectionChanged         += OnMusicFilesCollectionChanged!;
         ReloadCatalogSuggestions();
         DBConnector.CatalogChanged           += OnCatalogChanged;
-        L.WhenChanged(() => OnPropertyChanged(nameof(SelectedFilesCountText)));
+        L.WhenChanged(() => {
+            OnPropertyChanged(nameof(SelectedFilesCountText));
+            OnPropertyChanged(nameof(EditToggleLabel));
+        });
     }
 
     private int _catalogReloadQueued;
@@ -111,6 +119,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         OnPropertyChanged(nameof(HasSelectedFiles));
         OnPropertyChanged(nameof(SelectedFilesCount));
         OnPropertyChanged(nameof(SelectedFilesCountText));
+        OnPropertyChanged(nameof(ShowBulkBar));
         NotifySelectionCommands();
     }
 
@@ -119,6 +128,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         OnPropertyChanged(nameof(HasSelectedFiles));
         OnPropertyChanged(nameof(SelectedFilesCount));
         OnPropertyChanged(nameof(SelectedFilesCountText));
+        OnPropertyChanged(nameof(ShowBulkBar));
         NotifySelectionCommands();
     }
 
@@ -126,6 +136,58 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
 
     [ObservableProperty] private string _selectedPath;
+    [ObservableProperty] private bool _isEditMode;
+    [ObservableProperty] private bool _hasPlayerDock;
+    [ObservableProperty] private Mp3FileObject? _focusedFile;
+    [ObservableProperty] private string _filterCaption = "";
+    [ObservableProperty] private bool _isLoadingFiles;
+
+    public bool HasFilterCaption => !string.IsNullOrEmpty(FilterCaption);
+
+    partial void OnFilterCaptionChanged(string value) =>
+        OnPropertyChanged(nameof(HasFilterCaption));
+
+    [RelayCommand]
+    private void ClearFilter() {
+        FilterCaption = "";
+        if (ModuleHub.TryRestoreLibraryFolder())
+            return;
+        MusicFiles.Clear();
+        FocusedFile = null;
+        SelectedPath = "";
+    }
+
+    [RelayCommand]
+    private void ToggleColumn(TrackColumnOption? column) {
+        if (column is null)
+            return;
+        column.IsVisible = !column.IsVisible;
+        ColumnsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public bool ShowBulkBar => IsEditMode && HasSelectedFiles;
+
+    [ObservableProperty] private double _inspectorPaneWidth = 320;
+
+    public ObservableCollection<TrackColumnOption> ColumnOptions { get; } = [];
+
+    public event EventHandler? ColumnsChanged;
+
+    public string EditToggleLabel =>
+        IsEditMode ? L.Get("Id3.Editing") : L.Get("Id3.EditTags");
+
+    [RelayCommand]
+    private void ToggleEditMode() => IsEditMode = !IsEditMode;
+
+    partial void OnIsEditModeChanged(bool value) {
+        OnPropertyChanged(nameof(ShowBulkBar));
+        OnPropertyChanged(nameof(EditToggleLabel));
+    }
+
+    public void NotifyPlayerAvailable() {
+        OnPropertyChanged(nameof(HasPlayerModule));
+        NotifySelectionCommands();
+    }
 
     private ObservableCollection<Mp3FileObject> _musicFiles = [];
 
@@ -144,47 +206,172 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     #region LoadMusicFiles
 
-    public void LoadFromFolder(string folderPath) {
+    public void LoadFromFolder(string folderPath, bool includeSubfolders = false) {
         if (string.IsNullOrWhiteSpace(folderPath))
             return;
-
         SelectedPath = folderPath.Replace("%20", " ");
-        LoadMusicFiles();
+        FilterCaption = includeSubfolders ? L.Get("Id3.IncludingSubfolders") : "";
+        _ = LoadPathsAsync(EnumerateAudio(SelectedPath, includeSubfolders), index: true, promptCatalog: true);
     }
 
-    public void LoadMusicFiles() {
+    public void LoadFromPaths(IReadOnlyList<string> paths, string caption) {
+        FilterCaption = caption;
+        EnsureColumnVisible("FolderPath");
+        _ = LoadPathsAsync(Task.FromResult(paths.ToList()), index: false, promptCatalog: false);
+    }
+
+    public void StartLibraryIndex(IReadOnlyList<string> rootPaths) =>
+        _ = IndexLibraryAsync(rootPaths);
+
+    public void LoadMusicFiles() =>
+        LoadFromFolder(SelectedPath, includeSubfolders: false);
+
+    private CancellationTokenSource? _loadCts;
+
+    private async Task LoadPathsAsync(Task<List<string>> pathsTask, bool index, bool promptCatalog) {
+        _loadCts?.Cancel();
+        _loadCts = new CancellationTokenSource();
+        var token = _loadCts.Token;
+        IsLoadingFiles = true;
         MusicFiles.Clear();
+        try {
+            var paths = await pathsTask.ConfigureAwait(true);
+            token.ThrowIfCancellationRequested();
+            const int batch = 16;
+            var buffer = new List<Mp3FileObject>(batch);
+            foreach (var path in paths) {
+                token.ThrowIfCancellationRequested();
+                var mp3 = await Task.Run(() => {
+                    var file = new Mp3FileObject(path);
+                    NormalizeCatalogNames(file);
+                    if (index)
+                        IndexFile(file);
+                    return file;
+                }, token).ConfigureAwait(true);
+                buffer.Add(mp3);
+                if (buffer.Count >= batch) {
+                    foreach (var item in buffer)
+                        MusicFiles.Add(item);
+                    buffer.Clear();
+                }
+            }
 
-        // Select all MP3 Files in Folder
-        if (SelectedPath == string.Empty) return;
-        SelectedPath = SelectedPath.Replace("%20", " ");
-        if (!Directory.Exists(SelectedPath)) return;
+            foreach (var item in buffer)
+                MusicFiles.Add(item);
+            FocusedFile = MusicFiles.FirstOrDefault();
+            if (promptCatalog)
+                PromptForNewCatalogValues();
+        }
+        catch (OperationCanceledException) {
+            // Newer load replaced this one.
+        }
+        finally {
+            IsLoadingFiles = false;
+        }
+    }
 
-        string[] filePaths = System.IO.Directory.GetFiles(SelectedPath);
-        filePaths = filePaths.Where(x => x.EndsWith(".mp3") || x.EndsWith(".flac")).ToArray();
+    private static Task<List<string>> EnumerateAudio(string folder, bool recursive) =>
+        Task.Run(() => {
+            var found = new List<string>();
+            CollectAudio(folder, recursive, found);
+            found.Sort(StringComparer.CurrentCultureIgnoreCase);
+            return found;
+        });
 
-        List<string> pathsOfMusicFilesToDisplay = new List<string>();
-        foreach (string filePath in filePaths) {
-            switch (filePath.Substring(filePath.LastIndexOf("."))) {
-                case ".flac":
-                case ".mp3":
-                    // case ".dsf":
-                    pathsOfMusicFilesToDisplay.Add(filePath);
-                    break;
+    private static void CollectAudio(string folder, bool recursive, List<string> acc) {
+        try {
+            foreach (var file in Directory.EnumerateFiles(folder)) {
+                if (file.EndsWith(".mp3", StringComparison.OrdinalIgnoreCase)
+                    || file.EndsWith(".flac", StringComparison.OrdinalIgnoreCase))
+                    acc.Add(file);
+            }
+
+            if (!recursive)
+                return;
+            foreach (var dir in Directory.EnumerateDirectories(folder))
+                CollectAudio(dir, true, acc);
+        }
+        catch {
+            // Unreadable folder.
+        }
+    }
+
+    public async Task IndexLibraryAsync(IReadOnlyList<string> rootPaths) {
+        IsLoadingFiles = true;
+        try {
+            foreach (var rootPath in rootPaths) {
+                if (string.IsNullOrWhiteSpace(rootPath) || !Directory.Exists(rootPath))
+                    continue;
+                var paths = await EnumerateAudio(rootPath, recursive: true).ConfigureAwait(true);
+                foreach (var path in paths) {
+                    await Task.Run(() => {
+                        try {
+                            var file = new Mp3FileObject(path);
+                            IndexFile(file);
+                        }
+                        catch {
+                            // Skip unreadable files.
+                        }
+                    }).ConfigureAwait(true);
+                }
             }
         }
-
-        Debug.WriteLine("{0} Music files loaded", pathsOfMusicFilesToDisplay.Count);
-
-        int i = 1;
-        foreach (string path in pathsOfMusicFilesToDisplay) {
-            Debug.WriteLine($"Loading Track {i} {path}");
-            i++;
-            Mp3FileObject mp3 = new Mp3FileObject(path);
-            MusicFiles.Add(mp3);
+        finally {
+            IsLoadingFiles = false;
         }
-        GC.Collect();
-        PromptForNewCatalogValues();
+    }
+
+    private static void IndexFile(Mp3FileObject file) {
+        try {
+            DBConnector.UpsertIndexedTrack(
+                file.FullPath,
+                file.Id3Title,
+                string.Join(';', file.Id3ArtistCollection),
+                file.Id3Album,
+                file.Id3ReleaseYear,
+                string.Join(';', file.Id3GenreCollection),
+                string.Join(';', file.Id3MoodCollection),
+                file.DurationSeconds,
+                file.Bitrate,
+                file.SampleRate,
+                file.BitDepth);
+        }
+        catch (Exception ex) {
+            Debug.WriteLine($"Index failed for {file.FullPath}: {ex.Message}");
+        }
+    }
+
+    private void InitColumns() {
+        TrackColumnOption[] defaults = [
+            new() { Id = "Artists",    HeaderKey = "Id3.Artists",     Binding = "ArtistsDisplay",           IsVisible = true },
+            new() { Id = "Title",      HeaderKey = "Id3.Title",       Binding = "Id3Title",                 IsVisible = true },
+            new() { Id = "FolderPath", HeaderKey = "Id3.FolderPath",  Binding = "ContainingDirectoryName",  IsVisible = true },
+            new() { Id = "Album",      HeaderKey = "Id3.Album",       Binding = "Id3Album",                 IsVisible = true },
+            new() { Id = "Year",       HeaderKey = "Id3.ReleaseYear", Binding = "Id3ReleaseYear",  IsVisible = true },
+            new() { Id = "Duration",   HeaderKey = "Id3.Duration",    Binding = "DurationText",    IsVisible = true },
+            new() { Id = "Bitrate",    HeaderKey = "Id3.Bitrate",     Binding = "BitrateText",     IsVisible = true },
+            new() { Id = "SampleRate", HeaderKey = "Id3.SampleRate",  Binding = "SampleRateText",  IsVisible = true },
+            new() { Id = "BitDepth",   HeaderKey = "Id3.BitDepth",    Binding = "BitDepthText",    IsVisible = true },
+            new() { Id = "Filename",   HeaderKey = "Id3.Filename",    Binding = "FileName",        IsVisible = false },
+            new() { Id = "Genre",      HeaderKey = "Id3.Genre",       Binding = "GenresDisplay",    IsVisible = false },
+            new() { Id = "Mood",       HeaderKey = "Id3.Moods",       Binding = "MoodsDisplay",     IsVisible = false },
+        ];
+        foreach (var column in defaults)
+            ColumnOptions.Add(column);
+    }
+
+    private static void NormalizeCatalogNames(Mp3FileObject file) {
+        static List<string> Map(IEnumerable<string>? values, Func<string, CatalogNameResolution> resolve) =>
+            (values ?? [])
+                .Select(v => resolve(v).PreferredName)
+                .Where(n => n.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+        file.ApplyResolvedCatalog(
+            Map(file.Id3ArtistCollection, DBConnector.ResolveArtistName),
+            Map(file.Id3GenreCollection, DBConnector.ResolveGenreName),
+            Map(file.Id3MoodCollection, DBConnector.ResolveMoodName));
     }
 
     private void PromptForNewCatalogValues() {
@@ -229,7 +416,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         if (sender is not Mp3FileObject file)
             return;
 
-        var error = TryRenameFromId3(file);
+        var error = await RenameFromId3Async(file);
         if (error is not null)
             await BuranMessageBox.Show(error);
     }
@@ -237,7 +424,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     private async Task BulkFileNameFromId3Async() {
         var errors = new List<string>();
         foreach (var file in MusicFiles.Where(f => f.IsSelected).ToList()) {
-            var error = TryRenameFromId3(file);
+            var error = await RenameFromId3Async(file);
             if (error is not null)
                 errors.Add($"{file.FileName}: {error}");
         }
@@ -246,7 +433,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             await BuranMessageBox.Show(string.Join("\n", errors), L.Get("Id3.RenameCaption"));
     }
 
-    private string? TryRenameFromId3(Mp3FileObject file) {
+    private async Task<string?> RenameFromId3Async(Mp3FileObject file) {
         try {
             if (file.Mp3File is null)
                 return L.Get("Id3.CouldNotReadFile");
@@ -272,22 +459,112 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             var newPath   = Path.Combine(directory, newName);
 
             file.Mp3File.Save();
+
+            if (File.Exists(newPath) && !PathsEqual(oldPath, newPath)) {
+                var decision = await ShowCompareFilesDialogAsync(file, newPath);
+                switch (decision) {
+                    case CompareFilesDecision.KeepBoth:
+                        return null;
+                    case CompareFilesDecision.UseExisting:
+                        return DeleteCurrentFile(file, oldPath);
+                    case CompareFilesDecision.UseCurrent:
+                        var replaceError = DeleteExistingTarget(newPath);
+                        if (replaceError is not null)
+                            return replaceError;
+                        break;
+                }
+            }
+
             try {
                 File.Move(oldPath, newPath);
             } catch (IOException ex) {
-                return ex.Message;
+                if (File.Exists(newPath) && !PathsEqual(oldPath, newPath)) {
+                    var decision = await ShowCompareFilesDialogAsync(file, newPath);
+                    switch (decision) {
+                        case CompareFilesDecision.KeepBoth:
+                            return null;
+                        case CompareFilesDecision.UseExisting:
+                            return DeleteCurrentFile(file, oldPath);
+                        case CompareFilesDecision.UseCurrent: {
+                            var replaceError = DeleteExistingTarget(newPath);
+                            if (replaceError is not null)
+                                return replaceError;
+                            File.Move(oldPath, newPath);
+                            break;
+                        }
+                    }
+                } else {
+                    return ex.Message;
+                }
             }
 
-            var index = MusicFiles.IndexOf(file);
-            if (index < 0)
-                return L.Get("Id3.EntryNotInList");
-
-            MusicFiles[index] = new Mp3FileObject(newPath) { IsSelected = file.IsSelected };
+            ReplaceListEntry(file, newPath);
             return null;
         } catch (Exception ex) {
             return ex.Message;
         }
     }
+
+    private async Task<CompareFilesDecision> ShowCompareFilesDialogAsync(Mp3FileObject current, string existingPath) {
+        var vm     = new CompareFilesViewModel(current, existingPath);
+        var dialog = new CompareFilesWindow { DataContext = vm };
+        vm.CloseRequested += (_, _) => dialog.Close();
+
+        var owner = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+
+        if (owner is not null)
+            await dialog.ShowDialog(owner);
+        else {
+            var closed = new TaskCompletionSource();
+            dialog.Closed += (_, _) => closed.TrySetResult();
+            dialog.Show();
+            await closed.Task;
+        }
+
+        return vm.Decision;
+    }
+
+    private string? DeleteExistingTarget(string path) {
+        try {
+            File.Delete(path);
+        } catch (Exception ex) {
+            return L.Format("Id3.RenameDeleteFailed", ex.Message);
+        }
+
+        RemoveByFullPath(path);
+        return null;
+    }
+
+    private string? DeleteCurrentFile(Mp3FileObject file, string path) {
+        try {
+            File.Delete(path);
+        } catch (Exception ex) {
+            return L.Format("Id3.RenameDeleteFailed", ex.Message);
+        }
+
+        MusicFiles.Remove(file);
+        return null;
+    }
+
+    private void ReplaceListEntry(Mp3FileObject file, string newPath) {
+        var selected = file.IsSelected;
+        var index    = MusicFiles.IndexOf(file);
+        var replacement = new Mp3FileObject(newPath) { IsSelected = selected };
+        if (index >= 0)
+            MusicFiles[index] = replacement;
+        else
+            MusicFiles.Add(replacement);
+    }
+
+    private void RemoveByFullPath(string path) {
+        foreach (var item in MusicFiles.Where(f => PathsEqual(f.FullPath, path)).ToList())
+            MusicFiles.Remove(item);
+    }
+
+    private static bool PathsEqual(string left, string right) =>
+        string.Equals(Path.GetFullPath(left), Path.GetFullPath(right), StringComparison.Ordinal);
 
 
     /// <summary>
@@ -311,7 +588,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
         // Assembling ArtistListing
         foreach (string artist in fileObject.Id3ArtistCollection) {
-            string preferred = DBConnector.CheckForPreferredName(artist).PreferredArtistName;
+            string preferred = DBConnector.ResolveArtistName(artist).PreferredName;
             preferredArtistNameList.Add(preferred);
         }
 
@@ -389,7 +666,8 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
         if (metadata.Artists is { Count: > 0 }) {
             var resolved = metadata.Artists
-                .Select(a => DBConnector.CheckForPreferredName(a).PreferredArtistName)
+                .Select(a => DBConnector.ResolveArtistName(a).PreferredName)
+                .Where(n => n.Length > 0)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
             file.Id3ArtistCollection = new ObservableCollection<string>(resolved);
@@ -401,8 +679,8 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         if (metadata.Comments is { Count: > 0 })
             file.Id3Comment = string.Join("; ", metadata.Comments);
 
-        if (uint.TryParse(metadata.Year, out var year))
-            file.Id3ReleaseYear = (int)year;
+        if (int.TryParse(metadata.Year, out var year) && year is >= 1000 and <= 9999)
+            file.Id3ReleaseYear = year;
     }
 
     #endregion
@@ -423,11 +701,17 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     #region Bulk_AddTags
 
-    public ICommand OpenBulkAddDialogCommand { get; }
-    public ICommand SelectAllFilesCommand       { get; }
-    public ICommand UnselectAllFilesCommand     { get; }
-    public ICommand BulkFileNameFromId3Command  { get; }
-    public ICommand BulkId3FromFileNameCommand  { get; }
+    public ICommand OpenBulkAddDialogCommand      { get; }
+    public ICommand OpenBulkCommentsDialogCommand { get; }
+    public ICommand PlaySelectedCommand           { get; }
+    public ICommand AddSelectedToPlaylistCommand  { get; }
+    public ICommand SelectAllFilesCommand         { get; }
+    public ICommand UnselectAllFilesCommand       { get; }
+    public ICommand BulkFileNameFromId3Command    { get; }
+    public ICommand BulkId3FromFileNameCommand    { get; }
+
+    public bool HasPlayerModule =>
+        ModuleHub.Find<IPlaybackController>() is not null;
 
     public bool HasSelectedFiles   => MusicFiles?.Any(f => f.IsSelected    == true) ?? false;
     public int  SelectedFilesCount => MusicFiles?.Count(f => f?.IsSelected == true) ?? 0;
@@ -450,7 +734,77 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         (UnselectAllFilesCommand as IRelayCommand)?.NotifyCanExecuteChanged();
         (BulkFileNameFromId3Command as IRelayCommand)?.NotifyCanExecuteChanged();
         (BulkId3FromFileNameCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+        (OpenBulkCommentsDialogCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+        (PlaySelectedCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+        (AddSelectedToPlaylistCommand as IRelayCommand)?.NotifyCanExecuteChanged();
     }
+
+    private void OpenBulkCommentsDialog() {
+        var selectedFiles = MusicFiles.Where(f => f.IsSelected).ToList();
+        if (selectedFiles.Count == 0)
+            return;
+
+        var dialog = new BulkCommentsWindow();
+        var vm     = new BulkCommentsViewModel(selectedFiles);
+        dialog.DataContext = vm;
+        vm.CloseRequested += (_, _) => dialog.Close();
+
+        var owner = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
+            ? desktop.MainWindow
+            : null;
+
+        if (owner is not null)
+            dialog.ShowDialog(owner);
+        else
+            dialog.Show();
+    }
+
+    private void PlaySelected() {
+        var paths = SelectedPaths();
+        if (paths.Count == 0)
+            return;
+        ModuleHub.Find<IPlaybackController>()?.PlayFile(paths[0], paths);
+    }
+
+    [RelayCommand]
+    private void PlayThisFile(Mp3FileObject? file) {
+        if (file is null || !HasPlayerModule)
+            return;
+        var queue = MusicFiles.Select(f => f.FullPath).ToList();
+        ModuleHub.Find<IPlaybackController>()?.PlayFile(file.FullPath, queue);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanOpenContainingFolder))]
+    private void OpenContainingFolder() {
+        var dir = FocusedFile?.ContainingDirectoryName;
+        if (string.IsNullOrWhiteSpace(dir) || !Directory.Exists(dir))
+            return;
+        ModuleHub.ShowLibraryFolder(dir);
+    }
+
+    private bool CanOpenContainingFolder() =>
+        FocusedFile is { ContainingDirectoryName.Length: > 0 };
+
+    partial void OnFocusedFileChanged(Mp3FileObject? value) =>
+        OpenContainingFolderCommand.NotifyCanExecuteChanged();
+
+    private void EnsureColumnVisible(string id) {
+        var column = ColumnOptions.FirstOrDefault(c => c.Id == id);
+        if (column is not { IsVisible: false })
+            return;
+        column.IsVisible = true;
+        ColumnsChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void AddSelectedToPlaylist() {
+        var paths = SelectedPaths();
+        if (paths.Count == 0)
+            return;
+        ModuleHub.Find<IPlaylistSink>()?.AddTracks(paths);
+    }
+
+    private List<string> SelectedPaths() =>
+        MusicFiles.Where(f => f.IsSelected).Select(f => f.FullPath).ToList();
 
     private void OpenBulkAddDialog(string? kind) {
         if (!Enum.TryParse(kind, ignoreCase: true, out CatalogSuggestionKind tagKind))
@@ -496,7 +850,8 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             return;
 
         var resolved = DBConnector.CheckForPreferredName(input);
-        if (resolved.ArtistNameStatus == ArtistNameStatus.IsNonExistent) {
+        if (resolved.ArtistNameStatus == ArtistNameStatus.IsNonExistent &&
+            !DBConnector.IsCatalogValueBlocked(DatabaseTable_BlockedCatalogValues.KindArtist, resolved.PreferredArtistName)) {
             DBConnector.InsertArtistName(resolved.PreferredArtistName, "");
             ReloadCatalogSuggestions();
         }
@@ -527,7 +882,8 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     public void AddSingleGenreFromID3Tags(Mp3FileObject? sender) {
         if (sender is null) return;
-        if (!TryAddCatalogTag(sender.GenreToAdd, KnownGenreNames, DBConnector.InsertGenreName, out var name))
+        if (!TryAddResolvedTag(sender.GenreToAdd, DBConnector.ResolveGenreName, DBConnector.InsertGenreName,
+                DatabaseTable_BlockedCatalogValues.KindGenre, out var name))
             return;
 
         var current = sender.Id3GenreCollection ?? [];
@@ -555,7 +911,8 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     public void AddSingleMoodFromID3Tags(Mp3FileObject? sender) {
         if (sender is null) return;
-        if (!TryAddCatalogTag(sender.MoodToAdd, KnownMoodNames, DBConnector.InsertMoodName, out var name))
+        if (!TryAddResolvedTag(sender.MoodToAdd, DBConnector.ResolveMoodName, DBConnector.InsertMoodName,
+                DatabaseTable_BlockedCatalogValues.KindMood, out var name))
             return;
 
         var current = sender.Id3MoodCollection ?? [];
@@ -568,21 +925,24 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         sender.MoodToAdd         = string.Empty;
     }
 
-    private bool TryAddCatalogTag(
+    private bool TryAddResolvedTag(
         string? raw,
-        ObservableCollection<string> known,
+        Func<string, CatalogNameResolution> resolve,
         Action<string> insert,
+        string kind,
         out string name) {
         var trimmed = raw?.Trim() ?? string.Empty;
         name = trimmed;
         if (string.IsNullOrWhiteSpace(trimmed))
             return false;
 
-        var existing = known.FirstOrDefault(v => v.Equals(trimmed, StringComparison.OrdinalIgnoreCase));
-        if (existing is not null) {
-            name = existing;
+        var resolved = resolve(trimmed);
+        name = resolved.PreferredName;
+        if (resolved.IsKnown)
             return true;
-        }
+
+        if (DBConnector.IsCatalogValueBlocked(kind, name))
+            return true;
 
         insert(name);
         ReloadCatalogSuggestions();

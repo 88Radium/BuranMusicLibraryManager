@@ -15,11 +15,17 @@ public static class CatalogNameCache {
         return DistinctSorted(names);
     }
 
-    public static IReadOnlyList<string> LoadGenreSuggestionNames() =>
-        DistinctSorted(DBConnector.LoadTableContent_GenreNames().Select(g => g.GenreName));
+    public static IReadOnlyList<string> LoadGenreSuggestionNames() {
+        var names = DBConnector.LoadTableContent_GenreNames().Select(g => g.GenreName)
+            .Concat(DBConnector.LoadTableContent_AlternativeGenreNameVariants().Select(v => v.GenreNameVariant));
+        return DistinctSorted(names);
+    }
 
-    public static IReadOnlyList<string> LoadMoodSuggestionNames() =>
-        DistinctSorted(DBConnector.LoadTableContent_MoodNames().Select(m => m.MoodName));
+    public static IReadOnlyList<string> LoadMoodSuggestionNames() {
+        var names = DBConnector.LoadTableContent_MoodNames().Select(m => m.MoodName)
+            .Concat(DBConnector.LoadTableContent_AlternativeMoodNameVariants().Select(v => v.MoodNameVariant));
+        return DistinctSorted(names);
+    }
 
     private static void Add(List<string> names, string? value) {
         if (!string.IsNullOrWhiteSpace(value))

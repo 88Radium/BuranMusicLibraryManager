@@ -1,0 +1,49 @@
+<Project>
+  <!-- There is no VideoLAN.LibVLC.Linux package. Copy the distro libvlc into the host output so LibVLCSharp can load libvlc.so from the app directory. -->
+  <Target Name="CopyNativeLibVlc" AfterTargets="Build">
+    <PropertyGroup>
+      <_LibVlcDir Condition="Exists('/usr/lib64/libvlc.so.5')">/usr/lib64</_LibVlcDir>
+      <_LibVlcDir Condition="'$(_LibVlcDir)' == '' And Exists('/usr/lib/x86_64-linux-gnu/libvlc.so.5')">/usr/lib/x86_64-linux-gnu</_LibVlcDir>
+      <_LibVlcDir Condition="'$(_LibVlcDir)' == '' And Exists('/usr/lib/libvlc.so.5')">/usr/lib</_LibVlcDir>
+      <_VlcShareDir Condition="Exists('/usr/lib64/vlc/plugins')">/usr/lib64/vlc</_VlcShareDir>
+      <_VlcShareDir Condition="'$(_VlcShareDir)' == '' And Exists('/usr/lib/x86_64-linux-gnu/vlc/plugins')">/usr/lib/x86_64-linux-gnu/vlc</_VlcShareDir>
+      <_VlcShareDir Condition="'$(_VlcShareDir)' == '' And Exists('/usr/lib/vlc/plugins')">/usr/lib/vlc</_VlcShareDir>
+      <_NativeOut>$([MSBuild]::EnsureTrailingSlash('$(OutputPath)'))</_NativeOut>
+    </PropertyGroup>
+
+    <Warning Condition="'$(_LibVlcDir)' == ''"
+             Text="Native libvlc was not found on this machine. Install vlc-libs/libvlc-dev so the player can copy it into $(OutputPath)." />
+
+    <ItemGroup Condition="'$(_LibVlcDir)' != ''">
+      <_VlcSo Include="$(_LibVlcDir)/libvlc.so*" />
+      <_VlcSo Include="$(_LibVlcDir)/libvlccore.so*" />
+    </ItemGroup>
+    <Copy Condition="'@(_VlcSo)' != ''"
+          SourceFiles="@(_VlcSo)"
+          DestinationFolder="$(_NativeOut)"
+          SkipUnchangedFiles="true" />
+
+    <!-- DllImport("libvlc") resolves to libvlc.so, not libvlc.so.5. -->
+    <Copy Condition="Exists('$(_LibVlcDir)/libvlc.so.5')"
+          SourceFiles="$(_LibVlcDir)/libvlc.so.5"
+          DestinationFiles="$(_NativeOut)libvlc.so"
+          SkipUnchangedFiles="true" />
+    <Copy Condition="Exists('$(_LibVlcDir)/libvlccore.so.9')"
+          SourceFiles="$(_LibVlcDir)/libvlccore.so.9"
+          DestinationFiles="$(_NativeOut)libvlccore.so"
+          SkipUnchangedFiles="true" />
+
+    <ItemGroup Condition="'$(_VlcShareDir)' != ''">
+      <_VlcPlugins Include="$(_VlcShareDir)/plugins/**/*.*" />
+      <_VlcSidecar Include="$(_VlcShareDir)/libvlc_*.so*" />
+    </ItemGroup>
+    <Copy Condition="'@(_VlcPlugins)' != ''"
+          SourceFiles="@(_VlcPlugins)"
+          DestinationFiles="@(_VlcPlugins->'$(_NativeOut)vlc/plugins/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy Condition="'@(_VlcSidecar)' != ''"
+          SourceFiles="@(_VlcSidecar)"
+          DestinationFolder="$(_NativeOut)vlc"
+          SkipUnchangedFiles="true" />
+  </Target>
+</Project>

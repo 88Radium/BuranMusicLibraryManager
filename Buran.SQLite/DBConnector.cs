@@ -115,6 +115,14 @@ public partial class DBConnector {
                     Weight INTEGER DEFAULT 1)";
                 queryExecutor(SqlCreateFeatureKeywords);
 
+                EnsureTrackIndex();
+
+                queryExecutor(@"CREATE TABLE IF NOT EXISTS BlockedCatalogValues (
+                    Id INTEGER PRIMARY KEY,
+                    Kind TEXT NOT NULL,
+                    Value TEXT NOT NULL COLLATE NOCASE,
+                    UNIQUE(Kind, Value))");
+
                 var collaborationValues = string.Join(", ",
                     CollaborationMarkers.DefaultSeeds()
                         .Select(s => $"('{s.Keyword.Replace("'", "''")}', '{s.Type}', {s.Weight})"));
@@ -143,19 +151,20 @@ public partial class DBConnector {
                     ('{track}. {artist} - {album} - {title}', '01. Pink Floyd - Dark Side - Time', 70, 0),
                     
                     -- Featured/Collaboration Patterns (Künstler im Filename)
-                    ('{artist} feat. {artists} - {title}', 'Eminem feat. Rihanna - Love The Way You Lie', 85, 0),
-                    ('{artist} feat {artists} - {title}', 'Eminem feat Rihanna - Love The Way You Lie', 85, 0),
-                    ('{artist} ft. {artists} - {title}', 'Eminem ft. Rihanna - Love The Way You Lie', 85, 0),
-                    ('{artist} ft {artists} - {title}', 'Eminem ft Rihanna - Love The Way You Lie', 85, 0),
-                    ('{artist} featuring {artists} - {title}', 'Eminem featuring Rihanna - Love The Way You Lie', 83, 0),
-                    ('{artist} vs. {artists} - {title}', 'Eminem vs. Rihanna - Love The Way You Lie', 80, 0),
-                    ('{artists} & {artists} feat. {artists} - {title}', 'Simon & Garfunkel feat. Disturbed - Sound Of Silence', 82, 0),
+                    ('{artist} feat. {artists} - {title}', 'Eminem feat. Rihanna - Love The Way You Lie', 93, 0),
+                    ('{artist} feat {artists} - {title}', 'Eminem feat Rihanna - Love The Way You Lie', 93, 0),
+                    ('{artist} ft. {artists} - {title}', 'Eminem ft. Rihanna - Love The Way You Lie', 93, 0),
+                    ('{artist} ft {artists} - {title}', 'Eminem ft Rihanna - Love The Way You Lie', 93, 0),
+                    ('{artist} featuring {artists} - {title}', 'Eminem featuring Rihanna - Love The Way You Lie', 91, 0),
+                    ('{artist} vs. {artists} - {title}', 'Eminem vs. Rihanna - Love The Way You Lie', 90, 0),
+                    ('{artists} & {artists} feat. {artists} - {title}', 'Simon & Garfunkel feat. Disturbed - Sound Of Silence', 92, 0),
                     
-                    -- Title mit Zusatzinfos in Klammern/Klammern (Comment-Bereich)
-                    ('{artist} - {title} (feat. {comment})', 'Eminem - Love The Way You Lie (feat. Rihanna)', 78, 0),
-                    ('{artist} - {title} (ft. {comment})', 'Eminem - Love The Way You Lie (ft. Rihanna)', 78, 0),
-                    ('{artist} - {title} (vs. {comment})', 'Eminem - Love The Way You Lie (vs. Rihanna)', 75, 0),
-                    ('{artist} - {title} ({comment})', 'Eminem - Love The Way You Lie (Rihanna)', 70, 0),
+                    -- feat. after the title is another artist, not a comment
+                    ('{artist} - {title} (feat. {artists})', 'Eminem - Stan (feat. Dido)', 94, 0),
+                    ('{artist} - {title} (ft. {artists})', 'Eminem - Stan (ft. Dido)', 94, 0),
+                    ('{artist} - {title} (featuring {artists})', 'Eminem - Stan (featuring Dido)', 93, 0),
+                    ('{artist} - {title} (vs. {artists})', 'Eminem - Stan (vs. Dido)', 90, 0),
+                    ('{artist} - {title} ({comment})', 'Eminem - Lose Yourself (Demo)', 70, 0),
                     
                     -- Remix/Version/Live-Patterns
                     ('{artist} - {title} (Live)', 'Queen - Bohemian Rhapsody (Live)', 72, 0),
@@ -171,10 +180,53 @@ public partial class DBConnector {
                     ('{title} - {artist}', 'Lose Yourself - Eminem', 50, 0),
                     ('{title} ({artist})', 'Lose Yourself (Eminem)', 55, 0);";
                 queryExecutor(initPatterns);
+                MigrateBuiltInFileNamePatterns();
 
             }
 
             ReloadCollaborationMarkers();
+        }
+
+        private static void MigrateBuiltInFileNamePatterns() {
+            ReplaceBuiltInPattern(
+                "{artist} - {title} (feat. {comment})",
+                "{artist} - {title} (feat. {artists})",
+                "Eminem - Stan (feat. Dido)",
+                94);
+            ReplaceBuiltInPattern(
+                "{artist} - {title} (ft. {comment})",
+                "{artist} - {title} (ft. {artists})",
+                "Eminem - Stan (ft. Dido)",
+                94);
+            ReplaceBuiltInPattern(
+                "{artist} - {title} (vs. {comment})",
+                "{artist} - {title} (vs. {artists})",
+                "Eminem - Love The Way You Lie (vs. Rihanna)",
+                90);
+            queryExecutor(@"INSERT OR IGNORE INTO FileNamePatterns (Pattern, Example, Confidence, UserAdded) VALUES
+                ('{artist} - {title} (feat. {artists})', 'Eminem - Stan (feat. Dido)', 94, 0),
+                ('{artist} - {title} (ft. {artists})', 'Eminem - Stan (ft. Dido)', 94, 0),
+                ('{artist} - {title} (featuring {artists})', 'Eminem - Stan (featuring Dido)', 93, 0)");
+            queryExecutor(@"UPDATE FileNamePatterns SET Confidence = CASE WHEN Confidence < 93 THEN 93 ELSE Confidence END
+                WHERE UserAdded = 0 AND Pattern IN (
+                    '{artist} feat. {artists} - {title}',
+                    '{artist} feat {artists} - {title}',
+                    '{artist} ft. {artists} - {title}',
+                    '{artist} ft {artists} - {title}')");
+        }
+
+        private static void ReplaceBuiltInPattern(string from, string to, string example, int minConfidence) {
+            var fromSql = from.Replace("'", "''");
+            var toSql   = to.Replace("'", "''");
+            var exSql   = example.Replace("'", "''");
+            queryExecutor($@"DELETE FROM FileNamePatterns
+                WHERE Pattern = '{fromSql}'
+                  AND EXISTS (SELECT 1 FROM FileNamePatterns WHERE Pattern = '{toSql}')");
+            queryExecutor($@"UPDATE FileNamePatterns
+                SET Pattern = '{toSql}',
+                    Example = '{exSql}',
+                    Confidence = CASE WHEN Confidence < {minConfidence} THEN {minConfidence} ELSE Confidence END
+                WHERE Pattern = '{fromSql}'");
         }
 
 
@@ -182,34 +234,15 @@ public partial class DBConnector {
 
 
         public static NewArtistEvent CheckForPreferredName(string pArtistName, [CallerMemberName] string? caller = null) {
-
-            ObservableCollection<DatabaseTable_ArtistNames> NameTableEntries = DBConnector.LoadTableContent_ArtistNames();
-            ObservableCollection<DatabaseTable_AlternativeArtistNameVariants> alternativeNameTableEntries = DBConnector.LoadTableContent_AlternativeArtistNameVariants();
-
-
-            var isAlreadyExisting = NameTableEntries.FirstOrDefault(x => x.PreferredArtistName.ToLower() == pArtistName.ToLower());
-            var isAlternativeName = alternativeNameTableEntries.FirstOrDefault(x => x.AlternativeArtistName.ToLower() == pArtistName.ToLower());
-
-
-            if(isAlreadyExisting != null) {
+            var resolved = ResolveArtistName(pArtistName);
+            if (resolved.Status == ArtistNameStatus.AlreadyExisting)
                 Debug.WriteLine($"\"{pArtistName}\" is already stored as a preferred artist name.");
-                return new NewArtistEvent(isAlreadyExisting.PreferredArtistName, "", ArtistNameStatus.AlreadyExisting);
-            } else if(isAlternativeName != null) {
-                var preferred = NameTableEntries.FirstOrDefault(x => x.ID == isAlternativeName.RefersToArtistName);
-                if (preferred is null)
-                    return new NewArtistEvent(pArtistName, "", ArtistNameStatus.IsNonExistent);
+            else if (resolved.Status == ArtistNameStatus.IsAlternativeName)
+                Debug.WriteLine(caller == "ApplyArtist"
+                    ? $"\"{pArtistName}\" is already an alternative artist name; assigning preferred name \"{resolved.PreferredName}\"."
+                    : $"\"{pArtistName}\" is already stored as an alternative artist name.");
 
-                if(caller == "ApplyArtist") {
-                    Debug.WriteLine($"\"{pArtistName}\" is already an alternative artist name; assigning preferred name \"{preferred.PreferredArtistName}\".");
-                } else {
-                    Debug.WriteLine($"\"{pArtistName}\" is already stored as an alternative artist name.");
-                }
-                return new NewArtistEvent(preferred.PreferredArtistName, "", ArtistNameStatus.IsAlternativeName);
-            } else {
-                return new NewArtistEvent(pArtistName, "", ArtistNameStatus.IsNonExistent);
-            }
-
-
+            return new NewArtistEvent(resolved.PreferredName, "", resolved.Status);
         }
 
 

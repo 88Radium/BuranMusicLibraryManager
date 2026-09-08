@@ -25,8 +25,12 @@ public class Mp3FileObject : ObservableObject {
         int startIndex = path.LastIndexOf(Path.DirectorySeparatorChar);
         FileName                = path[(startIndex + 1)..];
         ContainingDirectoryName = path[..startIndex];
-        FileType                = Mp3File.AudioFormat;
-        Bitrate                 = Mp3File.Bitrate;
+        FileType         = Mp3File.AudioFormat;
+        Bitrate          = Mp3File.Bitrate;
+        IsVbr            = Mp3File.IsVBR;
+        DurationSeconds  = Mp3File.Duration;
+        SampleRate       = Mp3File.SampleRate;
+        BitDepth         = Mp3File.BitDepth;
 
         // ID3-Tags direkt laden
         LoadID3TagsFromFile();
@@ -102,7 +106,45 @@ public class Mp3FileObject : ObservableObject {
         }
     }
 
-    public int Bitrate { get; }
+    public int    Bitrate         { get; }
+    public bool   IsVbr           { get; }
+    public int    DurationSeconds { get; }
+    public double SampleRate      { get; }
+    public int    BitDepth        { get; }
+
+    public string DurationText =>
+        TimeSpan.FromSeconds(Math.Max(0, DurationSeconds))
+            .ToString(DurationSeconds >= 3600 ? @"h\:mm\:ss" : @"m\:ss");
+
+    public string BitrateText {
+        get {
+            if (Bitrate <= 0)
+                return "—";
+            var text = $"{Bitrate} kBit/s";
+            return IsVbr ? $"{text} VBR" : text;
+        }
+    }
+
+    public string SampleRateText {
+        get {
+            if (SampleRate <= 0)
+                return "—";
+            return SampleRate >= 1000
+                ? $"{SampleRate / 1000.0:0.###} kHz"
+                : $"{SampleRate:0} Hz";
+        }
+    }
+
+    public string BitDepthText => BitDepth > 0 ? $"{BitDepth} bit" : "—";
+
+    public string ArtistsDisplay =>
+        string.Join(", ", Id3ArtistCollection.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+    public string GenresDisplay =>
+        string.Join(", ", Id3GenreCollection.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+    public string MoodsDisplay =>
+        string.Join(", ", Id3MoodCollection.Where(s => !string.IsNullOrWhiteSpace(s)));
 
     #endregion
 
@@ -142,8 +184,11 @@ public class Mp3FileObject : ObservableObject {
     public int? Id3ReleaseYear {
         get => _id3ReleaseYear;
         set {
-            _id3ReleaseYear             = value;
-            Mp3File.OriginalReleaseYear = value;
+            var year = NormalizeYear(value);
+            if (_id3ReleaseYear == year)
+                return;
+            _id3ReleaseYear = year;
+            WriteReleaseYear(Mp3File, year);
             Mp3File.Save();
             OnPropertyChanged();
         }
@@ -174,6 +219,7 @@ public class Mp3FileObject : ObservableObject {
             Mp3File.Artist = JoinTags(Id3ArtistCollection);
             Mp3File.Save();
             OnPropertyChanged();
+            OnPropertyChanged(nameof(ArtistsDisplay));
         }
     }
 
@@ -211,11 +257,43 @@ public class Mp3FileObject : ObservableObject {
     #endregion
 
 
+    public bool ApplyResolvedCatalog(
+        IReadOnlyList<string> artists,
+        IReadOnlyList<string> genres,
+        IReadOnlyList<string> moods) {
+        if (SameTags(_id3Artists, artists) && SameTags(_id3Genres, genres) && SameTags(_id3Moods, moods))
+            return false;
+
+        _id3Artists = new ObservableCollection<string>(artists);
+        _id3Genres  = new ObservableCollection<string>(genres);
+        _id3Moods   = new ObservableCollection<string>(moods);
+        Mp3File.Artist = JoinTags(_id3Artists);
+        Mp3File.Genre  = JoinTags(_id3Genres);
+        Mp3File.AdditionalFields["MOOD"] = JoinTags(_id3Moods);
+        Mp3File.AdditionalFields["TMOO"] = JoinTags(_id3Moods);
+        Mp3File.Save();
+        OnPropertyChanged(nameof(Id3ArtistCollection));
+        OnPropertyChanged(nameof(ArtistsDisplay));
+        OnPropertyChanged(nameof(Id3GenreCollection));
+        OnPropertyChanged(nameof(Id3MoodCollection));
+        return true;
+    }
+
+    private static bool SameTags(IReadOnlyList<string> left, IReadOnlyList<string> right) {
+        if (left.Count != right.Count)
+            return false;
+        for (var i = 0; i < left.Count; i++) {
+            if (!string.Equals(left[i], right[i], StringComparison.Ordinal))
+                return false;
+        }
+        return true;
+    }
+
     private void LoadID3TagsFromFile() {
         // Direkte Zuweisung ohne rekursive Setter
         _id3Title       = Mp3File.Title;
         _id3Album       = Mp3File.Album;
-        _id3ReleaseYear = Mp3File.OriginalReleaseYear;
+        _id3ReleaseYear = ReadReleaseYear(Mp3File);
         _id3Comment     = Mp3File.Comment;
         _id3Genres      = SplitTags(Mp3File.Genre);
         _id3Moods       = GetMoods(Mp3File);
@@ -237,11 +315,11 @@ public class Mp3FileObject : ObservableObject {
     public async Task SaveTags() {
         try {
             // Sicherstellen, dass alle ID3-Properties im Tag sind
-            Mp3File.Title               = _id3Title;
-            Mp3File.Album               = _id3Album;
-            Mp3File.Artist              = string.Join(';', _id3Artists);
-            Mp3File.OriginalReleaseYear = _id3ReleaseYear;
-            Mp3File.Comment             = _id3Comment;
+            Mp3File.Title  = _id3Title;
+            Mp3File.Album  = _id3Album;
+            Mp3File.Artist = string.Join(';', _id3Artists);
+            WriteReleaseYear(Mp3File, _id3ReleaseYear);
+            Mp3File.Comment = _id3Comment;
             Mp3File.Genre               = JoinTags(_id3Genres);
 
             Mp3File.Save();
@@ -258,8 +336,8 @@ public class Mp3FileObject : ObservableObject {
         Id3Title            = Mp3FileInInitialState.Title;
         Id3Album            = Mp3FileInInitialState.Album;
         Id3ArtistCollection = SplitTags(Mp3FileInInitialState.Artist);
+        Id3ReleaseYear      = ReadReleaseYear(Mp3FileInInitialState);
         Mp3File.AlbumArtist = Mp3FileInInitialState.AlbumArtist;
-        Mp3File.Year        = Mp3FileInInitialState.Year;
         Mp3File.Genre       = Mp3FileInInitialState.Genre;
         Mp3File.Comment     = Mp3FileInInitialState.Comment;
 
@@ -272,6 +350,7 @@ public class Mp3FileObject : ObservableObject {
         if (string.IsNullOrEmpty(Mp3File.Artist)) {
             _id3Artists = [];
             OnPropertyChanged(nameof(Id3ArtistCollection));
+            OnPropertyChanged(nameof(ArtistsDisplay));
             return;
         }
 
@@ -288,6 +367,7 @@ public class Mp3FileObject : ObservableObject {
 
         // Events auslösen
         OnPropertyChanged(nameof(Id3ArtistCollection));
+        OnPropertyChanged(nameof(ArtistsDisplay));
 
         Debug.WriteLine($"Parsed artists for {FileName}: {string.Join(", ", allArtists)}");
     }
@@ -319,6 +399,31 @@ public class Mp3FileObject : ObservableObject {
         return moodVal;
     }
 
+
+    public static int? ReadReleaseYear(Track? track) {
+        if (track is null)
+            return null;
+        if (track.OriginalReleaseYear is > 0 and var original)
+            return original;
+        if (track.Year is > 0 and var year)
+            return year;
+        if (track.OriginalReleaseDate is DateTime originalDate && IsPlausibleYear(originalDate.Year))
+            return originalDate.Year;
+        if (track.Date is DateTime date && IsPlausibleYear(date.Year))
+            return date.Year;
+        return null;
+    }
+
+    public static void WriteReleaseYear(Track track, int? year) {
+        var value = NormalizeYear(year);
+        track.OriginalReleaseYear = value;
+        track.Year                = value;
+    }
+
+    private static int? NormalizeYear(int? year) =>
+        year is > 0 && IsPlausibleYear(year.Value) ? year : null;
+
+    private static bool IsPlausibleYear(int year) => year is >= 1000 and <= 9999;
 
     private static ObservableCollection<string> SplitTags(string? raw) {
         var result = string.IsNullOrWhiteSpace(raw) ? [] : new ObservableCollection<string>(raw.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList());
