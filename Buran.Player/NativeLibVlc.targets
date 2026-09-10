@@ -1,6 +1,14 @@
 <Project>
-  <!-- There is no VideoLAN.LibVLC.Linux package. Copy the distro libvlc into the host output so LibVLCSharp can load libvlc.so from the app directory. -->
-  <Target Name="CopyNativeLibVlc" AfterTargets="Build">
+  <!-- No VideoLAN.LibVLC.Linux package. Rider F5 uses system libvlc (NativeLibVlc.cs).
+       Portable Linux publish copies distro libvlc into PublishDir. Do not copy the
+       VLC plugin tree after Build — hundreds of .so files stall Rider on this workspace. -->
+  <PropertyGroup>
+    <_CopyLinuxVlc Condition="$([MSBuild]::IsOSPlatform('Linux'))">true</_CopyLinuxVlc>
+    <_CopyLinuxVlc Condition="'$(RuntimeIdentifier)' == 'win-x64' or '$(RuntimeIdentifier)' == 'win-x86' or '$(RuntimeIdentifier)' == 'win-arm64'">false</_CopyLinuxVlc>
+  </PropertyGroup>
+
+  <Target Name="CopyNativeLibVlcToPublish" AfterTargets="Publish"
+          Condition="'$(_CopyLinuxVlc)' == 'true' and '$(DesignTimeBuild)' != 'true'">
     <PropertyGroup>
       <_LibVlcDir Condition="Exists('/usr/lib64/libvlc.so.5')">/usr/lib64</_LibVlcDir>
       <_LibVlcDir Condition="'$(_LibVlcDir)' == '' And Exists('/usr/lib/x86_64-linux-gnu/libvlc.so.5')">/usr/lib/x86_64-linux-gnu</_LibVlcDir>
@@ -8,11 +16,11 @@
       <_VlcShareDir Condition="Exists('/usr/lib64/vlc/plugins')">/usr/lib64/vlc</_VlcShareDir>
       <_VlcShareDir Condition="'$(_VlcShareDir)' == '' And Exists('/usr/lib/x86_64-linux-gnu/vlc/plugins')">/usr/lib/x86_64-linux-gnu/vlc</_VlcShareDir>
       <_VlcShareDir Condition="'$(_VlcShareDir)' == '' And Exists('/usr/lib/vlc/plugins')">/usr/lib/vlc</_VlcShareDir>
-      <_NativeOut>$([MSBuild]::EnsureTrailingSlash('$(OutputPath)'))</_NativeOut>
+      <_PublishVlc>$([MSBuild]::EnsureTrailingSlash('$(PublishDir)'))</_PublishVlc>
     </PropertyGroup>
 
     <Warning Condition="'$(_LibVlcDir)' == ''"
-             Text="Native libvlc was not found on this machine. Install vlc-libs/libvlc-dev so the player can copy it into $(OutputPath)." />
+             Text="Native libvlc was not found on this machine. Install vlc-libs/libvlc-dev so publish can copy it into $(PublishDir)." />
 
     <ItemGroup Condition="'$(_LibVlcDir)' != ''">
       <_VlcSo Include="$(_LibVlcDir)/libvlc.so*" />
@@ -20,17 +28,16 @@
     </ItemGroup>
     <Copy Condition="'@(_VlcSo)' != ''"
           SourceFiles="@(_VlcSo)"
-          DestinationFolder="$(_NativeOut)"
+          DestinationFolder="$(_PublishVlc)"
           SkipUnchangedFiles="true" />
 
-    <!-- DllImport("libvlc") resolves to libvlc.so, not libvlc.so.5. -->
     <Copy Condition="Exists('$(_LibVlcDir)/libvlc.so.5')"
           SourceFiles="$(_LibVlcDir)/libvlc.so.5"
-          DestinationFiles="$(_NativeOut)libvlc.so"
+          DestinationFiles="$(_PublishVlc)libvlc.so"
           SkipUnchangedFiles="true" />
     <Copy Condition="Exists('$(_LibVlcDir)/libvlccore.so.9')"
           SourceFiles="$(_LibVlcDir)/libvlccore.so.9"
-          DestinationFiles="$(_NativeOut)libvlccore.so"
+          DestinationFiles="$(_PublishVlc)libvlccore.so"
           SkipUnchangedFiles="true" />
 
     <ItemGroup Condition="'$(_VlcShareDir)' != ''">
@@ -39,11 +46,11 @@
     </ItemGroup>
     <Copy Condition="'@(_VlcPlugins)' != ''"
           SourceFiles="@(_VlcPlugins)"
-          DestinationFiles="@(_VlcPlugins->'$(_NativeOut)vlc/plugins/%(RecursiveDir)%(Filename)%(Extension)')"
+          DestinationFiles="@(_VlcPlugins->'$(_PublishVlc)vlc/plugins/%(RecursiveDir)%(Filename)%(Extension)')"
           SkipUnchangedFiles="true" />
     <Copy Condition="'@(_VlcSidecar)' != ''"
           SourceFiles="@(_VlcSidecar)"
-          DestinationFolder="$(_NativeOut)vlc"
+          DestinationFolder="$(_PublishVlc)vlc"
           SkipUnchangedFiles="true" />
   </Target>
 </Project>

@@ -10,21 +10,24 @@ internal static class NativeLibVlc {
     public static string AppDir => AppContext.BaseDirectory;
 
     public static string[] LibVlcOptions() {
-        var pluginPath = Path.Combine(AppDir, "vlc", "plugins");
-        if (Directory.Exists(pluginPath))
+        var pluginPath = FindPluginDir();
+        if (pluginPath is not null)
             return ["--no-video", "--quiet", $"--plugin-path={pluginPath}"];
         return ["--no-video", "--quiet"];
     }
 
     public static void Prepare() {
-        var pluginPath = Path.Combine(AppDir, "vlc", "plugins");
-        if (Directory.Exists(pluginPath))
+        var pluginPath = FindPluginDir();
+        if (pluginPath is not null)
             Environment.SetEnvironmentVariable("VLC_PLUGIN_PATH", pluginPath);
 
         RegisterResolver();
-        Preload("libvlccore.so.9", "libvlccore.so");
-        Preload("libvlc.so.5", "libvlc.so");
-        Core.Initialize();
+        Preload("libvlccore.so.9", "libvlccore.so", "libvlccore.dll");
+        Preload("libvlc.so.5", "libvlc.so", "libvlc.dll");
+        if (BundledLibVlc())
+            Core.Initialize(AppDir);
+        else
+            Core.Initialize();
     }
 
     private static void RegisterResolver() {
@@ -41,10 +44,10 @@ internal static class NativeLibVlc {
 
     private static IntPtr Resolve(string libraryName, Assembly assembly, DllImportSearchPath? searchPath) {
         var path = libraryName switch {
-            "libvlc" or "vlc" or "libvlc.so" or "libvlc.so.5" =>
-                FirstExisting("libvlc.so", "libvlc.so.5"),
-            "libvlccore" or "libvlccore.so" or "libvlccore.so.9" =>
-                FirstExisting("libvlccore.so", "libvlccore.so.9"),
+            "libvlc" or "vlc" or "libvlc.so" or "libvlc.so.5" or "libvlc.dll" =>
+                FirstExisting("libvlc.so", "libvlc.so.5", "libvlc.dll"),
+            "libvlccore" or "libvlccore.so" or "libvlccore.so.9" or "libvlccore.dll" =>
+                FirstExisting("libvlccore.so", "libvlccore.so.9", "libvlccore.dll"),
             _ => null
         };
         return path is null ? IntPtr.Zero : NativeLibrary.Load(path);
@@ -62,13 +65,50 @@ internal static class NativeLibVlc {
         }
     }
 
+    private static bool BundledLibVlc() =>
+        File.Exists(Path.Combine(AppDir, "libvlc.so")) ||
+        File.Exists(Path.Combine(AppDir, "libvlc.so.5")) ||
+        File.Exists(Path.Combine(AppDir, "libvlc.dll"));
+
+    private static IEnumerable<string> LibDirs() {
+        yield return AppDir;
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            yield break;
+        yield return "/usr/lib64";
+        yield return "/usr/lib/x86_64-linux-gnu";
+        yield return "/usr/lib";
+        yield return "/lib64";
+        yield return "/lib/x86_64-linux-gnu";
+    }
+
     private static string? FirstExisting(params string[] names) {
-        foreach (var name in names) {
-            var path = Path.Combine(AppDir, name);
-            if (File.Exists(path))
-                return path;
+        foreach (var dir in LibDirs()) {
+            foreach (var name in names) {
+                var path = Path.Combine(dir, name);
+                if (File.Exists(path))
+                    return path;
+            }
         }
 
         return null;
+    }
+
+    private static string? FindPluginDir() {
+        foreach (var dir in PluginDirs()) {
+            if (Directory.Exists(dir))
+                return dir;
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> PluginDirs() {
+        yield return Path.Combine(AppDir, "vlc", "plugins");
+        yield return Path.Combine(AppDir, "plugins");
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            yield break;
+        yield return "/usr/lib64/vlc/plugins";
+        yield return "/usr/lib/x86_64-linux-gnu/vlc/plugins";
+        yield return "/usr/lib/vlc/plugins";
     }
 }

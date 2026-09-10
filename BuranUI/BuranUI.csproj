@@ -10,7 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <AvaloniaResource Include="Assets\**"/>
+        <AvaloniaResource Include="Assets\**" Exclude="Assets\segments.zip"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -24,6 +24,8 @@
         <PackageReference Include="CommunityToolkit.Mvvm" />
         <PackageReference Include="HotAvalonia" PrivateAssets="All" />
         <PackageReference Include="System.Composition" />
+        <!-- Native assets apply to win-* RIDs; Linux F5 uses system libvlc. Unconditional so restore stays stable in Rider. -->
+        <PackageReference Include="VideoLAN.LibVLC.Windows" />
     </ItemGroup>
 
     <ItemGroup>
@@ -36,5 +38,6 @@
       <ProjectReference Include="..\Buran.SQLite\Buran.SQLite.csproj" />
     </ItemGroup>
 
+    <Import Project="..\MefPlugins.targets" />
     <Import Project="..\Buran.Player\NativeLibVlc.targets" />
 </Project>

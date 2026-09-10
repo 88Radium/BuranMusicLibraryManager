@@ -1,0 +1,53 @@
+<Project>
+  <!-- MEF modules load via Assembly.LoadFrom, not compile-time references.
+       Still build them with the host so Rider F5 has Buran.*.dll next to BuranUI. -->
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Buran.Player\Buran.Player.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Buran.ID3Editor\Buran.ID3Editor.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)Buran.DBEditor\Buran.DBEditor.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_MefPluginProject Include="$(MSBuildThisFileDirectory)Buran.Player\Buran.Player.csproj" />
+    <_MefPluginProject Include="$(MSBuildThisFileDirectory)Buran.ID3Editor\Buran.ID3Editor.csproj" />
+    <_MefPluginProject Include="$(MSBuildThisFileDirectory)Buran.DBEditor\Buran.DBEditor.csproj" />
+  </ItemGroup>
+
+  <Target Name="CopyMefPluginsToHostOutput" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_RidSeg Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)/</_RidSeg>
+      <_PlayerBin>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)Buran.Player/bin/$(Configuration)/$(TargetFramework)/$(_RidSeg)'))</_PlayerBin>
+      <_Id3Bin>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)Buran.ID3Editor/bin/$(Configuration)/$(TargetFramework)/$(_RidSeg)'))</_Id3Bin>
+      <_DbBin>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)Buran.DBEditor/bin/$(Configuration)/$(TargetFramework)/$(_RidSeg)'))</_DbBin>
+      <_HostOut>$([MSBuild]::EnsureTrailingSlash('$(TargetDir)'))</_HostOut>
+    </PropertyGroup>
+    <ItemGroup>
+      <_MefSrc Include="$(_PlayerBin)*.dll" />
+      <_MefSrc Include="$(_PlayerBin)*.pdb" />
+      <_MefSrc Include="$(_Id3Bin)*.dll" />
+      <_MefSrc Include="$(_Id3Bin)*.pdb" />
+      <_MefSrc Include="$(_DbBin)*.dll" />
+      <_MefSrc Include="$(_DbBin)*.pdb" />
+    </ItemGroup>
+    <Copy Condition="'@(_MefSrc)' != ''"
+          SourceFiles="@(_MefSrc)"
+          DestinationFolder="$(_HostOut)"
+          SkipUnchangedFiles="true" />
+    <Warning Condition="!Exists('$(_HostOut)Buran.Player.dll') or !Exists('$(_HostOut)Buran.ID3Editor.dll') or !Exists('$(_HostOut)Buran.DBEditor.dll')"
+             Text="MEF components missing in $(_HostOut). Build the whole solution (BuranUI + Components) so Player, ID3Editor and DBEditor land next to BuranUI." />
+  </Target>
+
+  <Target Name="PublishMefPlugins" AfterTargets="Publish" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <_PluginPublishProps>Configuration=$(Configuration);TargetFramework=$(TargetFramework);SelfContained=false;PublishDir=$([MSBuild]::EnsureTrailingSlash('$(PublishDir)'))</_PluginPublishProps>
+      <_PluginPublishProps Condition="'$(RuntimeIdentifier)' != ''">$(_PluginPublishProps);RuntimeIdentifier=$(RuntimeIdentifier)</_PluginPublishProps>
+    </PropertyGroup>
+    <MSBuild Projects="@(_MefPluginProject)" Targets="Publish" Properties="$(_PluginPublishProps)" />
+  </Target>
+</Project>

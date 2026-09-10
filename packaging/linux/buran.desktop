@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Buran Music Library Manager
+Comment=Musikbibliothek verwalten und hören
+Exec=buran
+Icon=buran
+Terminal=false
+Categories=AudioVideo;Audio;AudioVideoEditing;
+StartupWMClass=BuranUI

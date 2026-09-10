@@ -1,15 +1,19 @@
 <Project>
-  <!-- MEF plugins must keep their own bin/ so Rider can resolve generated commands in XAML.
-       After build, copy plugin assemblies (and their NuGet DLLs) into the host output. -->
-  <Target Name="CopyPluginToHost" AfterTargets="Build">
+  <!-- MEF plugins keep their own bin/ so Rider can resolve generated XAML commands.
+       After a real build (not design-time), copy plugin DLLs next to BuranUI. -->
+  <Target Name="CopyPluginToHost" AfterTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
     <PropertyGroup>
-      <_HostOut>$([MSBuild]::EnsureTrailingSlash('$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)BuranUI/bin/$(Configuration)/$(TargetFramework)'))'))</_HostOut>
+      <_RidSeg Condition="'$(RuntimeIdentifier)' != ''">$(RuntimeIdentifier)/</_RidSeg>
+      <_HostDir>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)BuranUI/bin/$(Configuration)/$(TargetFramework)/$(_RidSeg)'))</_HostDir>
     </PropertyGroup>
-    <MakeDir Directories="$(_HostOut)" />
+    <MakeDir Directories="$(_HostDir)" />
     <ItemGroup>
       <_PluginCopy Include="$(TargetDir)*.dll" />
       <_PluginCopy Include="$(TargetDir)*.pdb" />
     </ItemGroup>
-    <Copy SourceFiles="@(_PluginCopy)" DestinationFolder="$(_HostOut)" SkipUnchangedFiles="true" />
+    <Copy Condition="'@(_PluginCopy)' != ''"
+          SourceFiles="@(_PluginCopy)"
+          DestinationFolder="$(_HostDir)"
+          SkipUnchangedFiles="true" />
   </Target>
 </Project>

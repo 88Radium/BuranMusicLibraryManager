@@ -1,0 +1,14 @@
+#!/bin/sh
+# AppImage entry point. Settings and the catalog DB live in ~/.local/share/Buran
+# (LocalApplicationData), so the squashfs can stay read-only.
+set -e
+SELF=$(readlink -f "$0")
+HERE=${SELF%/*}
+APP="$HERE/usr/lib/buran"
+
+export LD_LIBRARY_PATH="$APP${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+if [ -d "$APP/vlc/plugins" ]; then
+  export VLC_PLUGIN_PATH="$APP/vlc/plugins"
+fi
+
+exec "$APP/BuranUI" "$@"

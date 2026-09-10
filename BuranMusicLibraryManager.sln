@@ -22,6 +22,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UIConcepts", "UIConcepts", 
 		UIConcepts\render_mockups.py = UIConcepts\render_mockups.py
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Packaging", "Packaging", "{7E4C9A12-3B8F-4D21-9E06-5C8A1F2B4D70}"
+	ProjectSection(SolutionItems) = preProject
+		packaging\pack.sh = packaging\pack.sh
+		.github\workflows\package.yml = .github\workflows\package.yml
+	EndProjectSection
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Buran.Types", "Buran.Types\Buran.Types.csproj", "{46600D2D-8DAB-43A2-8CEB-45935724BE2A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Buran.SQLite", "Buran.SQLite\Buran.SQLite.csproj", "{519B6EC2-5BBC-4288-A8CE-66909C9605B1}"
@@ -46,34 +52,42 @@ Global
 		{0C6760E7-6780-4D98-A426-E391319345C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C6760E7-6780-4D98-A426-E391319345C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0C6760E7-6780-4D98-A426-E391319345C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C6760E7-6780-4D98-A426-E391319345C7}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{46600D2D-8DAB-43A2-8CEB-45935724BE2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{46600D2D-8DAB-43A2-8CEB-45935724BE2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{46600D2D-8DAB-43A2-8CEB-45935724BE2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{46600D2D-8DAB-43A2-8CEB-45935724BE2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{46600D2D-8DAB-43A2-8CEB-45935724BE2A}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{519B6EC2-5BBC-4288-A8CE-66909C9605B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{519B6EC2-5BBC-4288-A8CE-66909C9605B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{519B6EC2-5BBC-4288-A8CE-66909C9605B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{519B6EC2-5BBC-4288-A8CE-66909C9605B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{519B6EC2-5BBC-4288-A8CE-66909C9605B1}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{631476AC-A35F-4671-8C9D-140645392632}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{631476AC-A35F-4671-8C9D-140645392632}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{631476AC-A35F-4671-8C9D-140645392632}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{631476AC-A35F-4671-8C9D-140645392632}.Release|Any CPU.Build.0 = Release|Any CPU
+		{631476AC-A35F-4671-8C9D-140645392632}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{CB82A355-8CEB-4887-95C9-25E5BCE4602E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CB82A355-8CEB-4887-95C9-25E5BCE4602E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CB82A355-8CEB-4887-95C9-25E5BCE4602E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CB82A355-8CEB-4887-95C9-25E5BCE4602E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CB82A355-8CEB-4887-95C9-25E5BCE4602E}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{0D4F3D7E-FC88-4CB1-AA1F-5EF6D300F4E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0D4F3D7E-FC88-4CB1-AA1F-5EF6D300F4E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D4F3D7E-FC88-4CB1-AA1F-5EF6D300F4E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D4F3D7E-FC88-4CB1-AA1F-5EF6D300F4E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0D4F3D7E-FC88-4CB1-AA1F-5EF6D300F4E6}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{8F3C1A7E-4B2D-4E9A-9C11-7D6A2B8E5F30}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8F3C1A7E-4B2D-4E9A-9C11-7D6A2B8E5F30}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8F3C1A7E-4B2D-4E9A-9C11-7D6A2B8E5F30}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8F3C1A7E-4B2D-4E9A-9C11-7D6A2B8E5F30}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F3C1A7E-4B2D-4E9A-9C11-7D6A2B8E5F30}.Release|Any CPU.Deploy.0 = Release|Any CPU
 		{B8E4C271-5F3A-4D89-9C1E-7A2F6D8B4E10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{B8E4C271-5F3A-4D89-9C1E-7A2F6D8B4E10}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8E4C271-5F3A-4D89-9C1E-7A2F6D8B4E10}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8E4C271-5F3A-4D89-9C1E-7A2F6D8B4E10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8E4C271-5F3A-4D89-9C1E-7A2F6D8B4E10}.Release|Any CPU.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{46600D2D-8DAB-43A2-8CEB-45935724BE2A} = {E21247AF-3263-4C6E-B6F1-B6B5FD990833}

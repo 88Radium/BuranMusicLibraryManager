@@ -34,11 +34,8 @@ public class App : Application {
 
 
     public App() {
-
-        char separatorChar = Path.DirectorySeparatorChar;
-        
-        ExtensionsDirectory = Assembly.GetExecutingAssembly().Location;
-        ExtensionsDirectory = ExtensionsDirectory.Substring(0, ExtensionsDirectory.LastIndexOf(separatorChar));
+        ExtensionsDirectory = AppContext.BaseDirectory.TrimEnd(
+            Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         L.Initialize(UiSettings.Load().Language);
     }
 
@@ -61,7 +58,7 @@ public class App : Application {
 
             // 3. Alle DLLs aus dem Extensions-Verzeichnis laden (ersetzt DirectoryCatalog)
             if (Directory.Exists(pExtensionsDir)) {
-                foreach (var dllPath in Directory.GetFiles(pExtensionsDir + "/", "Buran.*.dll")) {
+                foreach (var dllPath in Directory.GetFiles(pExtensionsDir, "Buran.*.dll")) {
                     try {
                         // Assembly laden
                         var assembly = Assembly.LoadFrom(dllPath);

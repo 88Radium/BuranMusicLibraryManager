@@ -9,7 +9,7 @@ namespace Buran.SQLite;
 
 public partial class DBConnector {
         public static void TestConnection() {
-            using(SqliteConnection _connection = new SqliteConnection("Data Source=CerberusMusicManager.db")) {
+            using(SqliteConnection _connection = new SqliteConnection(ConnectionString)) {
                 _connection.Open();
 
                 string SqlCreateArtistName = @"CREATE TABLE IF NOT EXISTS 'ArtistNames' (
@@ -248,65 +248,31 @@ public partial class DBConnector {
 
 
         public static ObservableCollection<DatabaseTable_ArtistNames> LoadTableContent_ArtistNames() {
-            ObservableCollection<DatabaseTable_ArtistNames> tableContent_ArtistNames = new ObservableCollection<DatabaseTable_ArtistNames>();
-
-            using(SqliteConnection _connection = new SqliteConnection("Data Source=CerberusMusicManager.db")) {
-                string query = @"SELECT * FROM ArtistNames ORDER BY ID ASC";
-                DataTable dataTable = new DataTable();
-                SqliteCommand command = new SqliteCommand(query, _connection);
-
-                _connection.Open();
-
-                //queryExecutor(@"INSERT INTO ArtistName ('PreferredArtistName', 'RealName') VALUES ('Klaus Doldinger', 'Klaus Doldinger');");
-
-
-                SqliteDataReader dataReader = command.ExecuteReader();
-                dataTable.Load(dataReader);
-
-
-                foreach(DataRow r in dataTable.Rows) {
-                    var a = new DatabaseTable_ArtistNames(r);
-                    tableContent_ArtistNames.Add(a);
-                }
-                ;
-            }
+            var tableContent_ArtistNames = new ObservableCollection<DatabaseTable_ArtistNames>();
+            foreach (DataRow r in QueryTable("SELECT * FROM ArtistNames ORDER BY ID ASC").Rows)
+                tableContent_ArtistNames.Add(new DatabaseTable_ArtistNames(r));
             return tableContent_ArtistNames;
         }
 
         public static ObservableCollection<DatabaseTable_AlternativeArtistNameVariants> LoadTableContent_AlternativeArtistNameVariants() {
-            ObservableCollection<DatabaseTable_AlternativeArtistNameVariants> tableContent_AlternativeArtistNameVariants = new ObservableCollection<DatabaseTable_AlternativeArtistNameVariants>();
-
-            using(SqliteConnection _connection = new SqliteConnection("Data Source=CerberusMusicManager.db")) {
-                string query = @"SELECT * FROM AlternativeArtistNameVariants ORDER BY ID ASC";
-                DataTable dataTable = new DataTable();
-                SqliteCommand command = new SqliteCommand(query, _connection);
-
-                _connection.Open();
-
-                //queryExecutor(@"INSERT INTO ArtistName ('PreferredArtistName', 'RealName') VALUES ('Klaus Doldinger', 'Klaus Doldinger');");
-
-
-                SqliteDataReader dataReader = command.ExecuteReader();
-                dataTable.Load(dataReader);
-
-                foreach(DataRow r in dataTable.Rows) {
-                    var a = new DatabaseTable_AlternativeArtistNameVariants(r);
-                    tableContent_AlternativeArtistNameVariants.Add(a);
-                };
-            }
+            var tableContent_AlternativeArtistNameVariants = new ObservableCollection<DatabaseTable_AlternativeArtistNameVariants>();
+            foreach (DataRow r in QueryTable("SELECT * FROM AlternativeArtistNameVariants ORDER BY ID ASC").Rows)
+                tableContent_AlternativeArtistNameVariants.Add(new DatabaseTable_AlternativeArtistNameVariants(r));
             return tableContent_AlternativeArtistNameVariants;
         }
 
         private static void queryExecutor(string pSql) {
-            using(SqliteConnection _connection = new SqliteConnection("Data Source=CerberusMusicManager.db")) {
-                _connection.Open();
-                SqliteCommand cmd = new SqliteCommand(pSql, _connection);
+            lock (DbSync) {
+                using(SqliteConnection _connection = new SqliteConnection(ConnectionString)) {
+                    _connection.Open();
+                    SqliteCommand cmd = new SqliteCommand(pSql, _connection);
 
-                try {
-                    cmd.ExecuteNonQuery();
-                } catch(Exception e) {
-                    var a = e.Message;
-                    BuranMessageBox.Show(a + " " + e.StackTrace);
+                    try {
+                        cmd.ExecuteNonQuery();
+                    } catch(Exception e) {
+                        var a = e.Message;
+                        BuranMessageBox.Show(a + " " + e.StackTrace);
+                    }
                 }
             }
         }
@@ -322,27 +288,15 @@ public partial class DBConnector {
 
         public static ObservableCollection<FileNamePattern> LoadFileNamePatterns() {
             var patterns = new ObservableCollection<FileNamePattern>();
-
-            using(SqliteConnection _connection = new SqliteConnection("Data Source=CerberusMusicManager.db")) {
-                string query = @"SELECT * FROM FileNamePatterns ORDER BY Confidence DESC";
-                DataTable dataTable = new DataTable();
-                SqliteCommand command = new SqliteCommand(query, _connection);
-
-                _connection.Open();
-                SqliteDataReader dataReader = command.ExecuteReader();
-                dataTable.Load(dataReader);
-
-                foreach(DataRow row in dataTable.Rows) {
-                    patterns.Add(new FileNamePattern {
-                        Id = Convert.ToInt32(row["Id"]),
-                        Pattern = row["Pattern"].ToString() ?? "",
-                        Example = row["Example"]?.ToString() ?? "",
-                        Confidence = Convert.ToInt32(row["Confidence"]),
-                        UserAdded = Convert.ToBoolean(row["UserAdded"])
-                    });
-                }
+            foreach (DataRow row in QueryTable("SELECT * FROM FileNamePatterns ORDER BY Confidence DESC").Rows) {
+                patterns.Add(new FileNamePattern {
+                    Id = Convert.ToInt32(row["Id"]),
+                    Pattern = row["Pattern"].ToString() ?? "",
+                    Example = row["Example"]?.ToString() ?? "",
+                    Confidence = Convert.ToInt32(row["Confidence"]),
+                    UserAdded = Convert.ToBoolean(row["UserAdded"])
+                });
             }
-
             return patterns;
         }
 

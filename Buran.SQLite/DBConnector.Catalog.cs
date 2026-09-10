@@ -17,29 +17,35 @@ public partial class DBConnector {
         CatalogChanged?.Invoke(null, EventArgs.Empty);
     }
 
+    private static readonly object DbSync = new();
+
     private static SqliteConnection OpenCatalogConnection() {
-        var connection = new SqliteConnection("Data Source=CerberusMusicManager.db");
+        var connection = new SqliteConnection(ConnectionString);
         connection.Open();
         return connection;
     }
 
     private static void Execute(string sql, params SqliteParameter[] parameters) {
-        using var connection = OpenCatalogConnection();
-        using var cmd        = new SqliteCommand(sql, connection);
-        if (parameters.Length > 0)
-            cmd.Parameters.AddRange(parameters);
-        cmd.ExecuteNonQuery();
+        lock (DbSync) {
+            using var connection = OpenCatalogConnection();
+            using var cmd        = new SqliteCommand(sql, connection);
+            if (parameters.Length > 0)
+                cmd.Parameters.AddRange(parameters);
+            cmd.ExecuteNonQuery();
+        }
     }
 
     private static DataTable QueryTable(string sql, params SqliteParameter[] parameters) {
-        using var connection = OpenCatalogConnection();
-        using var cmd        = new SqliteCommand(sql, connection);
-        if (parameters.Length > 0)
-            cmd.Parameters.AddRange(parameters);
-        using var reader = cmd.ExecuteReader();
-        var table = new DataTable();
-        table.Load(reader);
-        return table;
+        lock (DbSync) {
+            using var connection = OpenCatalogConnection();
+            using var cmd        = new SqliteCommand(sql, connection);
+            if (parameters.Length > 0)
+                cmd.Parameters.AddRange(parameters);
+            using var reader = cmd.ExecuteReader();
+            var table = new DataTable();
+            table.Load(reader);
+            return table;
+        }
     }
 
     public static void UpdateArtistName(DatabaseTable_ArtistNames artist) {
@@ -262,13 +268,15 @@ public partial class DBConnector {
         if (normalized.Length == 0)
             return false;
 
-        using var connection = OpenCatalogConnection();
-        using var cmd = new SqliteCommand(
-            "SELECT 1 FROM BlockedCatalogValues WHERE Kind = $k AND Value = $v COLLATE NOCASE LIMIT 1",
-            connection);
-        cmd.Parameters.Add(new SqliteParameter("$k", kind));
-        cmd.Parameters.Add(new SqliteParameter("$v", normalized));
-        return cmd.ExecuteScalar() is not null and not DBNull;
+        lock (DbSync) {
+            using var connection = OpenCatalogConnection();
+            using var cmd = new SqliteCommand(
+                "SELECT 1 FROM BlockedCatalogValues WHERE Kind = $k AND Value = $v COLLATE NOCASE LIMIT 1",
+                connection);
+            cmd.Parameters.Add(new SqliteParameter("$k", kind));
+            cmd.Parameters.Add(new SqliteParameter("$v", normalized));
+            return cmd.ExecuteScalar() is not null and not DBNull;
+        }
     }
 
     public static void InsertBlockedCatalogValue(string kind, string value) {

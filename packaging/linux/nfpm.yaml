@@ -1,0 +1,35 @@
+# nFPM = WiX for this repo: take the published folder and emit .rpm / .deb.
+# Version comes from NFPM_VERSION (set by packaging/pack.sh).
+name: buran
+arch: amd64
+platform: linux
+version: ${NFPM_VERSION}
+release: "1"
+section: sound
+priority: optional
+maintainer: "Buran <https://github.com/88Radium/BuranMusicLibraryManager>"
+homepage: https://github.com/88Radium/BuranMusicLibraryManager
+license: Proprietary
+description: |-
+  Buran Music Library Manager
+  Musikbibliothek verwalten, Tags bearbeiten und hören.
+contents:
+  - src: ${LINUX_ROOT}/usr/lib/buran
+    dst: /usr/lib/buran
+    type: tree
+  - src: ${LINUX_ROOT}/usr/bin/buran
+    dst: /usr/bin/buran
+    file_info:
+      mode: 0755
+  - src: ${LINUX_ROOT}/usr/share/applications/buran.desktop
+    dst: /usr/share/applications/buran.desktop
+  - src: ${LINUX_ROOT}/usr/share/icons/hicolor/256x256/apps/buran.png
+    dst: /usr/share/icons/hicolor/256x256/apps/buran.png
+overrides:
+  rpm:
+    depends:
+      - vlc-libs
+  deb:
+    depends:
+      - libvlc5
+      - vlc-plugin-base

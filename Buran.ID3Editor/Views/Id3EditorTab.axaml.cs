@@ -21,21 +21,41 @@ public partial class Id3EditorTab : UserControl {
     private double _splitStartWidth;
     private double _splitStartX;
 
+    private Id3EditorTabViewModel? _hookedVm;
+    private bool _columnRefreshQueued;
+    private bool _rebuildingColumns;
+
     public Id3EditorTab() {
         InitializeComponent();
         DataContextChanged += (_, _) => HookColumns();
-        AttachedToVisualTree += (_, _) => RebuildColumns();
+        AttachedToVisualTree += (_, _) => QueueColumnRefresh();
         SizeChanged += (_, _) => ClampInspectorWidth();
+        HookColumns();
     }
 
     private void HookColumns() {
+        if (ReferenceEquals(_hookedVm, DataContext as Id3EditorTabViewModel) && _hookedVm is not null)
+            return;
+
+        if (_hookedVm is not null) {
+            _hookedVm.ColumnsChanged -= OnColumnsChanged;
+            _hookedVm.PropertyChanged -= OnVmPropertyChanged;
+            foreach (var column in _hookedVm.ColumnOptions)
+                column.PropertyChanged -= OnColumnPropertyChanged;
+            _hookedVm = null;
+        }
+
         if (DataContext is not Id3EditorTabViewModel vm)
             return;
-        vm.ColumnsChanged += (_, _) => RebuildColumns();
+
+        _hookedVm = vm;
+        vm.ColumnsChanged += OnColumnsChanged;
         vm.PropertyChanged += OnVmPropertyChanged;
         foreach (var column in vm.ColumnOptions)
             column.PropertyChanged += OnColumnPropertyChanged;
     }
+
+    private void OnColumnsChanged(object? sender, EventArgs e) => QueueColumnRefresh();
 
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(Id3EditorTabViewModel.IsEditMode))
@@ -55,29 +75,57 @@ public partial class Id3EditorTab : UserControl {
 
     private void OnColumnPropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(TrackColumnOption.IsVisible))
+            QueueColumnRefresh();
+    }
+
+    private void QueueColumnRefresh() {
+        if (_columnRefreshQueued)
+            return;
+        _columnRefreshQueued = true;
+        Dispatcher.UIThread.Post(() => {
+            _columnRefreshQueued = false;
             RebuildColumns();
+        }, DispatcherPriority.Background);
     }
 
     private void RebuildColumns() {
+        if (_rebuildingColumns)
+            return;
         var grid = this.FindControl<DataGrid>("TracksGrid");
         if (grid is null || DataContext is not Id3EditorTabViewModel vm)
             return;
 
-        grid.Columns.Clear();
-        grid.Columns.Add(new DataGridCheckBoxColumn {
-            Binding    = new Binding(nameof(Mp3FileObject.IsSelected)),
-            Width      = new DataGridLength(36),
-            IsReadOnly = false,
-            CanUserReorder = false
-        });
-        foreach (var option in vm.ColumnOptions.Where(c => c.IsVisible)) {
-            grid.Columns.Add(new DataGridTextColumn {
-                Header         = option.Header,
-                Binding        = new Binding(option.Binding),
-                Width          = new DataGridLength(1, DataGridLengthUnitType.Star),
-                IsReadOnly     = true,
-                Tag            = option.Id
-            });
+        _rebuildingColumns = true;
+        try {
+            if (grid.Columns.Count == 0) {
+                grid.Columns.Add(new DataGridCheckBoxColumn {
+                    Binding        = new Binding(nameof(Mp3FileObject.IsSelected)),
+                    Width          = new DataGridLength(36),
+                    IsReadOnly     = false,
+                    CanUserReorder = false
+                });
+                foreach (var option in vm.ColumnOptions) {
+                    grid.Columns.Add(new DataGridTextColumn {
+                        Header     = option.Header,
+                        Binding    = new Binding(option.Binding),
+                        Width      = new DataGridLength(1, DataGridLengthUnitType.Star),
+                        IsReadOnly = true,
+                        Tag        = option.Id,
+                        IsVisible  = option.IsVisible
+                    });
+                }
+                return;
+            }
+
+            var columns = grid.Columns.ToList();
+            foreach (var option in vm.ColumnOptions) {
+                var column = columns.FirstOrDefault(c => Equals(c.Tag, option.Id));
+                if (column is not null && column.IsVisible != option.IsVisible)
+                    column.IsVisible = option.IsVisible;
+            }
+        }
+        finally {
+            _rebuildingColumns = false;
         }
     }
 
