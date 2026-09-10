@@ -120,6 +120,7 @@
                           AutoGenerateColumns="False"
                           CanUserReorderColumns="True"
                           CanUserResizeColumns="True"
+                          HorizontalScrollBarVisibility="Auto"
                           IsReadOnly="False"
                           GridLinesVisibility="Horizontal"
                           HeadersVisibility="Column"

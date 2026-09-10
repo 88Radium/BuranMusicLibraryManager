@@ -100,18 +100,23 @@ public partial class Id3EditorTab : UserControl {
             if (grid.Columns.Count == 0) {
                 grid.Columns.Add(new DataGridCheckBoxColumn {
                     Binding        = new Binding(nameof(Mp3FileObject.IsSelected)),
-                    Width          = new DataGridLength(36),
+                    Width          = new DataGridLength(36, DataGridLengthUnitType.Pixel),
+                    MinWidth       = 36,
+                    MaxWidth       = 36,
                     IsReadOnly     = false,
+                    CanUserResize  = false,
                     CanUserReorder = false
                 });
                 foreach (var option in vm.ColumnOptions) {
                     grid.Columns.Add(new DataGridTextColumn {
-                        Header     = option.Header,
-                        Binding    = new Binding(option.Binding),
-                        Width      = new DataGridLength(1, DataGridLengthUnitType.Star),
-                        IsReadOnly = true,
-                        Tag        = option.Id,
-                        IsVisible  = option.IsVisible
+                        Header        = option.Header,
+                        Binding       = new Binding(option.Binding),
+                        Width         = new DataGridLength(option.DefaultWidth, DataGridLengthUnitType.Pixel),
+                        MinWidth      = option.MinWidth,
+                        IsReadOnly    = true,
+                        CanUserResize = true,
+                        Tag           = option.Id,
+                        IsVisible     = option.IsVisible
                     });
                 }
                 return;
@@ -120,13 +125,23 @@ public partial class Id3EditorTab : UserControl {
             var columns = grid.Columns.ToList();
             foreach (var option in vm.ColumnOptions) {
                 var column = columns.FirstOrDefault(c => Equals(c.Tag, option.Id));
-                if (column is not null && column.IsVisible != option.IsVisible)
+                if (column is null)
+                    continue;
+                if (column.IsVisible != option.IsVisible)
                     column.IsVisible = option.IsVisible;
+                ConvertStarWidthToPixel(column, option.DefaultWidth);
             }
         }
         finally {
             _rebuildingColumns = false;
         }
+    }
+
+    private static void ConvertStarWidthToPixel(DataGridColumn column, double fallbackWidth) {
+        if (column.Width.UnitType != DataGridLengthUnitType.Star)
+            return;
+        var pixels = column.ActualWidth > 1 ? column.ActualWidth : fallbackWidth;
+        column.Width = new DataGridLength(pixels, DataGridLengthUnitType.Pixel);
     }
 
     private void Tracks_DoubleTapped(object? sender, TappedEventArgs e) {

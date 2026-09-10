@@ -7,6 +7,8 @@ public partial class TrackColumnOption : ObservableObject {
     public required string Id { get; init; }
     public required string HeaderKey { get; init; }
     public required string Binding { get; init; }
+    public double DefaultWidth { get; init; } = 120;
+    public double MinWidth { get; init; } = 48;
 
     public string Header => L.Get(HeaderKey);
 

@@ -343,18 +343,18 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     private void InitColumns() {
         TrackColumnOption[] defaults = [
-            new() { Id = "Artists",    HeaderKey = "Id3.Artists",     Binding = "ArtistsDisplay",           IsVisible = true },
-            new() { Id = "Title",      HeaderKey = "Id3.Title",       Binding = "Id3Title",                 IsVisible = true },
-            new() { Id = "FolderPath", HeaderKey = "Id3.FolderPath",  Binding = "ContainingDirectoryName",  IsVisible = true },
-            new() { Id = "Album",      HeaderKey = "Id3.Album",       Binding = "Id3Album",                 IsVisible = true },
-            new() { Id = "Year",       HeaderKey = "Id3.ReleaseYear", Binding = "Id3ReleaseYear",  IsVisible = true },
-            new() { Id = "Duration",   HeaderKey = "Id3.Duration",    Binding = "DurationText",    IsVisible = true },
-            new() { Id = "Bitrate",    HeaderKey = "Id3.Bitrate",     Binding = "BitrateText",     IsVisible = true },
-            new() { Id = "SampleRate", HeaderKey = "Id3.SampleRate",  Binding = "SampleRateText",  IsVisible = true },
-            new() { Id = "BitDepth",   HeaderKey = "Id3.BitDepth",    Binding = "BitDepthText",    IsVisible = true },
-            new() { Id = "Filename",   HeaderKey = "Id3.Filename",    Binding = "FileName",        IsVisible = false },
-            new() { Id = "Genre",      HeaderKey = "Id3.Genre",       Binding = "GenresDisplay",    IsVisible = false },
-            new() { Id = "Mood",       HeaderKey = "Id3.Moods",       Binding = "MoodsDisplay",     IsVisible = false },
+            new() { Id = "Artists",    HeaderKey = "Id3.Artists",     Binding = "ArtistsDisplay",           IsVisible = true,  DefaultWidth = 160 },
+            new() { Id = "Title",      HeaderKey = "Id3.Title",       Binding = "Id3Title",                 IsVisible = true,  DefaultWidth = 200 },
+            new() { Id = "FolderPath", HeaderKey = "Id3.FolderPath",  Binding = "ContainingDirectoryName",  IsVisible = true,  DefaultWidth = 180 },
+            new() { Id = "Album",      HeaderKey = "Id3.Album",       Binding = "Id3Album",                 IsVisible = true,  DefaultWidth = 160 },
+            new() { Id = "Year",       HeaderKey = "Id3.ReleaseYear", Binding = "Id3ReleaseYear",  IsVisible = true,  DefaultWidth = 72,  MinWidth = 48 },
+            new() { Id = "Duration",   HeaderKey = "Id3.Duration",    Binding = "DurationText",    IsVisible = true,  DefaultWidth = 80,  MinWidth = 48 },
+            new() { Id = "Bitrate",    HeaderKey = "Id3.Bitrate",     Binding = "BitrateText",     IsVisible = true,  DefaultWidth = 80,  MinWidth = 48 },
+            new() { Id = "SampleRate", HeaderKey = "Id3.SampleRate",  Binding = "SampleRateText",  IsVisible = true,  DefaultWidth = 96,  MinWidth = 56 },
+            new() { Id = "BitDepth",   HeaderKey = "Id3.BitDepth",    Binding = "BitDepthText",    IsVisible = true,  DefaultWidth = 80,  MinWidth = 48 },
+            new() { Id = "Filename",   HeaderKey = "Id3.Filename",    Binding = "FileName",        IsVisible = false, DefaultWidth = 200 },
+            new() { Id = "Genre",      HeaderKey = "Id3.Genre",       Binding = "GenresDisplay",    IsVisible = false, DefaultWidth = 120 },
+            new() { Id = "Mood",       HeaderKey = "Id3.Moods",       Binding = "MoodsDisplay",     IsVisible = false, DefaultWidth = 120 },
         ];
         foreach (var column in defaults)
             ColumnOptions.Add(column);
