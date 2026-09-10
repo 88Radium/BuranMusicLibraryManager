@@ -3,7 +3,16 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+.idea/
+.run/
+*.user
+*.DotSettings
+*.DotSettings.user
+*.suo
+.vs/
 dist/
 packaging/build/
 .flatpak-builder/
 *.flatpak
+.xdp-*
+*.bkp*
