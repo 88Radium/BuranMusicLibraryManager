@@ -159,6 +159,8 @@ publish_linux() {
     exit 1
   fi
   chmod +x "$out/BuranUI" 2>/dev/null || true
+  # VideoLAN.LibVLC.Windows native assets follow the host publish even on linux-x64.
+  rm -rf "$out/libvlc"
 }
 
 stage_linux_root() {
@@ -176,6 +178,11 @@ stage_linux_root() {
   chmod +x "$root/usr/bin/buran" 2>/dev/null || true
   cp "$PACK/linux/buran.desktop" "$root/usr/share/applications/buran.desktop"
   cp "$PACK/linux/buran.png" "$root/usr/share/icons/hicolor/256x256/apps/buran.png"
+  # Distro packages must use system libvlc. Shipping a copy next to BuranUI makes
+  # LibVLCSharp call Core.Initialize(AppDir), which throws on Linux. AppImage
+  # keeps the bundled tree and sets LD_LIBRARY_PATH / VLC_PLUGIN_PATH in AppRun.
+  rm -f "$root/usr/lib/buran"/libvlc.so* "$root/usr/lib/buran"/libvlccore.so*
+  rm -rf "$root/usr/lib/buran/vlc" "$root/usr/lib/buran/libvlc"
 }
 
 pack_linux_native() {

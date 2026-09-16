@@ -319,7 +319,7 @@
   "Player.DefaultPlaylist": "Playlist",
   "Player.NewPlaylistName": "Playlist {0}",
   "Player.DeletePlaylistConfirm": "Playlist „{0}“ löschen?",
-  "Player.LibVlcMissing": "libVLC wurde nicht gefunden ({0}). Unter Fedora/Bazzite: Paket vlc-libs bzw. vlc installieren.",
+  "Player.LibVlcMissing": "libVLC wurde nicht gefunden ({0}). Unter Fedora/Bazzite: vlc-libs, vlc-plugins-base und vlc-plugin-ffmpeg installieren (rpm-ostree install).",
   "Player.PlaybackError": "Die Datei konnte nicht abgespielt werden.",
   "Player.MissingFile": "Datei fehlt: {0}",
   "Player.ComputingSpectrum": "Spektrogramm wird berechnet …",

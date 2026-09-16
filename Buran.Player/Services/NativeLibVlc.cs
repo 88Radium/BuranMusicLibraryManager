@@ -9,12 +9,7 @@ internal static class NativeLibVlc {
 
     public static string AppDir => AppContext.BaseDirectory;
 
-    public static string[] LibVlcOptions() {
-        var pluginPath = FindPluginDir();
-        if (pluginPath is not null)
-            return ["--no-video", "--quiet", $"--plugin-path={pluginPath}"];
-        return ["--no-video", "--quiet"];
-    }
+    public static string[] LibVlcOptions() => ["--no-video", "--quiet"];
 
     public static void Prepare() {
         var pluginPath = FindPluginDir();
@@ -24,10 +19,12 @@ internal static class NativeLibVlc {
         RegisterResolver();
         Preload("libvlccore.so.9", "libvlccore.so", "libvlccore.dll");
         Preload("libvlc.so.5", "libvlc.so", "libvlc.dll");
-        if (BundledLibVlc())
-            Core.Initialize(AppDir);
-        else
+        // LibVLCSharp.Core.Initialize(directory) throws on Linux. Bundled libs
+        // are found via the resolver, LD_LIBRARY_PATH, and VLC_PLUGIN_PATH.
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || !BundledLibVlc())
             Core.Initialize();
+        else
+            Core.Initialize(AppDir);
     }
 
     private static void RegisterResolver() {

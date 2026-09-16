@@ -4,7 +4,7 @@ name: buran
 arch: amd64
 platform: linux
 version: ${NFPM_VERSION}
-release: "1"
+release: "2"
 section: sound
 priority: optional
 maintainer: "Buran <https://github.com/88Radium/BuranMusicLibraryManager>"
@@ -27,9 +27,19 @@ contents:
     dst: /usr/share/icons/hicolor/256x256/apps/buran.png
 overrides:
   rpm:
+    # vlc-libs is only libvlc.so — without plugins there is no decoder or audio output.
     depends:
       - vlc-libs
+      - vlc-plugins-base
+      - vlc-plugin-ffmpeg
+      - vlc-plugin-pulseaudio
+    recommends:
+      - ffmpeg
+      - vlc-plugin-pipewire
   deb:
     depends:
       - libvlc5
       - vlc-plugin-base
+    recommends:
+      - ffmpeg
+      - vlc-plugin-pulse
