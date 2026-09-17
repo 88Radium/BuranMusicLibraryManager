@@ -17,6 +17,7 @@ public partial class PlayerTabViewModel : ViewModelBase, IPlaybackController, IP
     private readonly SpectrogramSource  _spectrogram = new();
     private readonly DispatcherTimer    _timer;
     private bool _folderQueueMode;
+    private bool _libVlcHintShown;
     private int  _queueIndex = -1;
     private List<string> _queue = [];
 
@@ -207,7 +208,7 @@ public partial class PlayerTabViewModel : ViewModelBase, IPlaybackController, IP
         }
 
         if (!_engine.TryInitialize(out var error)) {
-            StatusText = L.Format("Player.LibVlcMissing", error ?? "");
+            ReportLibVlcMissing(error);
             return;
         }
 
@@ -372,9 +373,19 @@ public partial class PlayerTabViewModel : ViewModelBase, IPlaybackController, IP
         _ = StartAsync(track.Path);
     }
 
+    private void ReportLibVlcMissing(string? error) {
+        StatusText = L.Format("Player.LibVlcMissing", error ?? "");
+        if (_libVlcHintShown)
+            return;
+        _libVlcHintShown = true;
+        _ = BuranMessageBox.Show(
+            L.Format("Player.LibVlcMissingHelp", error ?? ""),
+            L.Get("Player.LibVlcMissingTitle"));
+    }
+
     private async Task StartAsync(string path) {
         if (!_engine.TryInitialize(out var error)) {
-            StatusText = L.Format("Player.LibVlcMissing", error ?? "");
+            ReportLibVlcMissing(error);
             return;
         }
 

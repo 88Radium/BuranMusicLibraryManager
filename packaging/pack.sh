@@ -79,10 +79,7 @@ ensure_plugins() {
 
 copy_linux_vlc() {
   local out="$1"
-  if [[ -e "$out/libvlc.so" || -e "$out/libvlc.so.5" ]]; then
-    return 0
-  fi
-  local libdir=""
+  local libdir="" plug=""
   if [[ -e /usr/lib64/libvlc.so.5 ]]; then
     libdir=/usr/lib64
   elif [[ -e /usr/lib/x86_64-linux-gnu/libvlc.so.5 ]]; then
@@ -90,18 +87,6 @@ copy_linux_vlc() {
   elif [[ -e /usr/lib/libvlc.so.5 ]]; then
     libdir=/usr/lib
   fi
-  if [[ -z "$libdir" ]]; then
-    echo "Warnung: libvlc nicht gefunden. Player braucht vlc-libs auf dem Zielsystem." >&2
-    return 0
-  fi
-  echo "libvlc aus $libdir nach $out kopieren"
-  cp -a "$libdir"/libvlc.so* "$out/" 2>/dev/null || true
-  cp -a "$libdir"/libvlccore.so* "$out/" 2>/dev/null || true
-  cp -a "$libdir/libvlc.so.5" "$out/libvlc.so"
-  if [[ -e "$libdir/libvlccore.so.9" ]]; then
-    cp -a "$libdir/libvlccore.so.9" "$out/libvlccore.so"
-  fi
-  local plug=""
   if [[ -d /usr/lib64/vlc/plugins ]]; then
     plug=/usr/lib64/vlc
   elif [[ -d /usr/lib/x86_64-linux-gnu/vlc/plugins ]]; then
@@ -109,10 +94,39 @@ copy_linux_vlc() {
   elif [[ -d /usr/lib/vlc/plugins ]]; then
     plug=/usr/lib/vlc
   fi
-  if [[ -n "$plug" ]]; then
+
+  if [[ ! -e "$out/libvlc.so" && ! -e "$out/libvlc.so.5" ]]; then
+    if [[ -z "$libdir" ]]; then
+      echo "Warnung: libvlc nicht gefunden. Player braucht vlc-libs auf der Build-Maschine." >&2
+      return 0
+    fi
+    echo "libvlc aus $libdir nach $out kopieren"
+    cp -a "$libdir"/libvlc.so* "$out/" 2>/dev/null || true
+    cp -a "$libdir"/libvlccore.so* "$out/" 2>/dev/null || true
+  fi
+  if [[ ! -e "$out/libvlc.so" && -e "$out/libvlc.so.5" ]]; then
+    cp -L "$out/libvlc.so.5" "$out/libvlc.so" 2>/dev/null || cp -a "$out/libvlc.so.5" "$out/libvlc.so"
+  fi
+  if [[ ! -e "$out/libvlccore.so" && -e "$out/libvlccore.so.9" ]]; then
+    cp -L "$out/libvlccore.so.9" "$out/libvlccore.so" 2>/dev/null || cp -a "$out/libvlccore.so.9" "$out/libvlccore.so"
+  fi
+  if [[ ! -d "$out/vlc/plugins" && -n "$plug" ]]; then
+    echo "VLC-Plugins aus $plug nach $out/vlc kopieren"
     mkdir -p "$out/vlc"
     cp -a "$plug/plugins" "$out/vlc/"
     cp -a "$plug"/libvlc_*.so* "$out/vlc/" 2>/dev/null || true
+  fi
+}
+
+require_bundled_vlc() {
+  local dir="$1"
+  if [[ ! -e "$dir/libvlc.so" && ! -e "$dir/libvlc.so.5" ]]; then
+    echo "Gebündeltes libvlc fehlt in $dir. Auf der Build-Maschine vlc-libs / vlc-plugins-base installieren." >&2
+    exit 1
+  fi
+  if [[ ! -d "$dir/vlc/plugins" ]]; then
+    echo "Gebündelte VLC-Plugins fehlen in $dir/vlc/plugins." >&2
+    exit 1
   fi
 }
 
@@ -161,6 +175,8 @@ publish_linux() {
   chmod +x "$out/BuranUI" 2>/dev/null || true
   # VideoLAN.LibVLC.Windows native assets follow the host publish even on linux-x64.
   rm -rf "$out/libvlc"
+  copy_linux_vlc "$out"
+  require_bundled_vlc "$out"
 }
 
 stage_linux_root() {
@@ -178,11 +194,7 @@ stage_linux_root() {
   chmod +x "$root/usr/bin/buran" 2>/dev/null || true
   cp "$PACK/linux/buran.desktop" "$root/usr/share/applications/buran.desktop"
   cp "$PACK/linux/buran.png" "$root/usr/share/icons/hicolor/256x256/apps/buran.png"
-  # Distro packages must use system libvlc. Shipping a copy next to BuranUI makes
-  # LibVLCSharp call Core.Initialize(AppDir), which throws on Linux. AppImage
-  # keeps the bundled tree and sets LD_LIBRARY_PATH / VLC_PLUGIN_PATH in AppRun.
-  rm -f "$root/usr/lib/buran"/libvlc.so* "$root/usr/lib/buran"/libvlccore.so*
-  rm -rf "$root/usr/lib/buran/vlc" "$root/usr/lib/buran/libvlc"
+  require_bundled_vlc "$root/usr/lib/buran"
 }
 
 pack_linux_native() {

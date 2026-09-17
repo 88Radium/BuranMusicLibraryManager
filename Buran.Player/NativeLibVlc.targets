@@ -1,7 +1,6 @@
 <Project>
   <!-- No VideoLAN.LibVLC.Linux package. Rider F5 uses system libvlc (NativeLibVlc.cs).
-       Portable Linux publish / AppImage copy distro libvlc into PublishDir.
-       rpm/deb strip that copy and depend on vlc-libs + plugins instead.
+       Linux publish copies distro libvlc + plugins into PublishDir for rpm/deb/AppImage.
        Do not copy the VLC plugin tree after Build — hundreds of .so files stall Rider. -->
   <PropertyGroup>
     <_CopyLinuxVlc Condition="$([MSBuild]::IsOSPlatform('Linux'))">true</_CopyLinuxVlc>

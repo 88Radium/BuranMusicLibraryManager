@@ -19,8 +19,9 @@ internal static class NativeLibVlc {
         RegisterResolver();
         Preload("libvlccore.so.9", "libvlccore.so", "libvlccore.dll");
         Preload("libvlc.so.5", "libvlc.so", "libvlc.dll");
-        // LibVLCSharp.Core.Initialize(directory) throws on Linux. Bundled libs
-        // are found via the resolver, LD_LIBRARY_PATH, and VLC_PLUGIN_PATH.
+        // LibVLCSharp.Core.Initialize(directory) throws on Linux even when the
+        // copy lives next to BuranUI. Bundled libs are found via the resolver,
+        // LD_LIBRARY_PATH (buran launcher), and VLC_PLUGIN_PATH.
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || !BundledLibVlc())
             Core.Initialize();
         else

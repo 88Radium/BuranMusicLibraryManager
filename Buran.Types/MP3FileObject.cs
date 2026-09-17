@@ -332,17 +332,35 @@ public class Mp3FileObject : ObservableObject {
         }
     }
 
-    public async Task ResetId3Tags() {
-        Id3Title            = Mp3FileInInitialState.Title;
-        Id3Album            = Mp3FileInInitialState.Album;
-        Id3ArtistCollection = SplitTags(Mp3FileInInitialState.Artist);
-        Id3ReleaseYear      = ReadReleaseYear(Mp3FileInInitialState);
-        Mp3File.AlbumArtist = Mp3FileInInitialState.AlbumArtist;
-        Mp3File.Genre       = Mp3FileInInitialState.Genre;
-        Mp3File.Comment     = Mp3FileInInitialState.Comment;
+    public void RestoreId3FromInitialState() {
+        if (Mp3File is null || Mp3FileInInitialState is null)
+            return;
 
+        var src = Mp3FileInInitialState;
+        Mp3File.Title       = src.Title;
+        Mp3File.Album       = src.Album;
+        Mp3File.Artist      = src.Artist;
+        Mp3File.AlbumArtist = src.AlbumArtist;
+        Mp3File.Comment     = src.Comment;
+        Mp3File.Genre       = src.Genre;
+        WriteReleaseYear(Mp3File, ReadReleaseYear(src));
+        var moods = JoinTags(GetMoods(src));
+        Mp3File.AdditionalFields["MOOD"] = moods;
+        Mp3File.AdditionalFields["TMOO"] = moods;
 
-        await Mp3File.SaveAsync();
+        LoadID3TagsFromFile();
+        try {
+            Mp3File.Save();
+        }
+        catch (Exception ex) {
+            Debug.WriteLine($"Failed to reset tags: {FileName}: {ex.Message}");
+            _ = BuranMessageBox.Show(Buran.Localization.L.Format("File.SaveFailed", FileName, ex.Message));
+            return;
+        }
+
+        WasManipulated = false;
+        OnPropertyChanged(nameof(GenresDisplay));
+        OnPropertyChanged(nameof(MoodsDisplay));
     }
 
 

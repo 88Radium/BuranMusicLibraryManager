@@ -42,7 +42,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         AddSingleArtistFromID3TagsCommand    =  new RelayCommand<Mp3FileObject>(AddSingleArtistFromID3Tags);
         AddSingleGenreFromID3TagsCommand     =  new RelayCommand<Mp3FileObject>(AddSingleGenreFromID3Tags);
         AddSingleMoodFromID3TagsCommand      =  new RelayCommand<Mp3FileObject>(AddSingleMoodFromID3Tags);
-        ResetId3ToDefaultCommand             =  new RelayCommand<object>(ResetID3ToDefault!);
+        ResetId3ToDefaultCommand             =  new RelayCommand<object?>(ResetID3ToDefault);
         OpenBulkAddDialogCommand             =  new RelayCommand<string>(OpenBulkAddDialog);
         OpenBulkCommentsDialogCommand        =  new RelayCommand(OpenBulkCommentsDialog, () => HasSelectedFiles);
         PlaySelectedCommand                  =  new RelayCommand(PlaySelected, () => HasSelectedFiles && HasPlayerModule);
@@ -690,10 +690,9 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     public ICommand ResetId3ToDefaultCommand { get; set; }
 
-    public void ResetID3ToDefault(object sender) {
-        ArgumentNullException.ThrowIfNull(sender);
-        Mp3FileObject sndr = (Mp3FileObject)sender;
-        sndr.Mp3File = sndr.Mp3FileInInitialState;
+    public void ResetID3ToDefault(object? sender) {
+        var file = sender as Mp3FileObject ?? FocusedFile;
+        file?.RestoreId3FromInitialState();
     }
 
     #endregion

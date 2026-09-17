@@ -159,7 +159,8 @@
                 <Border Grid.Column="1" Classes="toolbar" Padding="12">
                 <Panel>
                     <ScrollViewer IsVisible="{Binding FocusedFile, Converter={x:Static ObjectConverters.IsNotNull}}">
-                        <StackPanel Spacing="10" DataContext="{Binding FocusedFile}">
+                        <StackPanel Spacing="10" DataContext="{Binding FocusedFile}"
+                                    x:DataType="types:Mp3FileObject">
                             <TextBlock Classes="muted" Text="{loc:Loc Key=Id3.FocusedTrack}" />
                             <TextBlock FontWeight="SemiBold" Text="{Binding Id3Title}" TextWrapping="Wrap" />
 
@@ -294,7 +295,7 @@
                                         Content="{loc:Loc Key=Id3.ResetId3Short}"
                                         ToolTip.Tip="{loc:Loc Key=Id3.ResetId3}"
                                         Command="{Binding $parent[UserControl].((vm:Id3EditorTabViewModel)DataContext).ResetId3ToDefaultCommand}"
-                                        CommandParameter="{Binding}" />
+                                        CommandParameter="{Binding $parent[UserControl].((vm:Id3EditorTabViewModel)DataContext).FocusedFile}" />
                             </WrapPanel>
                         </StackPanel>
                     </ScrollViewer>
