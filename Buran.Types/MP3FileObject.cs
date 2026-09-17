@@ -13,12 +13,12 @@ public class Mp3FileObject : ObservableObject {
     /// <param name="path"></param>
     public Mp3FileObject(string path) {
         try {
-            Mp3File               = new Track(path);
-            Mp3FileInInitialState = new Track(path); // Duplicate Of Original Values One Can Reset To...
+            Mp3File = new Track(path);
         } catch (Exception ex) {
             Debug.WriteLine($"Failed to load file {path}: {ex.Message}");
             FileName                = Path.GetFileName(path);
             ContainingDirectoryName = Path.GetDirectoryName(path) ?? "";
+            CaptureEditBaseline();
             return;
         }
 
@@ -34,16 +34,49 @@ public class Mp3FileObject : ObservableObject {
 
         // ID3-Tags direkt laden
         LoadID3TagsFromFile();
-
-
         WasManipulated = false;
+        CaptureEditBaseline();
     }
 
 
     #region The TagLib#-Music file(s)
 
-    public Track Mp3File               { get; set; } = null!;
-    public Track Mp3FileInInitialState { get; set; } = null!;
+    public Track Mp3File { get; set; } = null!;
+
+    private EditBaseline? _editBaseline;
+
+    private sealed class EditBaseline {
+        public required string FileName                { get; init; }
+        public required string ContainingDirectoryName { get; init; }
+        public required string Title                   { get; init; }
+        public required string Album                   { get; init; }
+        public required string Artist                  { get; init; }
+        public string?         AlbumArtist             { get; init; }
+        public required string Comment                 { get; init; }
+        public required string Genre                   { get; init; }
+        public int?            Year                    { get; init; }
+        public required string Moods                   { get; init; }
+    }
+
+    public string? EditBaselineFullPath =>
+        _editBaseline is null
+            ? null
+            : Path.Combine(_editBaseline.ContainingDirectoryName, _editBaseline.FileName);
+
+    public void CaptureEditBaseline() {
+        _editBaseline = new EditBaseline {
+            FileName                = FileName,
+            ContainingDirectoryName = ContainingDirectoryName,
+            Title                   = _id3Title ?? "",
+            Album                   = _id3Album ?? "",
+            Artist                  = JoinTags(_id3Artists),
+            AlbumArtist             = Mp3File?.AlbumArtist,
+            Comment                 = _id3Comment ?? "",
+            Genre                   = JoinTags(_id3Genres),
+            Year                    = _id3ReleaseYear,
+            Moods                   = JoinTags(_id3Moods),
+        };
+    }
 
     #endregion
 
@@ -79,6 +112,7 @@ public class Mp3FileObject : ObservableObject {
         set {
             _fileName = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(FullPath));
         }
     }
 
@@ -90,6 +124,7 @@ public class Mp3FileObject : ObservableObject {
         set {
             _containingDirectoryName = value;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(FullPath));
         }
     }
 
@@ -332,21 +367,20 @@ public class Mp3FileObject : ObservableObject {
         }
     }
 
-    public void RestoreId3FromInitialState() {
-        if (Mp3File is null || Mp3FileInInitialState is null)
-            return;
+    public bool RestoreEditBaselineTags() {
+        if (Mp3File is null || _editBaseline is null)
+            return false;
 
-        var src = Mp3FileInInitialState;
+        var src = _editBaseline;
         Mp3File.Title       = src.Title;
         Mp3File.Album       = src.Album;
         Mp3File.Artist      = src.Artist;
         Mp3File.AlbumArtist = src.AlbumArtist;
         Mp3File.Comment     = src.Comment;
         Mp3File.Genre       = src.Genre;
-        WriteReleaseYear(Mp3File, ReadReleaseYear(src));
-        var moods = JoinTags(GetMoods(src));
-        Mp3File.AdditionalFields["MOOD"] = moods;
-        Mp3File.AdditionalFields["TMOO"] = moods;
+        WriteReleaseYear(Mp3File, src.Year);
+        Mp3File.AdditionalFields["MOOD"] = src.Moods;
+        Mp3File.AdditionalFields["TMOO"] = src.Moods;
 
         LoadID3TagsFromFile();
         try {
@@ -355,10 +389,22 @@ public class Mp3FileObject : ObservableObject {
         catch (Exception ex) {
             Debug.WriteLine($"Failed to reset tags: {FileName}: {ex.Message}");
             _ = BuranMessageBox.Show(Buran.Localization.L.Format("File.SaveFailed", FileName, ex.Message));
-            return;
+            return false;
         }
 
         WasManipulated = false;
+        OnPropertyChanged(nameof(GenresDisplay));
+        OnPropertyChanged(nameof(MoodsDisplay));
+        return true;
+    }
+
+    public void RebindToPath(string newPath) {
+        FileName                = Path.GetFileName(newPath);
+        ContainingDirectoryName = Path.GetDirectoryName(newPath) ?? "";
+        if (!File.Exists(newPath))
+            return;
+        Mp3File = new Track(newPath);
+        LoadID3TagsFromFile();
         OnPropertyChanged(nameof(GenresDisplay));
         OnPropertyChanged(nameof(MoodsDisplay));
     }

@@ -295,7 +295,7 @@
                                         Content="{loc:Loc Key=Id3.ResetId3Short}"
                                         ToolTip.Tip="{loc:Loc Key=Id3.ResetId3}"
                                         Command="{Binding $parent[UserControl].((vm:Id3EditorTabViewModel)DataContext).ResetId3ToDefaultCommand}"
-                                        CommandParameter="{Binding $parent[UserControl].((vm:Id3EditorTabViewModel)DataContext).FocusedFile}" />
+                                        CommandParameter="{Binding}" />
                             </WrapPanel>
                         </StackPanel>
                     </ScrollViewer>

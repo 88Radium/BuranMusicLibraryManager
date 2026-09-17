@@ -42,7 +42,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         AddSingleArtistFromID3TagsCommand    =  new RelayCommand<Mp3FileObject>(AddSingleArtistFromID3Tags);
         AddSingleGenreFromID3TagsCommand     =  new RelayCommand<Mp3FileObject>(AddSingleGenreFromID3Tags);
         AddSingleMoodFromID3TagsCommand      =  new RelayCommand<Mp3FileObject>(AddSingleMoodFromID3Tags);
-        ResetId3ToDefaultCommand             =  new RelayCommand<object?>(ResetID3ToDefault);
+        ResetId3ToDefaultCommand             =  new AsyncRelayCommand<object?>(ResetID3ToDefaultAsync);
         OpenBulkAddDialogCommand             =  new RelayCommand<string>(OpenBulkAddDialog);
         OpenBulkCommentsDialogCommand        =  new RelayCommand(OpenBulkCommentsDialog, () => HasSelectedFiles);
         PlaySelectedCommand                  =  new RelayCommand(PlaySelected, () => HasSelectedFiles && HasPlayerModule);
@@ -182,6 +182,23 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     partial void OnIsEditModeChanged(bool value) {
         OnPropertyChanged(nameof(ShowBulkBar));
         OnPropertyChanged(nameof(EditToggleLabel));
+        CaptureEditBaselines();
+    }
+
+    private void CaptureEditBaselines() {
+        if (MusicFiles is null)
+            return;
+        foreach (var file in MusicFiles)
+            file.CaptureEditBaseline();
+    }
+
+    private void RestoreFocus(Mp3FileObject? previous, Mp3FileObject fallback) {
+        if (previous is not null && MusicFiles.Contains(previous))
+            FocusedFile = previous;
+        else if (MusicFiles.Contains(fallback))
+            FocusedFile = fallback;
+        else if (FocusedFile is not null && !MusicFiles.Contains(FocusedFile))
+            FocusedFile = MusicFiles.FirstOrDefault();
     }
 
     public void NotifyPlayerAvailable() {
@@ -416,12 +433,15 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         if (sender is not Mp3FileObject file)
             return;
 
+        var focused = FocusedFile;
         var error = await RenameFromId3Async(file);
+        RestoreFocus(focused, file);
         if (error is not null)
             await BuranMessageBox.Show(error);
     }
 
     private async Task BulkFileNameFromId3Async() {
+        var focused = FocusedFile;
         var errors = new List<string>();
         foreach (var file in MusicFiles.Where(f => f.IsSelected).ToList()) {
             var error = await RenameFromId3Async(file);
@@ -429,6 +449,8 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
                 errors.Add($"{file.FileName}: {error}");
         }
 
+        if (focused is not null)
+            RestoreFocus(focused, focused);
         if (errors.Count > 0)
             await BuranMessageBox.Show(string.Join("\n", errors), L.Get("Id3.RenameCaption"));
     }
@@ -454,12 +476,38 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             if (string.Equals(original, newName, StringComparison.Ordinal))
                 return null;
 
-            var directory = file.ContainingDirectoryName;
-            var oldPath   = Path.Combine(directory, original);
-            var newPath   = Path.Combine(directory, newName);
-
             file.Mp3File.Save();
+            return await MoveFileKeepingObjectAsync(file, newName);
+        } catch (Exception ex) {
+            return ex.Message;
+        }
+    }
 
+    private async Task<string?> MoveFileKeepingObjectAsync(Mp3FileObject file, string newName) {
+        var directory = file.ContainingDirectoryName;
+        var oldPath   = file.FullPath;
+        var newPath   = Path.Combine(directory, newName);
+        if (PathsEqual(oldPath, newPath))
+            return null;
+
+        if (File.Exists(newPath)) {
+            var decision = await ShowCompareFilesDialogAsync(file, newPath);
+            switch (decision) {
+                case CompareFilesDecision.KeepBoth:
+                    return null;
+                case CompareFilesDecision.UseExisting:
+                    return DeleteCurrentFile(file, oldPath);
+                case CompareFilesDecision.UseCurrent:
+                    var replaceError = DeleteExistingTarget(newPath);
+                    if (replaceError is not null)
+                        return replaceError;
+                    break;
+            }
+        }
+
+        try {
+            File.Move(oldPath, newPath);
+        } catch (IOException ex) {
             if (File.Exists(newPath) && !PathsEqual(oldPath, newPath)) {
                 var decision = await ShowCompareFilesDialogAsync(file, newPath);
                 switch (decision) {
@@ -467,42 +515,22 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
                         return null;
                     case CompareFilesDecision.UseExisting:
                         return DeleteCurrentFile(file, oldPath);
-                    case CompareFilesDecision.UseCurrent:
+                    case CompareFilesDecision.UseCurrent: {
                         var replaceError = DeleteExistingTarget(newPath);
                         if (replaceError is not null)
                             return replaceError;
+                        File.Move(oldPath, newPath);
                         break;
-                }
-            }
-
-            try {
-                File.Move(oldPath, newPath);
-            } catch (IOException ex) {
-                if (File.Exists(newPath) && !PathsEqual(oldPath, newPath)) {
-                    var decision = await ShowCompareFilesDialogAsync(file, newPath);
-                    switch (decision) {
-                        case CompareFilesDecision.KeepBoth:
-                            return null;
-                        case CompareFilesDecision.UseExisting:
-                            return DeleteCurrentFile(file, oldPath);
-                        case CompareFilesDecision.UseCurrent: {
-                            var replaceError = DeleteExistingTarget(newPath);
-                            if (replaceError is not null)
-                                return replaceError;
-                            File.Move(oldPath, newPath);
-                            break;
-                        }
                     }
-                } else {
-                    return ex.Message;
                 }
+            } else {
+                return ex.Message;
             }
-
-            ReplaceListEntry(file, newPath);
-            return null;
-        } catch (Exception ex) {
-            return ex.Message;
         }
+
+        file.RebindToPath(newPath);
+        IndexFile(file);
+        return null;
     }
 
     private async Task<CompareFilesDecision> ShowCompareFilesDialogAsync(Mp3FileObject current, string existingPath) {
@@ -546,16 +574,6 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
         MusicFiles.Remove(file);
         return null;
-    }
-
-    private void ReplaceListEntry(Mp3FileObject file, string newPath) {
-        var selected = file.IsSelected;
-        var index    = MusicFiles.IndexOf(file);
-        var replacement = new Mp3FileObject(newPath) { IsSelected = selected };
-        if (index >= 0)
-            MusicFiles[index] = replacement;
-        else
-            MusicFiles.Add(replacement);
     }
 
     private void RemoveByFullPath(string path) {
@@ -631,17 +649,22 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
         ArgumentNullException.ThrowIfNull(sender);
         if (sender is not Mp3FileObject file) return;
 
+        var focused  = FocusedFile;
         var parser   = new FileNameParser();
         var patterns = DBConnector.LoadFileNamePatterns();
         ApplyId3FromFileName(file, parser, patterns);
+        RestoreFocus(focused, file);
     }
 
     private void BulkId3FromFileName() {
+        var focused  = FocusedFile;
         var parser   = new FileNameParser();
         var patterns = DBConnector.LoadFileNamePatterns();
         foreach (var file in MusicFiles.Where(f => f.IsSelected).ToList())
             ApplyId3FromFileName(file, parser, patterns);
 
+        if (focused is not null)
+            RestoreFocus(focused, focused);
         PromptForNewCatalogValues();
     }
 
@@ -690,9 +713,25 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
     public ICommand ResetId3ToDefaultCommand { get; set; }
 
-    public void ResetID3ToDefault(object? sender) {
+    public async Task ResetID3ToDefaultAsync(object? sender) {
         var file = sender as Mp3FileObject ?? FocusedFile;
-        file?.RestoreId3FromInitialState();
+        if (file is null)
+            return;
+
+        var focused = FocusedFile;
+        if (!file.RestoreEditBaselineTags()) {
+            RestoreFocus(focused, file);
+            return;
+        }
+
+        var baselinePath = file.EditBaselineFullPath;
+        if (!string.IsNullOrEmpty(baselinePath) && !PathsEqual(file.FullPath, baselinePath)) {
+            var error = await MoveFileKeepingObjectAsync(file, Path.GetFileName(baselinePath));
+            if (error is not null)
+                await BuranMessageBox.Show(error);
+        }
+
+        RestoreFocus(focused, file);
     }
 
     #endregion
