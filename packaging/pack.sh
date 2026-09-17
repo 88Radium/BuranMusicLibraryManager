@@ -148,6 +148,45 @@ require_bundled_vlc() {
   fi
 }
 
+copy_windows_vlc() {
+  local out="$1"
+  if [[ -f "$out/libvlc/win-x64/libvlc.dll" && -d "$out/libvlc/win-x64/plugins" ]]; then
+    echo "Windows libvlc liegt in $out/libvlc/win-x64"
+    return 0
+  fi
+  if [[ -f "$out/libvlc.dll" && -d "$out/plugins" ]]; then
+    echo "Windows libvlc liegt neben der App in $out"
+    return 0
+  fi
+
+  local root="${NUGET_PACKAGES:-${HOME}/.nuget/packages}/videolan.libvlc.windows"
+  local src=""
+  if [[ -d "$root" ]]; then
+    src="$(find "$root" -type d -path '*/build/x64' 2>/dev/null | sort | tail -1)"
+  fi
+  if [[ -z "$src" || ! -f "$src/libvlc.dll" ]]; then
+    echo "VideoLAN.LibVLC.Windows nicht im NuGet-Cache ($root)." >&2
+    return 1
+  fi
+  echo "libvlc aus $src nach $out/libvlc/win-x64 kopieren"
+  mkdir -p "$out/libvlc/win-x64"
+  cp -a "$src"/. "$out/libvlc/win-x64/"
+}
+
+require_windows_vlc() {
+  local out="$1"
+  if [[ -f "$out/libvlc/win-x64/libvlc.dll" && -d "$out/libvlc/win-x64/plugins" ]]; then
+    return 0
+  fi
+  if [[ -f "$out/libvlc.dll" && -d "$out/plugins" ]]; then
+    return 0
+  fi
+  echo "Windows-libvlc fehlt in $out (libvlc.dll + plugins)." >&2
+  ls -la "$out" >&2 || true
+  ls -la "$out/libvlc" >&2 || true
+  exit 1
+}
+
 ensure_appimagetool() {
   local tool="$BUILD/appimagetool-x86_64.AppImage"
   if [[ -x "$tool" ]]; then
@@ -296,9 +335,8 @@ pack_windows() {
     echo "MEF-Plugins fehlen in $out" >&2
     exit 1
   fi
-  if [[ ! -f "$out/libvlc.dll" && ! -f "$out/libvlc/win-x64/libvlc.dll" ]]; then
-    echo "Warnung: libvlc.dll fehlt — VideoLAN.LibVLC.Windows wurde nicht mitverpackt." >&2
-  fi
+  copy_windows_vlc "$out" || true
+  require_windows_vlc "$out"
 
   cp "$PACK/windows/install.ps1"   "$out/install.ps1"
   cp "$PACK/windows/install.bat"   "$out/install.bat"

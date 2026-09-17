@@ -11,6 +11,14 @@
 </p>
 
 <p align="center">
+  <strong>Deutsch</strong>
+  ·
+  <a href="README.en.md">English</a>
+  ·
+  <a href="README.ru.md">Русский</a>
+</p>
+
+<p align="center">
   <a href="https://github.com/88Radium/BuranMusicLibraryManager/releases">Download</a>
   ·
   <a href="#installation">Installation</a>
@@ -58,7 +66,7 @@ Fertige Installer liegen unter **[Releases](https://github.com/88Radium/BuranMus
 
 ### Linux (Fedora, RHEL, Bazzite)
 
-1. Die `.rpm` des gewünschten Releases herunterladen (z. B. `buran-0.1.2-4.x86_64.rpm`).
+1. Die `.rpm` des gewünschten Releases herunterladen (z. B. `buran-0.1.3-4.x86_64.rpm`).
 2. Auf **Bazzite / rpm-ostree**:
 
 ```bash

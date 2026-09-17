@@ -72,7 +72,13 @@ public sealed class PlaybackEngine : IDisposable {
             return false;
 
         try {
-            using var media = new Media(_lib, path, FromType.FromPath);
+            var full = Path.GetFullPath(path);
+            if (!File.Exists(full)) {
+                error = full;
+                return false;
+            }
+
+            using var media = new Media(_lib, new Uri(full));
             return _player.Play(media);
         }
         catch (Exception ex) {

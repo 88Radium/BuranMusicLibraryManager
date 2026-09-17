@@ -6,26 +6,37 @@ namespace Buran.Player.Services;
 
 internal static class NativeLibVlc {
     private static bool _resolverRegistered;
+    private static string? _libDir;
+    private static string? _pluginDir;
 
     public static string AppDir => AppContext.BaseDirectory;
 
-    public static string[] LibVlcOptions() => ["--no-video", "--quiet"];
+    public static string[] LibVlcOptions() {
+        if (string.IsNullOrEmpty(_pluginDir))
+            return ["--no-video", "--quiet"];
+        return ["--no-video", "--quiet", $"--plugin-path={_pluginDir}"];
+    }
 
     public static void Prepare() {
-        var pluginPath = FindPluginDir();
-        if (pluginPath is not null)
-            Environment.SetEnvironmentVariable("VLC_PLUGIN_PATH", pluginPath);
+        _libDir     = FindLibDir();
+        _pluginDir  = FindPluginDir();
+        if (_pluginDir is not null)
+            Environment.SetEnvironmentVariable("VLC_PLUGIN_PATH", _pluginDir);
 
         RegisterResolver();
         Preload("libvlccore.so.9", "libvlccore.so", "libvlccore.dll");
         Preload("libvlc.so.5", "libvlc.so", "libvlc.dll");
-        // LibVLCSharp.Core.Initialize(directory) throws on Linux even when the
-        // copy lives next to BuranUI. Bundled libs are found via the resolver,
-        // LD_LIBRARY_PATH (buran launcher), and VLC_PLUGIN_PATH.
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || !BundledLibVlc())
+
+        // LibVLCSharp.Core.Initialize(directory) throws on Linux when libvlc.so
+        // sits next to the app. Windows needs the folder that actually contains
+        // libvlc.dll (VideoLAN.LibVLC.Windows → libvlc/win-x64), otherwise a
+        // Start-Menu launch with a foreign CWD cannot create Media.
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             Core.Initialize();
+        else if (_libDir is not null)
+            Core.Initialize(_libDir);
         else
-            Core.Initialize(AppDir);
+            Core.Initialize();
     }
 
     private static void RegisterResolver() {
@@ -63,12 +74,20 @@ internal static class NativeLibVlc {
         }
     }
 
-    private static bool BundledLibVlc() =>
-        File.Exists(Path.Combine(AppDir, "libvlc.so")) ||
-        File.Exists(Path.Combine(AppDir, "libvlc.so.5")) ||
-        File.Exists(Path.Combine(AppDir, "libvlc.dll"));
+    private static string? FindLibDir() {
+        foreach (var dir in LibDirs()) {
+            if (File.Exists(Path.Combine(dir, "libvlc.dll")) ||
+                File.Exists(Path.Combine(dir, "libvlc.so")) ||
+                File.Exists(Path.Combine(dir, "libvlc.so.5")))
+                return dir;
+        }
+
+        return null;
+    }
 
     private static IEnumerable<string> LibDirs() {
+        var rid = Environment.Is64BitProcess ? "win-x64" : "win-x86";
+        yield return Path.Combine(AppDir, "libvlc", rid);
         yield return AppDir;
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             yield break;
@@ -101,6 +120,8 @@ internal static class NativeLibVlc {
     }
 
     private static IEnumerable<string> PluginDirs() {
+        var rid = Environment.Is64BitProcess ? "win-x64" : "win-x86";
+        yield return Path.Combine(AppDir, "libvlc", rid, "plugins");
         yield return Path.Combine(AppDir, "vlc", "plugins");
         yield return Path.Combine(AppDir, "plugins");
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
