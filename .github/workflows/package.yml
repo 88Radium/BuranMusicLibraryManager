@@ -1,59 +1,191 @@
 name: Package
 
+# Numbered GitHub Release with .rpm and Windows setup.exe when:
+#   - <Version> in Directory.Build.props is new (no release v{Version} yet), or
+#   - packaging/ or this workflow changed, or
+#   - Actions → Run workflow, or
+#   - git tag v*
+#
+# Regular code pushes without a version bump only run the compile workflow.
 on:
   workflow_dispatch:
   push:
+    branches: [master]
     tags: ["v*"]
 
 permissions:
   contents: write
 
+concurrency:
+  group: package-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
 jobs:
-  linux:
+  gate:
+    name: Version
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      publish: ${{ steps.meta.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x"
-      - name: Pack .deb and .rpm
+          fetch-depth: 0
+      - name: Read version and decide publish
+        id: meta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEFORE_SHA: ${{ github.event.before }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          VERSION="$(python3 -c 'import re, pathlib; t=pathlib.Path("Directory.Build.props").read_text(); m=re.search(r"<Version>([^<]+)</Version>", t); print((m.group(1) if m else "0.1").strip())')"
+          TAG="v${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+          publish=false
+          reason=""
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            publish=true
+            reason="manual workflow_dispatch"
+          elif [[ "$REF_TYPE" == "tag" ]]; then
+            publish=true
+            reason="git tag ${GITHUB_REF_NAME}"
+          elif ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            publish=true
+            reason="no GitHub Release for ${TAG} yet"
+          elif [[ -n "${BEFORE_SHA:-}" && ! "$BEFORE_SHA" =~ ^0+$ ]]; then
+            changed="$(git diff --name-only "$BEFORE_SHA" HEAD || true)"
+            if echo "$changed" | grep -qE '^(packaging/|\.github/workflows/package\.yml)'; then
+              publish=true
+              reason="packaging files changed"
+            else
+              reason="Release ${TAG} already exists; Version unchanged"
+            fi
+          else
+            reason="Release ${TAG} already exists"
+          fi
+
+          if [[ "$publish" == true ]]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+          echo "Version ${VERSION}  tag ${TAG}  publish=${publish}  (${reason})" >> "$GITHUB_STEP_SUMMARY"
+
+  linux:
+    name: Linux RPM
+    needs: gate
+    if: needs.gate.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    # Fedora so bundled libvlc/plugins match Fedora/Bazzite RPMs.
+    # setup-dotnet is skipped here: JS actions plus Microsoft's tarball
+    # have failed in Fedora containers; the install script is enough.
+    container:
+      image: fedora:44
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf -y install --setopt=install_weak_deps=False \
+            git tar gzip curl ca-certificates python3 findutils unzip \
+            glibc libgcc libstdc++ libicu openssl-libs krb5-libs zlib tzdata \
+            vlc-libs vlc-plugins-base vlc-plugin-ffmpeg vlc-plugin-pulseaudio \
+            vlc-plugin-gstreamer vlc-plugins-video-out
+      - uses: actions/checkout@v4
+      - name: Install .NET SDK
+        run: |
+          set -euo pipefail
+          curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh
+          bash /tmp/dotnet-install.sh --jsonfile global.json --install-dir /usr/share/dotnet
+          echo /usr/share/dotnet >> "$GITHUB_PATH"
+          echo "DOTNET_ROOT=/usr/share/dotnet" >> "$GITHUB_ENV"
+          ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet
+          /usr/share/dotnet/dotnet --info
+      - name: Pack .rpm and .deb
         run: bash packaging/pack.sh linux
+      - name: Require RPM
+        run: |
+          shopt -s nullglob
+          rpms=(dist/*.rpm)
+          if [[ ${#rpms[@]} -eq 0 ]]; then
+            echo "No .rpm produced" >&2
+            ls -la dist >&2 || true
+            exit 1
+          fi
+          ls -lh dist/*.rpm dist/*.deb
       - uses: actions/upload-artifact@v4
         with:
           name: linux-packages
+          if-no-files-found: error
           path: |
-            dist/*.deb
-            dist/*.rpm
-      - uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: |
             dist/*.deb
             dist/*.rpm
 
   windows:
+    name: Windows installer
+    needs: gate
+    if: needs.gate.outputs.publish == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+          global-json-file: global.json
       - name: Inno Setup
         run: choco install innosetup -y --no-progress
       - name: Pack Windows
         shell: bash
+        env:
+          REQUIRE_INNO: "1"
         run: |
           export PATH="/c/Program Files (x86)/Inno Setup 6:/c/Program Files/Inno Setup 6:$PATH"
           bash packaging/pack.sh windows
       - uses: actions/upload-artifact@v4
         with:
           name: windows-packages
+          if-no-files-found: error
           path: |
             dist/*.zip
             dist/*.exe
-      - uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+
+  release:
+    name: GitHub Release
+    needs: [gate, linux, windows]
+    if: needs.gate.outputs.publish == 'true' && needs.linux.result == 'success' && needs.windows.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
         with:
-          files: |
-            dist/*.zip
-            dist/*.exe
+          pattern: "*-packages"
+          path: dist
+          merge-multiple: true
+      - name: Files
+        run: ls -lh dist
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.gate.outputs.tag }}
+          name: Buran ${{ needs.gate.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          prerelease: false
+          make_latest: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: dist/*
+          body: |
+            Installer for **Buran ${{ needs.gate.outputs.version }}**.
+
+            - **Linux (Fedora / RHEL / Bazzite):** `.rpm`
+            - **Windows:** `Buran-${{ needs.gate.outputs.version }}-win-x64-setup.exe`
+            - Also attached: `.deb` and portable Windows `.zip`

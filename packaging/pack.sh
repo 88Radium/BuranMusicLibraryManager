@@ -22,11 +22,20 @@ if [[ -z "${DOTNET:-}" ]]; then
   fi
 fi
 
-VERSION="$(python3 - <<'PY'
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON=python3
+elif command -v python >/dev/null 2>&1; then
+  PYTHON=python
+else
+  echo "python3 nicht gefunden." >&2
+  exit 1
+fi
+
+VERSION="$("$PYTHON" - <<'PY'
 import re, pathlib
 text = pathlib.Path("Directory.Build.props").read_text()
 m = re.search(r"<Version>([^<]+)</Version>", text)
-print(m.group(1) if m else "0.1")
+print(m.group(1).strip() if m else "0.1")
 PY
 )"
 
@@ -216,6 +225,11 @@ pack_linux_native() {
   echo "==> .rpm und .deb (nFPM)"
   "$nfpm" package -f "$nfpm_yaml" --packager rpm --target "$DIST"
   "$nfpm" package -f "$nfpm_yaml" --packager deb --target "$DIST"
+  if ! ls "$DIST"/*.rpm >/dev/null 2>&1; then
+    echo "RPM fehlt in $DIST" >&2
+    ls -lh "$DIST" >&2 || true
+    exit 1
+  fi
   echo "Linux-Pakete in $DIST :"
   ls -lh "$DIST"/*.rpm "$DIST"/*.deb
 }
@@ -293,7 +307,7 @@ pack_windows() {
   if command -v zip >/dev/null 2>&1; then
     (cd "$DIST" && zip -r -q "$zip" "$(basename "$staged")")
   else
-    python3 - <<PY
+    "$PYTHON" - <<PY
 import pathlib, zipfile
 root = pathlib.Path("$staged")
 zip_path = pathlib.Path("$zip")
@@ -312,6 +326,19 @@ PY
       "/DMyOutputDir=${DIST}"
   else
     echo "Inno Setup (iscc) nicht vorhanden — nur ZIP. Setup.exe entsteht in GitHub Actions auf windows-latest."
+    if [[ "${REQUIRE_INNO:-}" == "1" ]]; then
+      echo "REQUIRE_INNO=1: iscc ist Pflicht." >&2
+      exit 1
+    fi
+  fi
+
+  if [[ "${REQUIRE_INNO:-}" == "1" ]]; then
+    local setup="$DIST/Buran-${VERSION}-win-x64-setup.exe"
+    if [[ ! -f "$setup" ]]; then
+      echo "Windows-Installer fehlt: $setup" >&2
+      ls -lh "$DIST" >&2 || true
+      exit 1
+    fi
   fi
   echo "Windows-Paket: $zip"
 }
