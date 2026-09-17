@@ -47,6 +47,15 @@ BUILD="$PACK/build"
 
 mkdir -p "$DIST" "$BUILD"
 
+# Git Bash paths like /d/a/foo are not valid for Windows Python or iscc.
+native_path() {
+  if command -v cygpath >/dev/null 2>&1; then
+    cygpath -w "$1"
+  else
+    printf '%s' "$1"
+  fi
+}
+
 publish_host() {
   local rid="$1" out="$2"
   rm -rf "$out"
@@ -304,26 +313,42 @@ pack_windows() {
   mkdir "$staged"
   cp -a "$out"/. "$staged/"
   echo "==> ZIP $zip"
-  if command -v zip >/dev/null 2>&1; then
-    (cd "$DIST" && zip -r -q "$zip" "$(basename "$staged")")
-  else
-    "$PYTHON" - <<PY
-import pathlib, zipfile
-root = pathlib.Path("$staged")
-zip_path = pathlib.Path("$zip")
+  local zip_name staged_name
+  zip_name="$(basename "$zip")"
+  staged_name="$(basename "$staged")"
+  (
+    cd "$DIST"
+    if command -v zip >/dev/null 2>&1; then
+      zip -r -q "$zip_name" "$staged_name"
+    else
+      "$PYTHON" - "$staged_name" "$zip_name" <<'PY'
+import pathlib, sys, zipfile
+root = pathlib.Path(sys.argv[1])
+zip_path = pathlib.Path(sys.argv[2])
+if not root.is_dir():
+    raise SystemExit(f"staged folder missing: {root.resolve()}")
 with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
     for p in root.rglob("*"):
-        z.write(p, p.relative_to(root.parent))
+        if p.is_file():
+            z.write(p, p.relative_to(root.parent).as_posix())
 PY
+    fi
+  )
+  if [[ ! -f "$zip" ]]; then
+    echo "ZIP fehlt: $zip" >&2
+    ls -lh "$DIST" >&2 || true
+    exit 1
   fi
   rm -rf "$staged"
 
   if command -v iscc >/dev/null 2>&1; then
     echo "==> Inno Setup"
-    iscc "$PACK/windows/buran.iss" \
-      "/DMyAppVersion=${VERSION}" \
-      "/DMySourceDir=${out}" \
-      "/DMyOutputDir=${DIST}"
+    # MSYS would rewrite /DMyAppVersion=... into a drive path.
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+      iscc "$(native_path "$PACK/windows/buran.iss")" \
+        "/DMyAppVersion=${VERSION}" \
+        "/DMySourceDir=$(native_path "$out")" \
+        "/DMyOutputDir=$(native_path "$DIST")"
   else
     echo "Inno Setup (iscc) nicht vorhanden — nur ZIP. Setup.exe entsteht in GitHub Actions auf windows-latest."
     if [[ "${REQUIRE_INNO:-}" == "1" ]]; then
