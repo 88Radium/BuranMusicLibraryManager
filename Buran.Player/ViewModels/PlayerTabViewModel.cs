@@ -413,7 +413,9 @@ public partial class PlayerTabViewModel : ViewModelBase, IPlaybackController, IP
         if (NowPlaying is not null && PathsEqual(NowPlaying.Path, path)) {
             SpectrogramImage = image;
             if (StatusText == L.Get("Player.ComputingSpectrum"))
-                StatusText = image is null ? L.Get("Player.SpectrumFailed") : "";
+                StatusText = image is null
+                    ? L.Get(_spectrogram.LastErrorKey ?? "Player.SpectrumFailed")
+                    : "";
         }
     }
 

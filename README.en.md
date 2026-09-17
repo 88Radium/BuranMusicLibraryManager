@@ -94,7 +94,7 @@ Debian/Ubuntu: a `.deb` is attached as well. It is a companion package; the Linu
 
 Windows may show SmartScreen on first launch (the file is not digitally signed). Choose **More info → Run anyway**.
 
-libVLC is included in the Windows package. A separate VLC install is not required.
+libVLC and `ffmpeg.exe` (for the spectrogram) are included in the Windows package. A separate VLC or ffmpeg install is not required.
 
 ## First launch
 

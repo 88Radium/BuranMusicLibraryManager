@@ -25,4 +25,5 @@ Daten (bleiben bei Deinstallation erhalten)
     %LOCALAPPDATA%\Buran
 
 Player
-  libVLC ist im Paket enthalten. Ein extra VLC-Install ist nicht noetig.
+  libVLC und ffmpeg.exe (Spektrogramm) sind im Paket enthalten.
+  Ein extra VLC- oder ffmpeg-Install ist nicht noetig.

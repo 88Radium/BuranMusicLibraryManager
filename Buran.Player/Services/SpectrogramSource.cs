@@ -13,16 +13,22 @@ public sealed class SpectrogramSource : IDisposable {
 
     public Bitmap? Image => _image;
 
+    /// <summary>Localization key after a failed LoadAsync, or null.</summary>
+    public string? LastErrorKey { get; private set; }
+
     public async Task<Bitmap?> LoadAsync(string path, int stopHz = 0) {
         _loadCts?.Cancel();
         _loadCts?.Dispose();
         _loadCts = new CancellationTokenSource();
         var token = _loadCts.Token;
 
+        LastErrorKey = null;
         try {
             var bytes = await Task.Run(() => RenderPng(path, stopHz, token), token);
-            if (bytes is null || bytes.Length == 0)
+            if (bytes is null || bytes.Length == 0) {
+                LastErrorKey ??= "Player.SpectrumFailed";
                 return Swap(null);
+            }
 
             await using var stream = new MemoryStream(bytes, writable: false);
             return Swap(new Bitmap(stream));
@@ -32,6 +38,7 @@ public sealed class SpectrogramSource : IDisposable {
         }
         catch (Exception ex) {
             Debug.WriteLine($"Spectrogram failed: {ex.Message}");
+            LastErrorKey = "Player.SpectrumFailed";
             return Swap(null);
         }
     }
@@ -52,8 +59,14 @@ public sealed class SpectrogramSource : IDisposable {
         return next;
     }
 
-    private static byte[]? RenderPng(string path, int stopHz, CancellationToken token) {
-        var ffmpeg = File.Exists("/usr/bin/ffmpeg") ? "/usr/bin/ffmpeg" : "ffmpeg";
+    private byte[]? RenderPng(string path, int stopHz, CancellationToken token) {
+        var ffmpeg = FindFfmpeg();
+        if (ffmpeg is null) {
+            LastErrorKey = "Player.FfmpegMissing";
+            Debug.WriteLine("Spectrogram: ffmpeg not found next to the app or on PATH.");
+            return null;
+        }
+
         var psi = new ProcessStartInfo(ffmpeg) {
             RedirectStandardOutput = true,
             RedirectStandardError  = true,
@@ -96,11 +109,40 @@ public sealed class SpectrogramSource : IDisposable {
 
         token.ThrowIfCancellationRequested();
         if (process.ExitCode != 0) {
+            LastErrorKey = "Player.SpectrumFailed";
             Debug.WriteLine($"Spectrogram ffmpeg: {errTask.GetAwaiter().GetResult()}");
             return null;
         }
 
         return ms.ToArray();
+    }
+
+    private static string? FindFfmpeg() {
+        foreach (var candidate in FfmpegCandidates()) {
+            if (File.Exists(candidate))
+                return candidate;
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> FfmpegCandidates() {
+        var exe = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
+        var app = AppContext.BaseDirectory;
+        yield return Path.Combine(app, exe);
+        yield return Path.Combine(app, "ffmpeg", exe);
+        if (!OperatingSystem.IsWindows()) {
+            yield return "/usr/bin/ffmpeg";
+            yield return "/usr/local/bin/ffmpeg";
+        }
+
+        var path = Environment.GetEnvironmentVariable("PATH") ?? "";
+        foreach (var dir in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)) {
+            var trimmed = dir.Trim();
+            if (trimmed.Length == 0)
+                continue;
+            yield return Path.Combine(trimmed, exe);
+        }
     }
 
     private static string StopOption(int stopHz) =>

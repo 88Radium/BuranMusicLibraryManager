@@ -325,5 +325,6 @@
   "Player.PlaybackError": "Файл не удалось воспроизвести.",
   "Player.MissingFile": "Файл отсутствует: {0}",
   "Player.ComputingSpectrum": "Спектрограмма строится …",
+  "Player.FfmpegMissing": "Для спектрограммы нужен ffmpeg. В установщике Windows ffmpeg.exe лежит рядом с Buran. В Linux установите пакет ffmpeg.",
   "Player.SpectrumFailed": "Не удалось построить спектрограмму (нет ffmpeg или файл не декодируется)."
 }

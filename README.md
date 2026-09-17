@@ -95,7 +95,7 @@ Debian/Ubuntu: zusätzlich liegt ein `.deb` am Release. Das ist ein Beipack; die
 
 Windows kann beim ersten Start SmartScreen zeigen (die Datei ist nicht digital signiert). Dann **Weitere Informationen → Trotzdem ausführen**.
 
-libVLC ist im Windows-Paket enthalten. Ein extra VLC-Install ist nicht nötig.
+libVLC und `ffmpeg.exe` (für das Spektrogramm) sind im Windows-Paket enthalten. Ein extra VLC- oder ffmpeg-Install ist nicht nötig.
 
 ## Erster Start
 

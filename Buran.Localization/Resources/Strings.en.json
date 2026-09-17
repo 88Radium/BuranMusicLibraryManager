@@ -325,5 +325,6 @@
   "Player.PlaybackError": "The file could not be played.",
   "Player.MissingFile": "Missing file: {0}",
   "Player.ComputingSpectrum": "Computing spectrogram …",
+  "Player.FfmpegMissing": "The spectrogram needs ffmpeg. The Windows installer places ffmpeg.exe next to Buran. On Linux, install the ffmpeg package.",
   "Player.SpectrumFailed": "Spectrogram could not be computed (ffmpeg missing or the file could not be decoded)."
 }

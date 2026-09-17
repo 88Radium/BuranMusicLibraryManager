@@ -187,6 +187,79 @@ require_windows_vlc() {
   exit 1
 }
 
+find_windows_ffmpeg() {
+  local hit choc
+  if [[ -d /c/ProgramData/chocolatey/lib/ffmpeg ]]; then
+    hit="$(find /c/ProgramData/chocolatey/lib/ffmpeg -type f -name ffmpeg.exe -path '*/bin/ffmpeg.exe' 2>/dev/null | head -1)"
+    if [[ -n "$hit" ]]; then
+      printf '%s' "$hit"
+      return 0
+    fi
+  fi
+  if [[ -n "${ChocolateyInstall:-}" ]]; then
+    choc="$(cygpath -u "$ChocolateyInstall" 2>/dev/null || true)"
+    if [[ -d "$choc/lib/ffmpeg" ]]; then
+      hit="$(find "$choc/lib/ffmpeg" -type f -name ffmpeg.exe -path '*/bin/ffmpeg.exe' 2>/dev/null | head -1)"
+      if [[ -n "$hit" ]]; then
+        printf '%s' "$hit"
+        return 0
+      fi
+    fi
+  fi
+  return 1
+}
+
+download_windows_ffmpeg() {
+  local tmp="$BUILD/ffmpeg-win"
+  mkdir -p "$tmp"
+  local zip="$tmp/ffmpeg.zip"
+  echo "ffmpeg Windows-Build wird geladen …" >&2
+  if ! curl -fL --retry 3 -o "$zip" "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"; then
+    curl -fL --retry 3 -o "$zip" \
+      "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+  fi
+  if [[ ! -s "$zip" ]]; then
+    return 1
+  fi
+  if command -v unzip >/dev/null 2>&1; then
+    unzip -qo "$zip" -d "$tmp"
+  else
+    "$PYTHON" - "$zip" "$tmp" <<'PY'
+import sys, zipfile
+zip_path, dest = sys.argv[1], sys.argv[2]
+with zipfile.ZipFile(zip_path) as z:
+    z.extractall(dest)
+PY
+  fi
+  find "$tmp" -type f -name ffmpeg.exe | head -1
+}
+
+copy_windows_ffmpeg() {
+  local out="$1"
+  if [[ -f "$out/ffmpeg.exe" ]]; then
+    echo "ffmpeg.exe liegt in $out"
+    return 0
+  fi
+  local src
+  src="$(find_windows_ffmpeg || true)"
+  if [[ -z "$src" || ! -f "$src" ]]; then
+    src="$(download_windows_ffmpeg || true)"
+  fi
+  if [[ -z "$src" || ! -f "$src" ]]; then
+    echo "ffmpeg.exe nicht gefunden." >&2
+    return 1
+  fi
+  echo "ffmpeg aus $src nach $out kopieren"
+  cp "$src" "$out/ffmpeg.exe"
+}
+
+require_windows_ffmpeg() {
+  if [[ ! -f "$1/ffmpeg.exe" ]]; then
+    echo "ffmpeg.exe fehlt in $1 — Spektrogramm auf Windows braucht das." >&2
+    exit 1
+  fi
+}
+
 ensure_appimagetool() {
   local tool="$BUILD/appimagetool-x86_64.AppImage"
   if [[ -x "$tool" ]]; then
@@ -337,6 +410,8 @@ pack_windows() {
   fi
   copy_windows_vlc "$out" || true
   require_windows_vlc "$out"
+  copy_windows_ffmpeg "$out" || true
+  require_windows_ffmpeg "$out"
 
   cp "$PACK/windows/install.ps1"   "$out/install.ps1"
   cp "$PACK/windows/install.bat"   "$out/install.bat"
