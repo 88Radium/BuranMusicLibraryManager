@@ -403,6 +403,16 @@ bash packaging/pack.sh linux
 
 Результат в `dist/` (в gitignore), например `buran-<версия>-4.x86_64.rpm`.
 
+В Rider те же шаги — конфигурации **Run → Run…**:
+
+| Конфигурация | Действие |
+|---|---|
+| **Pack Linux** | `packaging/pack.sh linux` |
+| **Install Linux RPM** | ставит `dist/buran-<версия>-*.rpm` через rpm-ostree (Bazzite; root/pkexec) |
+| **Pack + Install Linux RPM** | сначала упаковка, затем установка |
+
+`packaging/rider-install-linux.sh` и `packaging/rider-pack-and-install-linux.sh` — скрипты двух новых конфигураций.
+
 Windows-установщик собирается в GitHub Actions (Inno Setup). Локально на Windows, если `iscc` в PATH:
 
 ```bash

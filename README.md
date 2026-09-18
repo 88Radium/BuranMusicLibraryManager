@@ -404,6 +404,16 @@ bash packaging/pack.sh linux
 
 Ergebnis unter `dist/` (gitignored), z. B. `buran-<Version>-4.x86_64.rpm`.
 
+In Rider dieselben Schritte über **Run → Run…**:
+
+| Konfiguration | Aktion |
+|---|---|
+| **Pack Linux** | `packaging/pack.sh linux` |
+| **Install Linux RPM** | legt `dist/buran-<Version>-*.rpm` per rpm-ostree ein (Bazzite; Root/pkexec) |
+| **Pack + Install Linux RPM** | packen und danach installieren |
+
+`packaging/rider-install-linux.sh` und `packaging/rider-pack-and-install-linux.sh` sind die Skripte hinter den beiden neuen Konfigurationen.
+
 Windows-Setup entsteht in GitHub Actions (Inno Setup). Lokal auf Windows, wenn `iscc` im PATH liegt:
 
 ```bash

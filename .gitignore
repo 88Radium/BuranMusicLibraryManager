@@ -4,7 +4,7 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 .idea/
-.run/
+# Shared Rider run configurations (Pack/Install) live in .run/ and are tracked.
 *.user
 *.DotSettings
 *.DotSettings.user
