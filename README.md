@@ -409,8 +409,8 @@ In Rider dieselben Schritte über **Run → Run…**:
 | Konfiguration | Aktion |
 |---|---|
 | **Pack Linux** | `packaging/pack.sh linux` |
-| **Install Linux RPM** | legt `dist/buran-<Version>-*.rpm` per rpm-ostree ein (Bazzite; Root/pkexec) |
-| **Pack + Install Linux RPM** | packen und danach installieren |
+| **Install Linux RPM** | legt `dist/buran-<Version>-*.rpm` per rpm-ostree ein; vorhandenes buran wird ersetzt. Passwort im Rider-Terminal (nicht als Extra-Fenster). |
+| **Pack + Install Linux RPM** | packen und danach installieren (inkl. Ersetzen) |
 
 `packaging/rider-install-linux.sh` und `packaging/rider-pack-and-install-linux.sh` sind die Skripte hinter den beiden neuen Konfigurationen.
 

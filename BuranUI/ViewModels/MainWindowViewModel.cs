@@ -28,9 +28,12 @@ public partial class MainWindowViewModel : ViewModelBase {
         _playerOnTop        = _settings.PlayerOnTop;
         Library             = new LibraryBrowserViewModel(_settings);
         UiFontScale.Apply(_selectedFontSize.Code);
+        L.WhenChanged(() => OnPropertyChanged(nameof(VersionText)));
     }
 
     public LibraryBrowserViewModel Library { get; }
+
+    public string VersionText => L.Format("Settings.Version", AppVersion.Display);
 
     public IReadOnlyList<LanguageOption> LanguageOptions => LanguageOption.All;
     public IReadOnlyList<FontSizeOption> FontSizeOptions => FontSizeOption.All;

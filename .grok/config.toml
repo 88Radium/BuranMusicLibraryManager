@@ -1,0 +1,7 @@
+# Rider Agentic Chat does not show Grok's "Allow this command?" dialog.
+# Without these allows, git add/commit sit on permission_prompt until the chat is aborted.
+[permission]
+allow = [
+  "Bash(git add *)",
+  "Bash(git commit *)",
+]

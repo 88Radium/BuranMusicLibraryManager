@@ -37,6 +37,7 @@
   "Settings.Font.small": "Мелкий",
   "Settings.Font.medium": "Средний",
   "Settings.Font.large": "Крупный",
+  "Settings.Version": "Версия {0}",
 
   "Help.Title": "Руководство",
   "Help.Open": "Руководство",

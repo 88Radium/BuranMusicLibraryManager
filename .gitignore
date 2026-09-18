@@ -5,6 +5,7 @@ riderModule.iml
 /_ReSharper.Caches/
 .idea/
 # Shared Rider run configurations (Pack/Install) live in .run/ and are tracked.
+BuranUI/Assets/segments.zip
 *.user
 *.DotSettings
 *.DotSettings.user

@@ -408,8 +408,8 @@ In Rider, the same steps are **Run → Run…** configurations:
 | Configuration | Action |
 |---|---|
 | **Pack Linux** | `packaging/pack.sh linux` |
-| **Install Linux RPM** | layers `dist/buran-<Version>-*.rpm` with rpm-ostree (Bazzite; root/pkexec) |
-| **Pack + Install Linux RPM** | pack, then install |
+| **Install Linux RPM** | layers `dist/buran-<Version>-*.rpm` with rpm-ostree and replaces an existing buran overlay. Password is typed in the Rider terminal (no extra window). |
+| **Pack + Install Linux RPM** | pack, then install (including replace) |
 
 `packaging/rider-install-linux.sh` and `packaging/rider-pack-and-install-linux.sh` are the scripts behind the two new configurations.
 

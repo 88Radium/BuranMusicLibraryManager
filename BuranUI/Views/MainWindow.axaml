@@ -87,6 +87,10 @@
                                         Content="{loc:Loc Key=Help.Open}"
                                         ToolTip.Tip="{loc:Loc Key=Help.OpenTip}"
                                         Command="{Binding OpenHelpCommand}" />
+
+                                <TextBlock Classes="muted"
+                                           HorizontalAlignment="Center"
+                                           Text="{Binding VersionText}" />
                             </StackPanel>
                         </Flyout>
                     </Button.Flyout>

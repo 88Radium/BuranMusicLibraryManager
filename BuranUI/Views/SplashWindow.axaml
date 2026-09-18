@@ -21,6 +21,11 @@
                        FontWeight="SemiBold"
                        HorizontalAlignment="Center"
                        Foreground="#F2F5FA" />
+            <TextBlock x:Name="VersionText"
+                       FontSize="13"
+                       Opacity="0.55"
+                       HorizontalAlignment="Center"
+                       Foreground="#F2F5FA" />
             <TextBlock x:Name="StatusText"
                        Text="{loc:Loc Key=Splash.Loading}"
                        FontSize="14"

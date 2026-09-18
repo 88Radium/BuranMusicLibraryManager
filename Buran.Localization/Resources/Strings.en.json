@@ -37,6 +37,7 @@
   "Settings.Font.small": "Small",
   "Settings.Font.medium": "Medium",
   "Settings.Font.large": "Large",
+  "Settings.Version": "Version {0}",
 
   "Help.Title": "User guide",
   "Help.Open": "User guide",

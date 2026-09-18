@@ -408,8 +408,8 @@ bash packaging/pack.sh linux
 | Конфигурация | Действие |
 |---|---|
 | **Pack Linux** | `packaging/pack.sh linux` |
-| **Install Linux RPM** | ставит `dist/buran-<версия>-*.rpm` через rpm-ostree (Bazzite; root/pkexec) |
-| **Pack + Install Linux RPM** | сначала упаковка, затем установка |
+| **Install Linux RPM** | ставит `dist/buran-<версия>-*.rpm` через rpm-ostree и заменяет уже установленный buran. Пароль вводится в терминале Rider (без отдельного окна). |
+| **Pack + Install Linux RPM** | сначала упаковка, затем установка (включая замену) |
 
 `packaging/rider-install-linux.sh` и `packaging/rider-pack-and-install-linux.sh` — скрипты двух новых конфигураций.
 
