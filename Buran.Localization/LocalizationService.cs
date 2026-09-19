@@ -12,7 +12,7 @@ public sealed class LocalizationService : INotifyPropertyChanged {
     public const string AutoCode      = "auto";
     public const string FallbackCode  = "en";
 
-    public static readonly string[] SupportedCodes = ["en", "de", "ru"];
+    public static readonly string[] SupportedCodes = ["en", "de", "ru", "uz"];
 
     public static LocalizationService Instance { get; } = new();
 
@@ -129,7 +129,11 @@ public sealed class LocalizationService : INotifyPropertyChanged {
     private static void ApplyCulture(string languageCode) {
         CultureInfo culture;
         try {
-            culture = CultureInfo.GetCultureInfo(languageCode);
+            // Prefer Latin Uzbek so system "uz" / "uz-Cyrl" still format like the Latin UI.
+            var cultureName = languageCode.Equals("uz", StringComparison.OrdinalIgnoreCase)
+                ? "uz-Latn"
+                : languageCode;
+            culture = CultureInfo.GetCultureInfo(cultureName);
         }
         catch (CultureNotFoundException) {
             culture = CultureInfo.GetCultureInfo(FallbackCode);

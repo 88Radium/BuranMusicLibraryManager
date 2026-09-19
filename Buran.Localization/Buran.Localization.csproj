@@ -17,9 +17,11 @@
         <EmbeddedResource Include="Resources\Strings.en.json" WithCulture="false" LogicalName="Buran.Localization.Strings.en.json" />
         <EmbeddedResource Include="Resources\Strings.de.json" WithCulture="false" LogicalName="Buran.Localization.Strings.de.json" />
         <EmbeddedResource Include="Resources\Strings.ru.json" WithCulture="false" LogicalName="Buran.Localization.Strings.ru.json" />
+        <EmbeddedResource Include="Resources\Strings.uz.json" WithCulture="false" LogicalName="Buran.Localization.Strings.uz.json" />
         <EmbeddedResource Include="Resources\Help.en.md" WithCulture="false" LogicalName="Buran.Localization.Help.en.md" />
         <EmbeddedResource Include="Resources\Help.de.md" WithCulture="false" LogicalName="Buran.Localization.Help.de.md" />
         <EmbeddedResource Include="Resources\Help.ru.md" WithCulture="false" LogicalName="Buran.Localization.Help.ru.md" />
+        <EmbeddedResource Include="Resources\Help.uz.md" WithCulture="false" LogicalName="Buran.Localization.Help.uz.md" />
     </ItemGroup>
 
 </Project>

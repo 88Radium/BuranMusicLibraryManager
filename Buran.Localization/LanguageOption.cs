@@ -7,7 +7,8 @@ public sealed class LanguageOption : INotifyPropertyChanged {
         new(LocalizationService.AutoCode, nativeName: ""),
         new("en", "English"),
         new("de", "Deutsch"),
-        new("ru", "Русский")
+        new("ru", "Русский"),
+        new("uz", "O'zbekcha")
     ];
 
     public LanguageOption(string code, string nativeName) {

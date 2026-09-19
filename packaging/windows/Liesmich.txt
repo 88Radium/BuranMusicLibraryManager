@@ -6,6 +6,9 @@ Variante A — installieren (empfohlen)
   2. install.bat doppelklicken.
   3. Im Startmenue "Buran Music Library Manager" oeffnen.
 
+  Der Windows-Setup (setup.exe) bietet Deutsch, Englisch, Russisch
+  und Usbekisch (lateinisch) als Installationssprache.
+
   Die App liegt dann in:
     %LOCALAPPDATA%\Programs\Buran
 

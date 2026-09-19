@@ -16,6 +16,8 @@
   <a href="README.en.md">English</a>
   ·
   <a href="README.ru.md">Русский</a>
+  ·
+  <a href="README.uz.md">O'zbekcha</a>
 </p>
 
 <p align="center">
@@ -39,7 +41,7 @@ Buran ist für Leute, die eine große MP3-/FLAC-Sammlung in Ordnung halten wolle
 | Dateien | MP3 und FLAC |
 | Plattformen | Linux (RPM, u. a. Fedora / Bazzite) und Windows |
 | Player | libVLC ist im Paket enthalten |
-| Sprachen | Deutsch, Englisch, Russisch, Systemsprache |
+| Sprachen | Deutsch, Englisch, Russisch, Usbekisch (lateinisch), Systemsprache |
 | Daten | Katalog und Einstellungen liegen im Benutzerordner, nicht in der Musikbibliothek |
 
 In der App selbst steht dieselbe Anleitung unter **Einstellungen → Anleitung**.
@@ -48,6 +50,7 @@ In der App selbst steht dieselbe Anleitung unter **Einstellungen → Anleitung**
 
 - [Installation](#installation)
 - [Erster Start](#erster-start)
+- [Typische Probleme](#typische-probleme)
 - [Funktionen](#funktionen)
   - [Einstellungen](#einstellungen)
   - [Bibliothek](#bibliothek)
@@ -66,7 +69,7 @@ Fertige Installer liegen unter **[Releases](https://github.com/88Radium/BuranMus
 
 ### Linux (Fedora, RHEL, Bazzite)
 
-1. Die `.rpm` des gewünschten Releases herunterladen (z. B. `buran-0.1.3-4.x86_64.rpm`).
+1. Die `.rpm` des gewünschten Releases herunterladen (z. B. `buran-0.1.6-4.x86_64.rpm`).
 2. Auf **Bazzite / rpm-ostree**:
 
 ```bash
@@ -90,8 +93,9 @@ Debian/Ubuntu: zusätzlich liegt ein `.deb` am Release. Das ist ein Beipack; die
 ### Windows
 
 1. `Buran-<Version>-win-x64-setup.exe` herunterladen und ausführen.
-2. Die App landet unter `%LOCALAPPDATA%\Programs\Buran` und im Startmenü.
-3. Alternativ: das portable `.zip` entpacken und `BuranUI.exe` starten.
+2. Die Installationssprache wählen: Deutsch, Englisch, Russisch oder Usbekisch (lateinisch).
+3. Die App landet unter `%LOCALAPPDATA%\Programs\Buran` und im Startmenü.
+4. Alternativ: das portable `.zip` entpacken und `BuranUI.exe` starten.
 
 Windows kann beim ersten Start SmartScreen zeigen (die Datei ist nicht digital signiert). Dann **Weitere Informationen → Trotzdem ausführen**.
 
@@ -107,6 +111,25 @@ libVLC und `ffmpeg.exe` (für das Spektrogramm) sind im Windows-Paket enthalten.
 
 Mehrere Wurzelordner sind möglich (z. B. eine interne Platte und eine NAS-Freigabe). Die Liste merkt sich Buran.
 
+## Typische Probleme
+
+Welche Funktion hilft bei welchem Durcheinander:
+
+| Problem | Funktion |
+|---|---|
+| Derselbe Künstler in fünf Schreibweisen (`Eminem`, `EMINEM`, `M&M`) | Katalog: **bevorzugter Name** plus **Alternativen**. Beim nächsten Ordneröffnen ersetzt Buran die Varianten automatisch. |
+| `feat. Dido` landet im Kommentar statt als Künstler | **ID3 aus Dateiname**; Trenner unter **Schlüsselwörter → Zusammenarbeit** im DB-Editor. |
+| Tags leer oder falsch, Dateinamen aber sauber | **ID3 aus Dateiname** (einzeln oder als Sammelaktion). |
+| Dateinamen wild, Tags stimmen | **Dateiname aus ID3**. Schema: `Künstler - Titel`. |
+| Zwei Dateien würden denselben Namen bekommen | **Dateien vergleichen** (Größe, Dauer, Bitrate, …) und behalten oder löschen. |
+| ID3-Kommentare voller Player-Müll | Sammelaktion **Kommentare** — denselben Text setzen oder leeren. |
+| Ein Genre nur bei manchen Dateien im Ordner | Sammeldialog **Genres**: × entfernt nur dort, wo es vorkommt; Hinzufügen setzt es auf **jede** angehakte Datei. |
+| Album mit `CD1`/`CD2` in Unterordnern | **Unterordner einbeziehen**, dann den Albumordner anklicken. |
+| Alle Titel eines Künstlers über die ganze Sammlung | **Bibliothek indexieren**, im DB-Editor Rechtsklick → **Titel anzeigen**. |
+| Ist eine „192 kHz“-Datei wirklich Hi-Res? | **Spektrogramm**: Energie oberhalb von 16 kHz sichtbar oder tot. |
+| Versehentlich umbenannt oder Tags zerschossen | Im Bearbeitungsmodus **Reset** — Tags **und** Dateiname zurück auf den Stand zu Beginn dieser Session. |
+| Müllnamen nie wieder vorschlagen | Import-Dialog oder DB-Editor: **Blockieren** (gilt nur für die gewählte Art: Künstler, Genre oder Mood). |
+
 ## Funktionen
 
 ### Einstellungen
@@ -115,10 +138,11 @@ Oben rechts, Knopf **Einstellungen**.
 
 | Einstellung | Was sie macht | Wozu | So nutzt du sie |
 |---|---|---|---|
-| **Sprache** | Stellt Oberfläche und die eingebaute Anleitung um. | Deutsch, Englisch, Russisch oder die Systemsprache. | Ausklappen, Sprache wählen. Wirkt sofort. |
+| **Sprache** | Stellt Oberfläche und die eingebaute Anleitung um. | Deutsch, Englisch, Russisch, Usbekisch (lateinisch) oder die Systemsprache. | Ausklappen, Sprache wählen. Wirkt sofort. |
 | **Schriftgröße** | Klein / Mittel / Groß. | Lange Tag-Listen und 4K-Monitore. | Ausklappen, Größe wählen. |
 | **Transparenz** | Deckkraft des Fensters (ab 40 %). | Desktop durchscheinen lassen. | Schieberegler. |
 | **Anleitung** | Öffnet das eingebaute Handbuch. | Dieselbe Funktionsübersicht, ohne GitHub. | Knopf **Anleitung**. |
+| **Version** | Zeigt die installierte Versionsnummer. | Prüfen, ob das Paket aktuell ist. | Nur Anzeige, unten im Einstellungsmenü und auf dem Startbildschirm. |
 
 ### Bibliothek
 
@@ -196,6 +220,8 @@ Wenn die Liste gefiltert ist (z. B. „Titel dieses Künstlers“), lädt der Kn
 
 **Doppelklick** spielt den fokussierten Titel (wenn der Player geladen ist).
 
+Oben in der Leiste **immer** (nicht nur im Bearbeitungsmodus): **Alle / Keine**, **Abspielen** und **Zur Playlist** (Player muss geladen sein). Sammelaktionen für Tags und Dateinamen erscheinen erst nach **Tags bearbeiten**.
+
 #### Tags bearbeiten (Bearbeitungsmodus)
 
 **Was:** Blendet rechts den Inspector ein und oben die Sammelleiste.  
@@ -230,11 +256,8 @@ Nur im Bearbeitungsmodus, nur für Zeilen mit Häkchen.
 
 | Knopf | Was er macht | Wozu | So geht’s |
 |---|---|---|---|
-| **Alle / Keine** | Alle Häkchen setzen oder löschen. | Einen ganzen Ordner auf einmal anfassen. | **Alle**, Aktion wählen, **Keine** wenn du fertig bist. |
 | **Künstler / Genres / Moods** | Öffnet den Sammeldialog. Die Liste ist die **Vereinigung** aller ausgewählten Dateien. | „Pop“ nur dort löschen, wo es vorkommt; „Freestyle“ an **jede** Datei hängen. | Häkchen setzen → Knopf → Einträge × oder hinzufügen → **Übernehmen**. |
 | **Kommentare** | Derselbe Text auf alle ausgewählten Dateien, oder alle Kommentare leeren. | ID3-Kommentare voller Player-Müll. | Text eingeben und **Übernehmen**, oder Feld leer lassen / **Leeren**. |
-| **Abspielen** | Übergibt die Auswahl an den Player. | Probehören, ohne den Player-Reiter zu suchen. | Häkchen → **Abspielen**. |
-| **Zur Playlist** | Hängt die Auswahl an die aktuelle Playlist. | Eine Zusammenstellung über Ordnergrenzen. | Häkchen → **Zur Playlist**. |
 | **Dateiname aus ID3** | Wie **Name →**, aber für alle Häkchen. | Einen Ordner nach dem Tag-Schema umbenennen. | Häkchen → Knopf. |
 | **ID3 aus Dateiname** | Wie **← Name**, aber für alle Häkchen. | Tags aus sauberen Dateinamen für den ganzen Ordner. | Häkchen → Knopf. |
 

@@ -1,115 +1,131 @@
 # Buran — User guide
 
-Buran manages a music library: edit ID3 tags on MP3 and FLAC files, and maintain your own catalog of artists, genres, and moods. Tag edits are written to the file immediately.
+Buran manages a music library: edit ID3 tags on MP3 and FLAC files, keep your own catalog of artists, genres, and moods, and play files on the side. Tag edits are written to the file immediately.
+
+Your catalog is the source of truth — not MusicBrainz, not iTunes. Preferred spellings, alternatives, and the block list apply automatically the next time you open a folder.
+
+## Typical problems
+
+- The same artist in five spellings (`Eminem`, `EMINEM`, `M&M`): catalog with a preferred name plus alternatives. Opening a folder rewrites the variants automatically.
+- `feat. Dido` lands in the comment instead of as an artist: ID3 from filename; separators under Keywords → Collaboration in the DB editor.
+- Empty or wrong tags, but clean file names: ID3 from filename (one file or bulk).
+- Wild file names, tags are fine: Filename from ID3. Scheme `Artist - Title`.
+- Two files would get the same name: Compare files (size, duration, bitrate, …) and keep or delete.
+- ID3 comments full of player junk: bulk Comments — set the same text or clear.
+- A genre only on some files: bulk Genres. × removes it only where it occurs; add writes it onto every checked file.
+- Album with CD1/CD2 in subfolders: Include subfolders, then click the album folder.
+- Every track by an artist across the collection: Index library, then in the DB editor right-click → Show tracks.
+- Is a “192 kHz” file really hi-res? Spectrogram: energy above 16 kHz visible or dead.
+- Accidental rename or ruined tags: Reset in edit mode — tags and file name back to the start of this session.
+- Never suggest junk names again: import dialog or DB editor → Block (only for the chosen kind).
 
 ## Settings
 
 The Settings button in the top-right opens a menu.
 
-- Language: German, English, Russian, or system language. The UI and this guide follow that choice.
+- Language: German, English, Russian, Uzbek (Latin), or system language. The UI and this guide follow that choice.
 - Font size: Small, Medium, or Large.
-- Transparency: opacity of the main window.
+- Transparency: opacity of the main window (from 40 %).
+- User guide: this handbook.
+- Version: installed version number (also on the splash screen).
 
 ## Library
 
 The left column is the folder tree.
 
 - Add folder: add a root folder to the library. Several roots are allowed; the list is saved.
-- Remove: drop the selected folder’s library from the list.
-- Refresh: reload the tree.
+- Remove: drop the selected root from the list. Files on disk stay.
+- Refresh: reload the tree, for example after folders changed outside Buran.
+- Include subfolders: opening a folder also loads files in subfolders (album with CD1/CD2).
+- Index library: write title, artist, album, path into the local index. Later in the DB editor, right-click → Show tracks.
 - A subfolder with a blue dot contains audio files. Clicking it loads them into the ID3 editor.
 - Supported files: MP3 and FLAC.
 
 ## ID3 editor
 
-The first workspace tab. Shows every music file in the selected folder as a compact table (title, artists, folder path, album, year, duration, bitrate, sample rate, bit depth). Columns can be shown or hidden via Columns. Right-click a track: Open folder selects that folder in the library on the left and lists its files.
+The first workspace tab. Compact table (title, artists, folder path, album, year, duration, bitrate, sample rate, bit depth). Columns can be shown or hidden via Columns; drag headers to reorder. File name, Genre, and Mood are off by default.
 
-Edit tags switches to the inspector on the right; the splitter resizes only the inspector. Bulk actions (artists, genres, moods, comments, filename) appear only in that mode, for the checked selection.
+A clicked row is the focused track (inspector, Reset, double-click plays). The checkbox in the first column is multi-select. Focus and checkboxes are independent.
+
+Right-click → Open folder selects that folder on the left. Useful after Show tracks when hits are spread across folders.
 
 Clear (after Show tracks) reloads the selected library folder, or the first library root if none is selected.
 
-If the player module is loaded, transport and the spectrogram dock under this list (drag the splitter to enlarge the spectrogram). Without the player, the editor still works.
+If the player module is loaded, transport and the spectrogram dock under this list (drag the splitter to enlarge). Without the player, the editor still works.
 
-### Selection and bulk actions
+Always in the top bar: All / None, Play, and To playlist (player must be loaded). Bulk tag and rename actions only in edit mode.
 
-- All / None: select or clear every file.
-- Artists / Genres / Moods: bulk dialog for the selection (see below).
-- Comments: set the same comment or clear comments on the selection.
-- Play / To playlist: send the selection to the player module (only if the player is loaded). Double-click a row to play the folder queue.
-- Filename from ID3: rename selected files from ID3 tags.
-- ID3 from filename: read tags from the filename and write them.
+### Edit tags
 
-### Per-file fields (inspector)
+Shows the inspector on the right and the bulk bar at the top. When edit mode starts, Buran snapshots tags and file name per track; leaving the mode makes that saved state the new baseline.
 
-- Selection checkbox, title, album, filename, release year, comment.
-- Bitrate is display-only.
-- Artists, genres, and moods are lists: X removes an entry, + or Enter adds one. Suggestions come from the catalog (preferred names and alternatives).
-- Unknown names are added as a preferred catalog entry unless they are blocked. Blocked values still go onto the file, but not into the database.
-- From ID3 to filename / From filename to ID3: this file only.
-- Reset ID3 to default: restore the tags this file had when it was loaded.
+### Inspector — one track
+
+Applies to the focused track, not to every checkbox.
+
+- Title, album, year, comment: written to the file immediately.
+- Artists, genres, moods: lists with × and + / Enter. Suggestions come from the catalog.
+- Name → builds `Artist - Title` from the tags (preferred catalog names). Two artists: `A feat. B`, more: `A feat. B, C & D`.
+- ← Name splits the file name and writes the tags.
+- Reset restores tags and file name to the start of this edit session.
+
+Unknown names that are not blocked become a preferred catalog entry. Blocked values still go onto the file, but not into the database.
 
 When a folder is opened, alternative spellings in the files are rewritten to the preferred catalog name and saved.
 
-### Bulk dialog for artists, genres, moods
+### Bulk actions (checked files)
 
-The list is the union of all selected files.
+Edit mode only, checked rows only: artists, genres, moods, comments, filename from ID3, ID3 from filename.
 
-- Remove an entry: it is deleted only where it already exists.
-- Add or “all”: writes the entry onto every selected file, even if it is already in the list.
-- Load from selection: rebuild the list from the files.
-- Apply writes the tags. Unknown names are stored in the catalog; blocked names are not.
+The bulk-dialog list is the union of all selected files. × deletes only where the entry occurs. Add or “all” writes it onto every selected file.
 
-### Bulk comments
-
-One text box and a per-file preview. Apply replaces the comment on every selected file. An empty field clears it.
+Comments: one text box and a per-file preview. An empty field clears the comment.
 
 ### Filename from ID3 and conflicts
 
 If the target name already exists, Compare files opens (size, modified time, duration, bitrate, sample rate, channels, bit depth, format).
 
-- Keep both: cancel the rename; both files stay.
+- Keep both: cancel the rename.
 - Keep this file: delete the existing file and rename this one.
-- Keep existing: delete this file and keep the one that is already there.
+- Keep existing: delete this file.
 
 ### ID3 from filename
 
-The filename is split with patterns and keywords (artists, title, album, year, version hints such as Live or Remix). Comma and semicolon always separate. Further separators live under Keywords in the DB editor.
+Patterns and keywords split the name (artists, title, album, year, Live/Remix). Comma and semicolon always separate.
 
-“feat.” / “ft.” / “featuring” in the filename — including parentheses, e.g. `Eminem - Stan (feat. Dido).mp3` — are read as extra artists, not as a comment. `(Live)` or `[Remix]` stay comments.
+“feat.” / “ft.” / “featuring” — including in parentheses, e.g. `Eminem - Stan (feat. Dido).mp3` — become extra artists, not a comment. `(Live)` or `[Remix]` stay comments.
 
-Known catalog names and one-letter fragments (e.g. “D & F”) are not split.
+Known catalog names and one-letter groups such as “D & F” are not split. Extra separators live under Keywords in the DB editor.
 
 ## New values for the database
 
-After a folder loads, this dialog appears when ID3 tags or filenames contain names that are not in the catalog and are not blocked.
-
-Per item:
+After a folder loads, when tags or filenames contain names that are not in the catalog and are not blocked.
 
 - Checkbox: import or skip.
 - Preferred name: a new catalog entry.
-- Alternative name: a spelling of an existing preferred entry. For artists you can also create the preferred name inline.
+- Alternative name: a spelling of an existing entry.
 - Block: never suggest this value again. Blocking genre “Happy” does not block mood “Happy”.
-
-At the bottom: blocked values with Unblock. Unblock puts the name back into the list above so you can import it immediately.
-
-Apply writes only checked items. Skip closes without changes.
+- At the bottom: unblock already blocked values so they appear above again.
+- Apply writes only checked items. Skip closes without changes.
 
 ## Player
 
-A separate module. Plays MP3 and FLAC through libVLC. If the ID3 editor is also loaded, transport and spectrogram sit under the editor list; the Player tab keeps folder queue and playlists. Without the editor, the player tab contains everything.
+A separate module. Plays MP3 and FLAC through libVLC. With the ID3 editor, transport and spectrogram sit under the editor list; the Player tab keeps folder queue and playlists.
 
 - Play / Pause / Stop / Previous / Next, position, volume.
-- Spectrogram (Spek-style: frequency over time, computed once). Axes show Hz, time, and dB up to the file's Nyquist frequency. Click or drag seeks. Drag the splitter to resize. Use it to see whether a 192 kHz file actually has energy above 16 kHz.
-- Left list: files in the selected library folder. Double-click plays; Add to playlist copies them.
+- Repeat: off / all / one / once.
+- Swap player and tabs: dock at the top or bottom.
+- Spectrogram (computed once, Spek-style). Axes: Hz, time, dB up to the Nyquist frequency. Click or drag seeks. Use it to see whether a 192 kHz file has energy above 16 kHz.
+- Left list: files in the library folder. Double-click plays; Add to playlist copies them.
 - Right list: named playlists that may span folders. Create, rename, delete.
-- Import and export M3U (absolute paths). Missing files stay in the playlist, marked.
+- Import and export M3U (absolute paths). Missing files stay marked.
 - From the ID3 editor: Play and To playlist for the selection.
 
 Playlist playback continues when you change folder. The folder queue stops if the current track is not in the new folder.
 
 ## DB editor
 
-The second tab. This is the full catalog: add, rename, attach as an alternative, block, and unblock.
+The second tab. The full catalog: add, rename, attach as an alternative, block, and unblock.
 
 ### Search and refresh
 
@@ -117,17 +133,15 @@ Search filters artists, alternative names, and keywords. Clear search resets it.
 
 ### Artists
 
-List of preferred name and legal name. Right-click: Remove, Block, Clear selection, Show tracks (indexed tracks for this artist in the ID3 editor, including folder path).
+List of preferred name and legal name. Right-click: Remove, Block, Clear selection, Show tracks (indexed tracks including folder path).
 
-Add at the bottom:
+Add at the bottom: preferred name (optional legal name), attach an alternative to an existing artist, or Block. Typing in the field filters (e.g. “E”).
 
-- Preferred name: a new artist, optionally with a legal name.
-- Alternative name: attach the typed name to an existing preferred artist. Type in the field (e.g. “E”) to filter the list.
-- Block: hide the typed name permanently. If it is already in the catalog, it is removed. Blocking a preferred name also blocks its alternatives.
+Blocking a preferred name also blocks its alternatives.
 
 ### Alternative names
 
-Column of all alternatives, or only those of the selected artist. Adding requires a selected artist. Remove and Block via right-click or the buttons.
+Column of all alternatives, or only those of the selected artist. Adding requires a selected artist.
 
 ### Memberships
 
@@ -135,21 +149,19 @@ Only with an artist selected. Members of this group, or groups this artist belon
 
 ### Genres and moods
 
-The same controls for both.
+The same controls, separate lists. Moods are feelings (`Happy`, `Dark`), not substitute genres.
 
-- Checkbox: assign the genre or mood to the selected artist.
-- Right-click: Remove, Block, Clear selection, Filter by selection (artist list), clear the filter, Show tracks.
-- Alternative spellings: variants of the selected entry. + adds one; Block hides the typed variant.
-- Add at the bottom: preferred name or alternative of an existing entry, plus Block.
+- Checkbox: assign to the selected artist.
+- Right-click: Remove, Block, Clear selection, Filter by selection, clear the filter, Show tracks.
+- Alternative spellings of the selected entry.
+- At the bottom: create a preferred name, attach an alternative, block.
 
 ### Keywords
 
-Separators and recognition words for filenames and tags.
-
 - Collaboration: splits artists (feat, ft, vs, with, and, and symbols such as & + /).
-- Version: matches hints such as Live, Remix, Remaster.
+- Version: matches Live, Remix, Remaster.
 
-Comma and semicolon always remain separators. You can add or delete words and symbols in this list; remove & here if it should not split.
+Comma and semicolon always remain separators. Remove & here if “D & F” must not split.
 
 ### Blocked values
 

@@ -23,6 +23,7 @@ OutputBaseFilename=Buran-{#MyAppVersion}-win-x64-setup
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+ShowLanguageDialog=yes
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -32,8 +33,10 @@ MinVersion=10.0
 CloseApplications=yes
 
 [Languages]
-Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "german"; MessagesFile: "compiler:Languages\German.isl"
+Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
+Name: "uzbek"; MessagesFile: "languages\Uzbek.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked

@@ -1,133 +1,147 @@
 # Buran — Anleitung
 
-Buran verwaltet eine Musikbibliothek: ID3-Tags von MP3- und FLAC-Dateien bearbeiten und einen eigenen Katalog für Künstler, Genres und Moods pflegen. Änderungen an Tags werden sofort in die Datei geschrieben.
+Buran verwaltet eine Musikbibliothek: ID3-Tags von MP3- und FLAC-Dateien bearbeiten, einen eigenen Katalog für Künstler, Genres und Moods pflegen und nebenbei abspielen. Änderungen an Tags werden sofort in die Datei geschrieben.
+
+Der eigene Katalog ist die Wahrheit — nicht MusicBrainz, nicht iTunes. Bevorzugte Schreibweise, Alternativen und Blockliste greifen beim nächsten Ordneröffnen von selbst.
+
+## Typische Probleme
+
+- Uneinheitliche Künstlernamen (`Eminem`, `EMINEM`, `M&M`): Katalog mit bevorzugtem Namen plus Alternativen. Beim Ordneröffnen ersetzt Buran die Varianten automatisch.
+- `feat. Dido` landet im Kommentar statt als Künstler: ID3 aus Dateiname; Trenner unter Schlüsselwörter → Zusammenarbeit im DB-Editor.
+- Tags leer oder falsch, Dateinamen aber sauber: ID3 aus Dateiname (einzeln oder Sammelaktion).
+- Dateinamen wild, Tags stimmen: Dateiname aus ID3. Schema `Künstler - Titel`.
+- Zwei Dateien würden denselben Namen bekommen: Dateien vergleichen (Größe, Dauer, Bitrate, …) und behalten oder löschen.
+- ID3-Kommentare voller Player-Müll: Sammelaktion Kommentare — denselben Text setzen oder leeren.
+- Ein Genre nur bei manchen Dateien: Sammeldialog Genres. × entfernt nur dort, wo es vorkommt; Hinzufügen setzt es auf jede angehakte Datei.
+- Album mit CD1/CD2 in Unterordnern: Unterordner einbeziehen, dann den Albumordner anklicken.
+- Alle Titel eines Künstlers über die Sammlung: Bibliothek indexieren, im DB-Editor Rechtsklick → Titel anzeigen.
+- Ist eine „192 kHz“-Datei wirklich Hi-Res? Spektrogramm: Energie oberhalb von 16 kHz sichtbar oder tot.
+- Versehentlich umbenannt oder Tags zerschossen: im Bearbeitungsmodus Reset — Tags und Dateiname zurück auf den Stand zu Beginn dieser Session.
+- Müllnamen nie wieder vorschlagen: Import-Dialog oder DB-Editor → Blockieren (gilt nur für die gewählte Art).
 
 ## Einstellungen
 
 Oben rechts öffnet „Einstellungen“ ein Menü.
 
-- Sprache: Deutsch, Englisch, Russisch oder Systemsprache. Die Oberfläche und diese Anleitung folgen der Wahl.
+- Sprache: Deutsch, Englisch, Russisch, Usbekisch (lateinisch) oder Systemsprache. Oberfläche und diese Anleitung folgen der Wahl.
 - Schriftgröße: Klein, Mittel oder Groß.
-- Transparenz: Deckkraft des Hauptfensters.
+- Transparenz: Deckkraft des Hauptfensters (ab 40 %).
+- Anleitung: dieses Handbuch.
+- Version: installierte Versionsnummer (auch auf dem Startbildschirm).
 
 ## Bibliothek
 
 Die linke Spalte ist der Ordnerbaum.
 
 - Ordner hinzufügen: einen Wurzelordner zur Bibliothek nehmen. Mehrere Wurzeln sind möglich; die Liste wird gespeichert.
-- Entfernen: die Bibliothek des ausgewählten Ordners aus der Liste nehmen.
-- Aktualisieren: Baum neu einlesen.
+- Entfernen: die gewählte Wurzel aus der Liste nehmen. Dateien auf der Platte bleiben.
+- Aktualisieren: Baum neu einlesen, z. B. nach Ordnern außerhalb von Buran.
+- Unterordner einbeziehen: beim Öffnen eines Ordners auch Dateien in Unterordnern laden (Album mit CD1/CD2).
+- Bibliothek indexieren: Titel, Künstler, Album, Pfad ins lokale Verzeichnis schreiben. Danach im DB-Editor Rechtsklick → Titel anzeigen.
 - Ein Unterordner mit blauem Punkt enthält Audio-Dateien. Ein Klick darauf lädt sie in den ID3-Editor.
 - Unterstützte Dateien: MP3 und FLAC.
 
 ## ID3-Editor
 
-Oben in der Arbeitsfläche. Kompakte Tabelle (Titel, Künstler, Ordnerpfad, Album, Jahr, Dauer, Bitrate, Samplerate, Bit-Tiefe). Spalten über „Spalten“ ein- und ausblenden. Rechtsklick auf einen Titel: „Ordner öffnen“ wählt den Ordner in der Bibliothek links und listet alle Dateien darin.
+Oben in der Arbeitsfläche. Kompakte Tabelle (Titel, Künstler, Ordnerpfad, Album, Jahr, Dauer, Bitrate, Samplerate, Bit-Tiefe). Spalten über „Spalten“ ein- und ausblenden; Überschriften ziehen ändert die Reihenfolge. Dateiname, Genre und Mood sind standardmäßig aus.
 
-„Tags bearbeiten“ blendet den Inspector rechts ein; der Splitter ändert nur die Inspector-Breite. Sammelaktionen gelten nur in diesem Modus für die angehakten Dateien.
+Eine angeklickte Zeile ist der fokussierte Titel (Inspector, Reset, Doppelklick spielt). Das Häkchen in der ersten Spalte ist die Mehrfachauswahl. Fokus und Häkchen sind unabhängig.
+
+Rechtsklick → Ordner öffnen wählt links den Ordner dieser Datei. Nützlich nach Titel anzeigen, wenn Treffer über viele Ordner verteilt sind.
 
 „Filter weg“ nach „Titel anzeigen“ lädt wieder den ausgewählten Bibliotheksordner, oder die erste Wurzel, wenn keiner gewählt ist.
 
 Ist der Player geladen, sitzen Transport und Spektrogramm unter der Liste (Splitter zum Vergrößern). Ohne Player bleibt der Editor allein funktionsfähig.
 
-### Auswahl und Sammelaktionen
+Oben in der Leiste immer: Alle / Keine, Abspielen und Zur Playlist (Player muss geladen sein). Sammelaktionen für Tags und Dateinamen nur im Bearbeitungsmodus.
 
-- Alle / Keine: Dateien an- oder abwählen.
-- Künstler / Genres / Moods: Sammeldialog für die Auswahl (siehe unten).
-- Kommentare: denselben Kommentar setzen oder alle Kommentare der Auswahl leeren.
-- Abspielen / Zur Playlist: Auswahl an das Player-Modul übergeben (nur wenn der Player geladen ist).
-- Dateiname aus ID3: ausgewählte Dateien nach den Tags umbenennen.
-- ID3 aus Dateiname: Tags aus dem Dateinamen lesen und schreiben.
+### Tags bearbeiten
 
-### Felder pro Datei
+Blendet rechts den Inspector ein und oben die Sammelleiste. Beim Start merkt sich Buran pro Titel Tags und Dateiname; beim Verlassen wird der dann gespeicherte Stand die neue Basis.
 
-- Auswahl-Häkchen, Titel, Album, Dateiname, Erscheinungsjahr, Kommentar.
-- Bitrate nur Anzeige.
-- Künstler, Genres und Moods als Listen: X entfernt einen Eintrag, + bzw. Enter fügt hinzu. Die Vorschlagsliste kommt aus dem Katalog (bevorzugte Namen und Alternativen).
-- Unbekannte Namen werden als bevorzugter Katalogeintrag angelegt, sofern sie nicht blockiert sind. Blockierte Werte kommen auf die Datei, aber nicht in die Datenbank.
-- Von ID3 zum Dateinamen / Vom Dateinamen zu ID3: nur diese eine Datei.
-- ID3 auf Standard zurücksetzen: Tags der Datei auf den Zustand beim Laden zurücksetzen.
+### Inspector — ein Titel
 
-Beim Ordneröffnen werden alternative Schreibweisen in den Dateien auf den bevorzugten Katalognamen umgeschrieben und gespeichert.
+Gilt für den fokussierten Titel, nicht für alle Häkchen.
 
-### Sammeldialog Künstler, Genres, Moods
+- Titel, Album, Jahr, Kommentar: sofort in die Datei.
+- Künstler, Genres, Moods: Listen mit × und + / Enter. Vorschläge aus dem Katalog.
+- Name → baut `Künstler - Titel` aus den Tags (bevorzugte Katalognamen). Zwei Künstler: `A feat. B`, mehr: `A feat. B, C & D`.
+- ← Name zerlegt den Dateinamen und schreibt die Tags.
+- Reset stellt Tags und Dateiname auf den Stand zu Beginn dieser Bearbeitungssession zurück.
 
-Die Liste ist die Vereinigung aller ausgewählten Dateien.
+Unbekannte, nicht blockierte Namen werden als bevorzugter Katalogeintrag angelegt. Blockierte Werte kommen auf die Datei, aber nicht in die Datenbank.
 
-- Eintrag entfernen: wird nur dort gelöscht, wo er vorkommt.
-- Hinzufügen oder „alle“: setzt den Eintrag auf jede ausgewählte Datei, auch wenn er schon in der Liste steht.
-- Aus Auswahl laden: Liste neu aus den Dateien aufbauen.
-- Übernehmen schreibt die Tags. Unbekannte Namen landen im Katalog, blockierte nicht.
+Beim Öffnen eines Ordners ersetzt Buran alternative Schreibweisen durch den bevorzugten Katalognamen und speichert das.
 
-### Sammeldialog Kommentare
+### Sammelaktionen (angehakte Dateien)
 
-Ein Textfeld, Vorschau je Datei. Übernehmen ersetzt den Kommentar jeder ausgewählten Datei. Leeres Feld löscht ihn.
+Nur im Bearbeitungsmodus, nur für Zeilen mit Häkchen: Künstler, Genres, Moods, Kommentare, Dateiname aus ID3, ID3 aus Dateiname.
+
+Die Liste im Sammeldialog ist die Vereinigung aller ausgewählten Dateien. × löscht nur dort, wo der Eintrag vorkommt. Hinzufügen oder „alle“ setzt ihn auf jede ausgewählte Datei.
+
+Kommentare: ein Textfeld, Vorschau je Datei. Leeres Feld löscht den Kommentar.
 
 ### Dateiname aus ID3 und Konflikte
 
 Existiert der Zielname bereits, öffnet sich „Dateien vergleichen“ (Größe, Änderung, Dauer, Bitrate, Abtastrate, Kanäle, Bit-Tiefe, Format).
 
-- Beide behalten: Umbenennung abbrechen, beide Dateien bleiben.
-- Diese Datei behalten: vorhandene Datei löschen, diese Datei umbenennen.
-- Vorhandene behalten: diese Datei löschen, die vorhandene bleibt.
+- Beide behalten: Umbenennung abbrechen.
+- Diese Datei behalten: vorhandene Datei löschen, diese umbenennen.
+- Vorhandene behalten: diese Datei löschen.
 
 ### ID3 aus Dateiname
 
-Der Dateiname wird mit Mustern und Schlüsselwörtern zerlegt (Künstler, Titel, Album, Jahr, Versionshinweise wie Live oder Remix). Komma und Semikolon trennen immer. Weitere Trenner stehen unter Schlüsselwörter im DB-Editor.
+Muster und Schlüsselwörter zerlegen den Namen (Künstler, Titel, Album, Jahr, Live/Remix). Komma und Semikolon trennen immer.
 
-„feat.“ / „ft.“ / „featuring“ im Dateinamen — auch in Klammern, z. B. `Eminem - Stan (feat. Dido).mp3` — werden als weitere Künstler gelesen, nicht als Kommentar. `(Live)` oder `[Remix]` bleiben Kommentar.
+„feat.“ / „ft.“ / „featuring“ — auch in Klammern, z. B. `Eminem - Stan (feat. Dido).mp3` — werden weitere Künstler, nicht Kommentar. `(Live)` oder `[Remix]` bleiben Kommentar.
 
-Bekannte Katalognamen und einbuchstabige Bruchstücke (z. B. „D & F“) werden nicht zerschnitten.
+Bekannte Katalognamen und Einbuchstaben-Gruppen wie „D & F“ werden nicht zerschnitten. Weitere Trenner stehen unter Schlüsselwörter im DB-Editor.
 
 ## Neue Werte für die Datenbank
 
-Nach dem Laden eines Ordners erscheint dieser Dialog, wenn ID3-Tags oder Dateinamen Namen enthalten, die noch nicht im Katalog stehen und nicht blockiert sind.
-
-Pro Eintrag:
+Nach dem Laden eines Ordners, wenn Tags oder Dateinamen unbekannte, nicht blockierte Namen enthalten.
 
 - Häkchen: übernehmen oder weglassen.
 - Bevorzugter Name: neuer Katalogeintrag.
-- Alternativname: Schreibweise eines vorhandenen bevorzugten Eintrags. Beim Künstler kann der bevorzugte Name auch direkt mitangelegt werden.
+- Alternativname: Schreibweise eines vorhandenen Eintrags.
 - Blockieren: nie wieder vorschlagen. Genre „Happy“ blockiert nicht Mood „Happy“.
-
-Unten: blockierte Werte mit Freigeben. Freigeben setzt den Namen wieder in die Liste oben, damit du ihn sofort übernehmen kannst.
-
-Übernehmen schreibt nur angehakte Einträge. Überspringen schließt ohne Änderung.
+- Unten: blockierte Werte freigeben, dann erscheinen sie wieder oben.
+- Übernehmen schreibt nur angehakte Einträge. Überspringen schließt ohne Änderung.
 
 ## Player
 
-Eigenes Modul. Spielt MP3 und FLAC über libVLC. Mit ID3-Editor docken Transport und Spektrogramm unter die Editor-Liste; der Player-Reiter behält Ordner-Warteschlange und Playlists. Ohne Editor bleibt der Player-Reiter vollständig.
+Eigenes Modul. MP3 und FLAC über libVLC. Mit ID3-Editor docken Transport und Spektrogramm unter die Editor-Liste; der Player-Reiter behält Ordner-Warteschlange und Playlists.
 
 - Play / Pause / Stop / Zurück / Weiter, Position, Lautstärke.
-- Spektrogramm (wie Spek, einmal berechnet). Achsen: Hz, Zeit, dB bis zur Nyquist-Frequenz der Datei. Klick oder Ziehen sucht. Splitter ändert die Höhe. Damit siehst du, ob eine 192-kHz-Datei oberhalb von 16 kHz überhaupt Energie hat.
-- Linke Liste: Dateien des gewählten Bibliotheksordners. Doppelklick spielt, „Zur Playlist“ übernimmt.
-- Rechte Liste: benannte Playlists, die Ordner übergreifen dürfen. Neu, umbenennen, löschen.
-- M3U importieren und exportieren (absolute Pfade). Fehlende Dateien bleiben in der Playlist markiert.
-- Vom ID3-Editor: „Abspielen“ und „Zur Playlist“ für die Auswahl.
+- Repeat: aus / alle / einer / einmal.
+- Player und Tabs tauschen: Dock oben oder unten.
+- Spektrogramm (einmal berechnet, ähnlich Spek). Achsen: Hz, Zeit, dB bis zur Nyquist-Frequenz. Klick oder Ziehen sucht. Damit siehst du, ob eine 192-kHz-Datei oberhalb von 16 kHz Energie hat.
+- Linke Liste: Dateien des Bibliotheksordners. Doppelklick spielt, Zur Playlist übernimmt.
+- Rechte Liste: benannte Playlists über Ordnergrenzen. Neu, umbenennen, löschen.
+- M3U importieren und exportieren (absolute Pfade). Fehlende Dateien bleiben markiert.
+- Vom ID3-Editor: Abspielen und Zur Playlist für die Auswahl.
 
 Wiedergabe aus einer Playlist läuft weiter, wenn du den Ordner wechselst. Die Ordner-Warteschlange stoppt, wenn der aktuelle Titel nicht mehr im neuen Ordner liegt.
 
 ## DB-Editor
 
-Zweiter Reiter. Hier liegt der gesamte Katalog: anlegen, umbenennen, als Alternative zuordnen, blockieren und freigeben.
+Zweiter Reiter. Gesamter Katalog: anlegen, umbenennen, als Alternative zuordnen, blockieren, freigeben.
 
 ### Suche und Aktualisieren
 
-Die Suche filtert Künstler, Alternativnamen und Schlüsselwörter. „Suche leeren“ setzt sie zurück. „Aktualisieren“ lädt den Katalog neu.
+Suche filtert Künstler, Alternativnamen und Schlüsselwörter. Suche leeren setzt sie zurück. Aktualisieren lädt den Katalog neu.
 
 ### Künstler
 
-Liste mit bevorzugtem Namen und bürgerlichem Namen. Rechtsklick: Entfernen, Blockieren, Auswahl aufheben, Titel anzeigen (indizierte Titel dieses Künstlers im ID3-Editor, inkl. Ordnerpfad).
+Liste mit bevorzugtem Namen und bürgerlichem Namen. Rechtsklick: Entfernen, Blockieren, Auswahl aufheben, Titel anzeigen (indizierte Titel inkl. Ordnerpfad).
 
-Unten hinzufügen:
+Unten hinzufügen: bevorzugter Name (optional bürgerlicher Name), Alternativname einem vorhandenen Künstler zuordnen, oder Blockieren. Tippen ins Feld filtert (z. B. „E“).
 
-- Bevorzugter Name: neuer Künstler, optional mit bürgerlichem Namen.
-- Alternativname: den getippten Namen einem vorhandenen bevorzugten Künstler zuordnen. Ins Feld tippen (z. B. „E“) filtert die Liste.
-- Blockieren: den getippten Namen dauerhaft ausblenden. Steht er schon im Katalog, wird er entfernt. Bei einem bevorzugten Namen werden auch seine Alternativen blockiert.
+Bei einem bevorzugten Namen werden auch seine Alternativen blockiert.
 
 ### Alternative Namen
 
-Spalte aller Alternativen, oder nur die des ausgewählten Künstlers. Hinzufügen braucht einen ausgewählten Künstler. Entfernen und Blockieren per Rechtsklick oder über die Buttons.
+Spalte aller Alternativen oder nur die des ausgewählten Künstlers. Hinzufügen braucht einen ausgewählten Künstler.
 
 ### Mitgliedschaften
 
@@ -135,35 +149,33 @@ Nur mit ausgewähltem Künstler. Mitglieder dieser Gruppe bzw. Gruppen, zu denen
 
 ### Genres und Moods
 
-Gleiche Bedienung für beide.
+Gleiche Bedienung, getrennte Listen. Moods sind Stimmungen (`Happy`, `Dark`), keine Ersatz-Genres.
 
-- Häkchen: Genre oder Mood dem ausgewählten Künstler zuordnen.
-- Rechtsklick: Entfernen, Blockieren, Auswahl aufheben, Nach Auswahl filtern (Künstlerliste), Filter aufheben, Titel anzeigen.
-- Alternative Schreibweisen: Varianten des ausgewählten Eintrags. + legt an, Blockieren blendet die getippte Variante aus.
-- Unten hinzufügen: bevorzugter Name oder Alternativname eines vorhandenen Eintrags, plus Blockieren.
+- Häkchen: dem ausgewählten Künstler zuordnen.
+- Rechtsklick: Entfernen, Blockieren, Auswahl aufheben, Nach Auswahl filtern, Filter aufheben, Titel anzeigen.
+- Alternative Schreibweisen des ausgewählten Eintrags.
+- Unten: bevorzugten Namen anlegen, Alternativname zuordnen, Blockieren.
 
 ### Schlüsselwörter
 
-Trennzeichen und Erkennungswörter für Dateinamen und Tags.
+- Zusammenarbeit: splittet Künstler (feat, ft, vs, with, and, sowie & + /).
+- Version: erkennt Live, Remix, Remaster.
 
-- Zusammenarbeit: splittet Künstler (feat, ft, vs, with, and, sowie Zeichen wie & + /).
-- Version: erkennt Hinweise wie Live, Remix, Remaster.
-
-Komma und Semikolon bleiben immer Trenner. Wörter und Zeichen in dieser Liste kannst du selbst ergänzen oder löschen; & kannst du hier entfernen, wenn es nicht splitten soll.
+Komma und Semikolon bleiben immer Trenner. & kannst du hier entfernen, wenn „D & F“ nicht splitten soll.
 
 ### Blockierte Werte
 
-Untere Leiste, getrennt nach Künstler, Genre und Mood. Freigeben erlaubt den Namen wieder als Vorschlag. Der Katalogeintrag kommt dadurch nicht automatisch zurück.
+Untere Leiste, getrennt nach Künstler, Genre und Mood. Freigeben erlaubt den Namen wieder als Vorschlag. Der Katalogeintrag kommt dadurch nicht von allein zurück.
 
-Ein späteres Hinzufügen desselben Namens ins Katalog hebt die Blockierung für genau diese Schreibweise auf.
+Ein späteres Hinzufügen derselben Schreibweise hebt die Blockierung für genau diese Schreibweise auf.
 
 ## Katalogmodell
 
 Drei Arten, jeweils getrennt: Künstler, Genre, Mood.
 
 - Bevorzugter Name: die Schreibweise, die in Dateien landen soll.
-- Alternative: andere Schreibweise desselben Eintrags. Wird beim Laden eines Ordners automatisch auf den bevorzugten Namen ersetzt.
-- Blockiert: erscheint nicht mehr im Import-Dialog und wird nicht still in den Katalog übernommen.
+- Alternative: andere Schreibweise desselben Eintrags. Wird beim Laden eines Ordners automatisch ersetzt.
+- Blockiert: erscheint nicht im Import-Dialog und wird nicht still in den Katalog übernommen.
 
 Blockieren gilt nur für die gewählte Art. Dieselbe Zeichenkette kann als Genre blockiert und als Mood erlaubt sein.
 

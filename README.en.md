@@ -15,6 +15,8 @@
   <strong>English</strong>
   ·
   <a href="README.ru.md">Русский</a>
+  ·
+  <a href="README.uz.md">O'zbekcha</a>
 </p>
 
 <p align="center">
@@ -38,7 +40,7 @@ Tag changes are **written to the file immediately**. There is no extra Save butt
 | Files | MP3 and FLAC |
 | Platforms | Linux (RPM, including Fedora / Bazzite) and Windows |
 | Player | libVLC is bundled |
-| Languages | German, English, Russian, or system language |
+| Languages | German, English, Russian, Uzbek (Latin), or system language |
 | Data | Catalog and settings live in the user folder, not in the music library |
 
 The same guide is available in the app under **Settings → Manual**.
@@ -47,6 +49,7 @@ The same guide is available in the app under **Settings → Manual**.
 
 - [Installation](#installation)
 - [First launch](#first-launch)
+- [Typical problems](#typical-problems)
 - [Features](#features)
   - [Settings](#settings)
   - [Library](#library)
@@ -65,7 +68,7 @@ Installers are on **[Releases](https://github.com/88Radium/BuranMusicLibraryMana
 
 ### Linux (Fedora, RHEL, Bazzite)
 
-1. Download the `.rpm` of the release you want (for example `buran-0.1.3-4.x86_64.rpm`).
+1. Download the `.rpm` of the release you want (for example `buran-0.1.6-4.x86_64.rpm`).
 2. On **Bazzite / rpm-ostree**:
 
 ```bash
@@ -89,8 +92,9 @@ Debian/Ubuntu: a `.deb` is attached as well. It is a companion package; the Linu
 ### Windows
 
 1. Download and run `Buran-<Version>-win-x64-setup.exe`.
-2. The app is installed to `%LOCALAPPDATA%\Programs\Buran` and the Start menu.
-3. Or unzip the portable `.zip` and run `BuranUI.exe`.
+2. Choose the installer language: English, German, Russian, or Uzbek (Latin).
+3. The app is installed to `%LOCALAPPDATA%\Programs\Buran` and the Start menu.
+4. Or unzip the portable `.zip` and run `BuranUI.exe`.
 
 Windows may show SmartScreen on first launch (the file is not digitally signed). Choose **More info → Run anyway**.
 
@@ -106,6 +110,25 @@ libVLC and `ffmpeg.exe` (for the spectrogram) are included in the Windows packag
 
 Several roots are allowed (an internal drive and a NAS share, for example). Buran remembers the list.
 
+## Typical problems
+
+Which function helps with which mess:
+
+| Problem | Function |
+|---|---|
+| The same artist in five spellings (`Eminem`, `EMINEM`, `M&M`) | Catalog: **preferred name** plus **alternatives**. The next time you open a folder, Buran rewrites the variants automatically. |
+| `feat. Dido` lands in the comment instead of as an artist | **ID3 from filename**; separators under **Keywords → Collaboration** in the DB editor. |
+| Empty or wrong tags, but clean file names | **ID3 from filename** (one file or bulk). |
+| Wild file names, tags are fine | **Filename from ID3**. Scheme: `Artist - Title`. |
+| Two files would get the same name | **Compare files** (size, duration, bitrate, …) and keep or delete. |
+| ID3 comments full of player junk | Bulk **Comments** — set the same text or clear. |
+| A genre only on some files in the folder | Bulk **Genres**: × removes it only where it occurs; add writes it onto **every** checked file. |
+| Album with `CD1`/`CD2` in subfolders | **Include subfolders**, then click the album folder. |
+| Every track by an artist across the collection | **Index library**, in the DB editor right-click → **Show tracks**. |
+| Is a “192 kHz” file really hi-res? | **Spectrogram**: energy above 16 kHz visible or dead. |
+| Accidental rename or ruined tags | In edit mode **Reset** — tags **and** file name back to the start of this session. |
+| Never suggest junk names again | Import dialog or DB editor: **Block** (only for the chosen kind: artist, genre, or mood). |
+
 ## Features
 
 ### Settings
@@ -114,10 +137,11 @@ Top right, **Settings**.
 
 | Setting | What it does | Why | How to use it |
 |---|---|---|---|
-| **Language** | Switches the UI and the built-in manual. | German, English, Russian, or the system language. | Open the list, pick a language. Applies immediately. |
+| **Language** | Switches the UI and the built-in manual. | German, English, Russian, Uzbek (Latin), or the system language. | Open the list, pick a language. Applies immediately. |
 | **Font size** | Small / Medium / Large. | Long tag lists and 4K monitors. | Open the list, pick a size. |
 | **Transparency** | Window opacity (from 40 %). | Let the desktop show through. | Slider. |
 | **Manual** | Opens the in-app handbook. | The same feature overview, without GitHub. | **Manual** button. |
+| **Version** | Shows the installed version number. | Check whether the package is current. | Display only, at the bottom of the settings menu and on the splash screen. |
 
 ### Library
 
@@ -195,6 +219,8 @@ If the list is filtered (for example “tracks of this artist”), the button lo
 
 **Double-click** plays the focused track (when the player module is loaded).
 
+Always in the top bar (**not** only in edit mode): **All / None**, **Play**, and **Add to playlist** (player must be loaded). Bulk tag and rename actions appear only after **Edit tags**.
+
 #### Edit tags (edit mode)
 
 **What:** Shows the inspector on the right and the bulk bar at the top.  
@@ -229,11 +255,8 @@ Edit mode only, and only for rows with a check mark.
 
 | Button | What it does | Why | How |
 |---|---|---|---|
-| **All / None** | Check or uncheck every file. | Touch a whole folder at once. | **All**, pick an action, **None** when you are done. |
 | **Artists / genres / moods** | Opens the bulk dialog. The list is the **union** of all selected files. | Remove “Pop” only where it exists; add “Freestyle” to **every** file. | Check files → button → × or add → **Apply**. |
 | **Comments** | The same text on every selected file, or clear all comments. | ID3 comments full of player junk. | Type text and **Apply**, or leave the field empty / **Clear**. |
-| **Play** | Hands the selection to the player. | Audition without hunting for the Player tab. | Check → **Play**. |
-| **Add to playlist** | Appends the selection to the current playlist. | A mix that crosses folders. | Check → **Add to playlist**. |
 | **File name from ID3** | Like **Name →**, for every check mark. | Rename a folder to the tag scheme. | Check → button. |
 | **ID3 from file name** | Like **← Name**, for every check mark. | Tags from clean file names for the whole folder. | Check → button. |
 
