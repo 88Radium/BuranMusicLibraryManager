@@ -12,7 +12,7 @@
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <ContentControl x:Name="ChromeHost" MinHeight="140" MinWidth="160" />
+        <ContentControl x:Name="ChromeHost" MinHeight="72" MinWidth="160" />
 
         <Button Grid.Column="1" Width="36" Padding="0"
                 HorizontalContentAlignment="Center"
@@ -45,7 +45,7 @@
                     PointerCaptureLost="PlaylistSplitter_PointerCaptureLost" />
             <Border Grid.Column="1" Classes="toolbar" Padding="8">
             <DockPanel>
-                <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,8">
+                <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,4">
                     <ComboBox HorizontalAlignment="Stretch"
                               ItemsSource="{Binding Playlists}"
                               SelectedItem="{Binding SelectedPlaylist}">
@@ -59,20 +59,20 @@
                              Text="{Binding SelectedPlaylistName}"
                              IsEnabled="{Binding HasPlaylists}" />
                     <WrapPanel>
-                        <Button Margin="0,0,6,6" Content="{loc:Loc Key=Player.NewPlaylist}" Command="{Binding NewPlaylistCommand}" />
-                        <Button Margin="0,0,6,6" Content="{loc:Loc Key=Player.DeletePlaylist}" Command="{Binding DeletePlaylistCommand}"
+                        <Button Margin="0,0,4,4" Content="{loc:Loc Key=Player.NewPlaylist}" Command="{Binding NewPlaylistCommand}" />
+                        <Button Margin="0,0,4,4" Content="{loc:Loc Key=Player.DeletePlaylist}" Command="{Binding DeletePlaylistCommand}"
                                 IsEnabled="{Binding HasPlaylists}" />
-                        <Button Margin="0,0,6,6" Content="{loc:Loc Key=Player.ImportM3u}" Command="{Binding ImportM3uCommand}" />
-                        <Button Margin="0,0,6,6" Content="{loc:Loc Key=Player.ExportM3u}" Command="{Binding ExportM3uCommand}"
+                        <Button Margin="0,0,4,4" Content="{loc:Loc Key=Player.ImportM3u}" Command="{Binding ImportM3uCommand}" />
+                        <Button Margin="0,0,4,4" Content="{loc:Loc Key=Player.ExportM3u}" Command="{Binding ExportM3uCommand}"
                                 IsEnabled="{Binding HasPlaylistTracks}" />
                     </WrapPanel>
                 </StackPanel>
-                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
                     <Button Content="{loc:Loc Key=Common.Remove}"
                             Command="{Binding RemovePlaylistTrackCommand}"
                             IsEnabled="{Binding SelectedPlaylistTrack, Converter={x:Static ObjectConverters.IsNotNull}}" />
                 </StackPanel>
-                <ListBox ItemsSource="{Binding PlaylistTracks}"
+                <ListBox Classes="track-list" ItemsSource="{Binding PlaylistTracks}"
                          SelectedItem="{Binding SelectedPlaylistTrack}"
                          DoubleTapped="PlaylistTracks_DoubleTapped">
                     <ListBox.ItemTemplate>

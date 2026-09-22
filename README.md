@@ -207,8 +207,9 @@ Oberer Arbeitsbereich. Hier lebst du, wenn Tags und Dateinamen stimmen sollen.
 **Spalten**
 
 - **Spalten** oben: Häkchen setzen oder entfernen blendet Spalten ein und aus.
-- Überschriften ziehen sortiert um, Ziehen am Rand ändert die Breite.
-- **Dateiname**, **Genre** und **Mood** sind standardmäßig aus, weil die Tabelle sonst zu breit wird.
+- Überschriften ziehen ändert die Spaltenreihenfolge, Ziehen am Rand die Breite. Doppelklick auf den Trenner passt die linke Spalte dem Inhalt an.
+- Klick auf eine Überschrift sortiert die Zeilen, nochmal klicken dreht die Richtung. Ein blasses Pfeilpaar an der Überschrift zeigt, dass sie sortierbar ist.
+- **Dateiname**, **Kommentar**, **Genre** und **Mood** sind standardmäßig aus, weil die Tabelle sonst zu breit wird.
 
 **Rechtsklick → Ordner öffnen**
 

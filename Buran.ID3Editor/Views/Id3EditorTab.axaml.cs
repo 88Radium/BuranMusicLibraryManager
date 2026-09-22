@@ -1,10 +1,16 @@
 using System;
+using System.Collections;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Controls.Documents;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Buran.ID3Editor.Models;
@@ -21,6 +27,13 @@ public partial class Id3EditorTab : UserControl {
     private double _splitStartWidth;
     private double _splitStartX;
 
+    private const double SplitterHitWidth = 5;
+    // Fluent header reserves 12px left padding, a 32px sort-icon slot, and a 1px separator
+    // even when the icon is hidden. Cell text adds 12px margin each side plus our 6px padding.
+    private const double SortSlotWidth = 32;
+    private const double SeparatorWidth = 1;
+    private const double CellTextMargin = 12;
+
     private Id3EditorTabViewModel? _hookedVm;
     private bool _columnRefreshQueued;
     private bool _rebuildingColumns;
@@ -31,6 +44,8 @@ public partial class Id3EditorTab : UserControl {
         AttachedToVisualTree += (_, _) => QueueColumnRefresh();
         SizeChanged += (_, _) => ClampInspectorWidth();
         HookColumns();
+        if (this.FindControl<DataGrid>("TracksGrid") is { } tracks)
+            tracks.AddHandler(InputElement.PointerPressedEvent, OnHeaderSplitterPressed, RoutingStrategies.Tunnel);
     }
 
     private void HookColumns() {
@@ -145,8 +160,103 @@ public partial class Id3EditorTab : UserControl {
     }
 
     private void Tracks_DoubleTapped(object? sender, TappedEventArgs e) {
+        if ((e.Source as Visual)?.FindAncestorOfType<DataGridColumnHeader>() != null)
+            return;
         if (DataContext is Id3EditorTabViewModel vm && vm.FocusedFile is { } file)
             vm.PlayThisFileCommand.Execute(file);
+    }
+
+    private void OnHeaderSplitterPressed(object? sender, PointerPressedEventArgs e) {
+        if (e.ClickCount != 2 || sender is not DataGrid grid)
+            return;
+        if (!e.GetCurrentPoint(grid).Properties.IsLeftButtonPressed)
+            return;
+        if (e.Source is not Control source)
+            return;
+        var header = source as DataGridColumnHeader ?? source.FindAncestorOfType<DataGridColumnHeader>();
+        if (header == null || header.Bounds.Width <= 0)
+            return;
+
+        var hit = DataGridColumn.GetColumnContainingElement(header);
+        if (hit == null)
+            return;
+
+        var x = e.GetPosition(header).X;
+        var onRight = header.Bounds.Width - x <= SplitterHitWidth;
+        var onLeft  = x <= SplitterHitWidth;
+        if (!onLeft && !onRight)
+            return;
+
+        var sizeThisColumn = onRight && (!onLeft || x >= header.Bounds.Width / 2);
+        var target = sizeThisColumn ? hit : PreviousVisibleColumn(grid, hit);
+        if (target is not { CanUserResize: true })
+            return;
+
+        target.Width = new DataGridLength(FitColumnWidth(grid, header, target), DataGridLengthUnitType.Pixel);
+        e.Handled = true;
+    }
+
+    private static DataGridColumn? PreviousVisibleColumn(DataGrid grid, DataGridColumn column) =>
+        grid.Columns
+            .Where(c => c.IsVisible && c.DisplayIndex < column.DisplayIndex)
+            .OrderByDescending(c => c.DisplayIndex)
+            .FirstOrDefault();
+
+    private static double FitColumnWidth(DataGrid grid, DataGridColumnHeader header, DataGridColumn column) {
+        var headerWidth = Measure(column.Header?.ToString() ?? "", header)
+                          + header.Padding.Left + header.Padding.Right + SortSlotWidth + SeparatorWidth;
+
+        var cell = grid.GetVisualDescendants().OfType<DataGridCell>().FirstOrDefault();
+        var cellPad = cell?.Padding.Left + cell?.Padding.Right ?? 12;
+        var widest = WidestCell(grid, column, cell ?? (Control)header);
+        var content = widest <= 0 ? 0 : widest + cellPad + CellTextMargin * 2 + SeparatorWidth;
+
+        var optimal = Math.Max(headerWidth, content);
+        var viewport = grid.Bounds.Width;
+        if (viewport > headerWidth)
+            optimal = Math.Min(optimal, viewport);
+        optimal = Math.Max(optimal, column.MinWidth);
+        if (!double.IsPositiveInfinity(column.MaxWidth))
+            optimal = Math.Min(optimal, column.MaxWidth);
+        return Math.Ceiling(optimal);
+    }
+
+    private static double WidestCell(DataGrid grid, DataGridColumn column, AvaloniaObject style) {
+        if (grid.ItemsSource is not IEnumerable items)
+            return 0;
+        if (column is not DataGridBoundColumn { Binding: Binding { Path: { Length: > 0 } path } })
+            return 0;
+
+        PropertyInfo? property = null;
+        var widest = 0.0;
+        foreach (var item in items) {
+            if (item == null)
+                continue;
+            property ??= item.GetType().GetProperty(path);
+            var text = property?.GetValue(item)?.ToString();
+            if (string.IsNullOrEmpty(text))
+                continue;
+            foreach (var line in text.Split('\r', '\n'))
+                widest = Math.Max(widest, Measure(line, style));
+        }
+
+        return widest;
+    }
+
+    private static double Measure(string text, AvaloniaObject style) {
+        if (text.Length == 0)
+            return 0;
+        var formatted = new FormattedText(
+            text,
+            CultureInfo.CurrentCulture,
+            FlowDirection.LeftToRight,
+            new Typeface(
+                style.GetValue(TextElement.FontFamilyProperty),
+                style.GetValue(TextElement.FontStyleProperty),
+                style.GetValue(TextElement.FontWeightProperty)),
+            style.GetValue(TextElement.FontSizeProperty),
+            Brushes.Black);
+        return formatted.Width;
     }
 
     private void InspectorSplitter_PointerPressed(object? sender, PointerPressedEventArgs e) {

@@ -290,6 +290,7 @@
   "Db.BlockedMoods": "Bloklangan kayfiyatlar",
   "Db.SelectToBlock": "Avval bloklanadigan yozuvni tanlang.",
 
+  "Bulk.ExistingComments": "Joriy izohlar",
   "Bulk.CommentsTitle": "Izohlarni o'rnatish",
   "Bulk.CommentsHint": "Bir xil izoh har bir tanlangan faylga yoziladi. Bo'sh maydon izohlarni tozalaydi.",
   "Bulk.CommentPlaceholder": "Izoh matni, yoki tozalash uchun bo'sh qoldiring",

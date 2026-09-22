@@ -53,7 +53,7 @@ public partial class PlayerTabViewModel : ViewModelBase, IPlaybackController, IP
     [ObservableProperty] private bool           _isPlaylistOpen;
     [ObservableProperty] private RepeatMode     _repeatMode = RepeatMode.All;
 
-    public GridLength ChromeRowHeight   => IsDocked ? new GridLength(0) : new GridLength(220);
+    public GridLength ChromeRowHeight   => IsDocked ? new GridLength(0) : new GridLength(168);
     public GridLength SplitterRowHeight => IsDocked ? new GridLength(0) : new GridLength(6);
 
     partial void OnIsDockedChanged(bool value) {
@@ -97,7 +97,10 @@ public partial class PlayerTabViewModel : ViewModelBase, IPlaybackController, IP
     }
 
     public string PlayPauseLabel => IsPlaying ? L.Get("Player.Pause") : L.Get("Player.Play");
+    public bool   HasStatusText  => !string.IsNullOrWhiteSpace(StatusText);
     public string PositionText   => FormatClock(_engine.TimeMs) + " / " + FormatClock(_engine.LengthMs);
+
+    partial void OnStatusTextChanged(string value) => OnPropertyChanged(nameof(HasStatusText));
     public double DurationSeconds => Math.Max(0, _engine.LengthMs / 1000.0);
     public double NyquistHz =>
         NowPlaying is { NyquistHz: > 0 } track ? track.NyquistHz : 22050;

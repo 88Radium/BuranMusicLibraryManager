@@ -75,8 +75,9 @@ internal static class NativeLibVlc {
     }
 
     private static string? FindLibDir() {
+        var windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         foreach (var dir in LibDirs()) {
-            if (File.Exists(Path.Combine(dir, "libvlc.dll")) ||
+            if ((windows && File.Exists(Path.Combine(dir, "libvlc.dll"))) ||
                 File.Exists(Path.Combine(dir, "libvlc.so")) ||
                 File.Exists(Path.Combine(dir, "libvlc.so.5")))
                 return dir;
@@ -86,8 +87,14 @@ internal static class NativeLibVlc {
     }
 
     private static IEnumerable<string> LibDirs() {
-        var rid = Environment.Is64BitProcess ? "win-x64" : "win-x86";
-        yield return Path.Combine(AppDir, "libvlc", rid);
+        // The NuGet package always drops libvlc/win-x64 next to the app.
+        // That DLL is a Windows PE file. Searching it on Linux wins over
+        // /usr/lib64/libvlc.so.5 and Core.Initialize fails with "invalid ELF header".
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            var rid = Environment.Is64BitProcess ? "win-x64" : "win-x86";
+            yield return Path.Combine(AppDir, "libvlc", rid);
+        }
+
         yield return AppDir;
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             yield break;
@@ -99,8 +106,11 @@ internal static class NativeLibVlc {
     }
 
     private static string? FirstExisting(params string[] names) {
+        var skipDll = RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
         foreach (var dir in LibDirs()) {
             foreach (var name in names) {
+                if (skipDll && name.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                    continue;
                 var path = Path.Combine(dir, name);
                 if (File.Exists(path))
                     return path;
@@ -120,8 +130,11 @@ internal static class NativeLibVlc {
     }
 
     private static IEnumerable<string> PluginDirs() {
-        var rid = Environment.Is64BitProcess ? "win-x64" : "win-x86";
-        yield return Path.Combine(AppDir, "libvlc", rid, "plugins");
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            var rid = Environment.Is64BitProcess ? "win-x64" : "win-x86";
+            yield return Path.Combine(AppDir, "libvlc", rid, "plugins");
+        }
+
         yield return Path.Combine(AppDir, "vlc", "plugins");
         yield return Path.Combine(AppDir, "plugins");
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))

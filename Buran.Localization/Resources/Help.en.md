@@ -43,7 +43,7 @@ The left column is the folder tree.
 
 ## ID3 editor
 
-The first workspace tab. Compact table (title, artists, folder path, album, year, duration, bitrate, sample rate, bit depth). Columns can be shown or hidden via Columns; drag headers to reorder. File name, Genre, and Mood are off by default.
+The first workspace tab. Compact table (title, artists, folder path, album, year, duration, bitrate, sample rate, bit depth). Columns can be shown or hidden via Columns; drag headers to reorder. File name, Comment, Genre, and Mood are off by default. Double-click the splitter between two headers to fit the column on the left to its content, at least as wide as the header text. Click the header itself to sort the rows; the faint arrow pair beside it marks that.
 
 A clicked row is the focused track (inspector, Reset, double-click plays). The checkbox in the first column is multi-select. Focus and checkboxes are independent.
 

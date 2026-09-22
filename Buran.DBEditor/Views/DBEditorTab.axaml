@@ -21,7 +21,7 @@
     </UserControl.DataContext>
 
     <DockPanel>
-        <Border DockPanel.Dock="Top" Classes="toolbar" Margin="8,8,8,0">
+        <Border DockPanel.Dock="Top" Classes="toolbar" Margin="4,4,4,0">
             <Grid ColumnDefinitions="*,8,Auto,8,Auto">
                 <TextBox PlaceholderText="{loc:Loc Key=Db.SearchPlaceholder}"
                          Text="{Binding ArtistSearchText}" />
@@ -36,7 +36,7 @@
             </Grid>
         </Border>
 
-        <Grid RowDefinitions="*,12,Auto" Margin="8">
+        <Grid RowDefinitions="*,6,Auto" Margin="4">
         <Grid ColumnDefinitions="*,4,*,4,*,4,*,4,*,4,0.85*">
 
         <!-- Künstler -->
@@ -69,7 +69,7 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.Add}" Margin="0,8,0,0">
+                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.Add}" Margin="0,4,0,0">
                     <StackPanel Spacing="8">
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                             <TextBox PlaceholderText="{loc:Loc Key=Db.ArtistName}" Text="{Binding NewPreferredArtistName}" />
@@ -139,9 +139,9 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.AddVariant}" Margin="0,8,0,0"
+                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.AddVariant}" Margin="0,4,0,0"
                           IsEnabled="{Binding HasSelectedArtist}">
-                    <Grid RowDefinitions="Auto,Auto" RowSpacing="8">
+                    <Grid RowDefinitions="Auto,Auto" RowSpacing="4">
                         <TextBox PlaceholderText="{loc:Loc Key=Db.AlternativeNameExample}"
                                  Text="{Binding NewAlternativeName}" />
                         <Grid Grid.Row="1" ColumnDefinitions="*,8,*">
@@ -163,7 +163,7 @@
 
         <!-- Mitgliedschaften -->
         <GroupBox Grid.Column="4" Classes="editor-column" Header="{loc:Loc Key=Db.Memberships}">
-            <Grid RowDefinitions="*,8,*" IsEnabled="{Binding HasSelectedArtist}">
+            <Grid RowDefinitions="*,4,*" IsEnabled="{Binding HasSelectedArtist}">
                 <GroupBox Header="{Binding MembersCaption}">
                     <Grid RowDefinitions="*,Auto">
                         <ListBox Classes="editor-list"
@@ -182,7 +182,7 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,8,0,0" ColumnSpacing="8">
+                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,4,0,0" ColumnSpacing="8">
                             <AutoCompleteBox PlaceholderText="{loc:Loc Key=Db.MemberExample}"
                                              FilterMode="ContainsOrdinal"
                                              MinimumPrefixLength="1"
@@ -212,7 +212,7 @@
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
-                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,8,0,0" ColumnSpacing="8">
+                        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,4,0,0" ColumnSpacing="8">
                             <AutoCompleteBox PlaceholderText="{loc:Loc Key=Db.GroupExample}"
                                              FilterMode="ContainsOrdinal"
                                              MinimumPrefixLength="1"
@@ -263,9 +263,9 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.GenreVariants}" Margin="0,8,0,0"
+                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.GenreVariants}" Margin="0,4,0,0"
                           IsEnabled="{Binding HasSelectedGenre}">
-                    <Grid RowDefinitions="*,Auto" RowSpacing="8">
+                    <Grid RowDefinitions="*,Auto" RowSpacing="4">
                         <ListBox Classes="editor-list" MaxHeight="120"
                                  ItemsSource="{Binding FilteredGenreVariants}"
                                  SelectedItem="{Binding SelectedGenreVariant}">
@@ -294,7 +294,7 @@
                         </Grid>
                     </Grid>
                 </GroupBox>
-                <GroupBox Grid.Row="2" Header="{loc:Loc Key=Db.AddGenre}" Margin="0,8,0,0">
+                <GroupBox Grid.Row="2" Header="{loc:Loc Key=Db.AddGenre}" Margin="0,4,0,0">
                     <StackPanel Spacing="8">
                         <TextBox PlaceholderText="{loc:Loc Key=Db.NewGenre}" Text="{Binding NewGenreName}" />
                         <RadioButton GroupName="DbGenreInsertMode"
@@ -372,9 +372,9 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.MoodVariants}" Margin="0,8,0,0"
+                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.MoodVariants}" Margin="0,4,0,0"
                           IsEnabled="{Binding HasSelectedMood}">
-                    <Grid RowDefinitions="*,Auto" RowSpacing="8">
+                    <Grid RowDefinitions="*,Auto" RowSpacing="4">
                         <ListBox Classes="editor-list" MaxHeight="120"
                                  ItemsSource="{Binding FilteredMoodVariants}"
                                  SelectedItem="{Binding SelectedMoodVariant}">
@@ -403,7 +403,7 @@
                         </Grid>
                     </Grid>
                 </GroupBox>
-                <GroupBox Grid.Row="2" Header="{loc:Loc Key=Db.AddMood}" Margin="0,8,0,0">
+                <GroupBox Grid.Row="2" Header="{loc:Loc Key=Db.AddMood}" Margin="0,4,0,0">
                     <StackPanel Spacing="8">
                         <TextBox PlaceholderText="{loc:Loc Key=Db.NewMood}" Text="{Binding NewMoodName}" />
                         <RadioButton GroupName="DbMoodInsertMode"
@@ -479,8 +479,8 @@
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.AddKeyword}" Margin="0,8,0,0">
-                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                <GroupBox Grid.Row="1" Header="{loc:Loc Key=Db.AddKeyword}" Margin="0,4,0,0">
+                    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="4">
                         <TextBox PlaceholderText="{loc:Loc Key=Db.KeywordExample}" Text="{Binding NewKeyword}" />
                         <ComboBox Grid.Row="1" HorizontalAlignment="Stretch"
                                   ItemsSource="{x:Static vm:DBEditorTabViewModel.KeywordTypes}"

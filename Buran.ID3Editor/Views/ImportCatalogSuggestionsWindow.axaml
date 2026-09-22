@@ -16,8 +16,8 @@
         WindowStartupLocation="CenterOwner"
         CanResize="True">
 
-    <DockPanel Margin="16">
-        <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
+    <DockPanel Margin="10">
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,8">
             <TextBlock Text="{loc:Loc Key=Catalog.UnknownFound}" FontSize="{DynamicResource Font.Title}" FontWeight="SemiBold" />
             <TextBlock Classes="muted" TextWrapping="Wrap"
                        Text="{loc:Loc Key=Catalog.Hint}" />
@@ -26,7 +26,7 @@
             <TextBlock Text="{Binding Summary}" Opacity="0.8" Margin="0,4,0,0" />
         </StackPanel>
 
-        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+        <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,8,0,0">
             <TextBlock Classes="muted" Text="{Binding ApplyBlockReason}"
                        IsVisible="{Binding HasApplyBlockReason}" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
@@ -37,7 +37,7 @@
         </StackPanel>
 
         <Grid RowDefinitions="*,Auto">
-        <Grid Grid.Row="0" ColumnDefinitions="*,12,*,12,*">
+        <Grid Grid.Row="0" ColumnDefinitions="*,8,*,8,*">
             <GroupBox Grid.Column="0" Header="{loc:Loc Key=Common.Artists}">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"

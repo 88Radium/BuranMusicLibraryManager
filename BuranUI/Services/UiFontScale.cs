@@ -26,9 +26,9 @@ public static class UiFontScale {
     }
 
     private static Dictionary<string, double> ResourcesFor(string code) => code switch {
-        Small => Scale(15, 10, 10, 11, 10, 13, 24, 11, 11, 34),
-        Large => Scale(22, 13, 13, 16, 14, 18, 34, 16, 16, 48),
-        _     => Scale(18, 11, 11, 13, 12, 15, 28, 13, 13, 40)
+        Small => Scale(15, 10, 10, 11, 10, 13, 22, 11, 11, 26),
+        Large => Scale(22, 13, 13, 16, 14, 18, 30, 16, 16, 36),
+        _     => Scale(18, 11, 11, 13, 12, 15, 24, 13, 13, 30)
     };
 
     private static Dictionary<string, double> Scale(

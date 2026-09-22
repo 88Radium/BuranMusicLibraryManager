@@ -290,6 +290,7 @@
   "Db.BlockedMoods": "Blockierte Moods",
   "Db.SelectToBlock": "Wählen Sie erst einen Eintrag aus, den Sie blockieren möchten.",
 
+  "Bulk.ExistingComments": "Bisherige Kommentare",
   "Bulk.CommentsTitle": "Kommentare setzen",
   "Bulk.CommentsHint": "Derselbe Kommentar wird auf alle ausgewählten Dateien geschrieben. Ein leeres Feld entfernt die Kommentare.",
   "Bulk.CommentPlaceholder": "Kommentartext oder leer lassen zum Entfernen",

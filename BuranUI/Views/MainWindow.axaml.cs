@@ -51,8 +51,8 @@ public partial class MainWindow : Window {
         Grid.SetRow(PlayerSplitter, 1);
         Grid.SetRow(PlayerBarHost, onTop ? 0 : 2);
         if (WorkspaceGrid.RowDefinitions.Count >= 3) {
-            WorkspaceGrid.RowDefinitions[0].Height = new GridLength(onTop ? 3 : 7, GridUnitType.Star);
-            WorkspaceGrid.RowDefinitions[2].Height = new GridLength(onTop ? 7 : 3, GridUnitType.Star);
+            WorkspaceGrid.RowDefinitions[0].Height = new GridLength(onTop ? 2 : 8, GridUnitType.Star);
+            WorkspaceGrid.RowDefinitions[2].Height = new GridLength(onTop ? 8 : 2, GridUnitType.Star);
         }
     }
 

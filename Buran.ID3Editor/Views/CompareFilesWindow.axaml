@@ -16,8 +16,8 @@
 
     <Window.Styles>
         <Style Selector="Border.compare-row">
-            <Setter Property="Padding" Value="10,8" />
-            <Setter Property="Margin" Value="0,0,0,4" />
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="Margin" Value="0,0,0,2" />
             <Setter Property="CornerRadius" Value="6" />
             <Setter Property="Background" Value="#40121A2C" />
         </Style>
@@ -32,14 +32,14 @@
         </Style>
     </Window.Styles>
 
-    <DockPanel Margin="16">
-        <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,12">
+    <DockPanel Margin="10">
+        <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,8">
             <TextBlock Text="{loc:Loc Key=Compare.Title}" FontSize="{DynamicResource Font.Title}" FontWeight="SemiBold" />
             <TextBlock Classes="muted" TextWrapping="Wrap" Text="{Binding Hint}" />
             <TextBlock Text="{Binding DifferenceText}" Opacity="0.8" Margin="0,4,0,0" />
         </StackPanel>
 
-        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+        <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,8,0,0">
             <Grid ColumnDefinitions="*,Auto">
                 <Button Classes="ghost" HorizontalAlignment="Left"
                         Content="{loc:Loc Key=Compare.KeepBoth}"
@@ -60,7 +60,7 @@
 
         <Border Classes="editor-item" Padding="0" Margin="0">
             <DockPanel>
-                <Border DockPanel.Dock="Top" Padding="10,8" Background="#66182236">
+                <Border DockPanel.Dock="Top" Padding="6,4" Background="#66182236">
                     <Grid ColumnDefinitions="160,*,*" ColumnSpacing="12">
                         <TextBlock Classes="muted" Text="{loc:Loc Key=Compare.Property}" />
                         <TextBlock Grid.Column="1" FontWeight="SemiBold"

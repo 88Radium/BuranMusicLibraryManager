@@ -42,7 +42,7 @@
                         VerticalAlignment="Center">
                     <Button.Flyout>
                         <Flyout Placement="BottomEdgeAlignedRight">
-                            <StackPanel Width="280" Spacing="14" Margin="4">
+                            <StackPanel Width="260" Spacing="8" Margin="2">
                                 <TextBlock Classes="sidebar-heading" Text="{loc:Loc Key=Settings.Title}" />
 
                                 <StackPanel Spacing="6">
@@ -102,7 +102,7 @@
             <Border Grid.Column="0" Classes="sidebar"
                     DataContext="{Binding Library}">
                 <DockPanel x:DataType="vm:LibraryBrowserViewModel">
-                    <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
+                    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,6">
                         <TextBlock Classes="sidebar-heading" Text="{loc:Loc Key=Library.Heading}" />
                         <TextBlock Classes="path" Text="{Binding LibraryRootDisplay}"
                                    ToolTip.Tip="{Binding LibraryRootsTooltip}" />
@@ -127,7 +127,7 @@
                                 HorizontalAlignment="Stretch" />
                     </StackPanel>
 
-                    <TextBlock DockPanel.Dock="Bottom" Classes="muted" Margin="0,8,0,0"
+                    <TextBlock DockPanel.Dock="Bottom" Classes="muted" Margin="0,4,0,0"
                                Text="{Binding CurrentFolderDisplay}"
                                TextTrimming="CharacterEllipsis" />
 
@@ -175,9 +175,9 @@
             <Border Grid.Column="2" Classes="workspace">
                 <Grid x:Name="WorkspaceGrid">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="7*" MinHeight="120" />
+                        <RowDefinition Height="8*" MinHeight="96" />
                         <RowDefinition Height="6" />
-                        <RowDefinition Height="3*" MinHeight="160" />
+                        <RowDefinition Height="2*" MinHeight="96" />
                     </Grid.RowDefinitions>
                     <TabControl x:Name="MainTabControl" Classes="folder-tabs" Grid.Row="0" />
                     <GridSplitter x:Name="PlayerSplitter" Grid.Row="1"

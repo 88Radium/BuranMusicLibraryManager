@@ -290,6 +290,7 @@
   "Db.BlockedMoods": "Blocked moods",
   "Db.SelectToBlock": "Select an entry to block first.",
 
+  "Bulk.ExistingComments": "Current comments",
   "Bulk.CommentsTitle": "Set comments",
   "Bulk.CommentsHint": "The same comment is written to every selected file. An empty field clears the comments.",
   "Bulk.CommentPlaceholder": "Comment text, or leave empty to clear",

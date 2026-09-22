@@ -372,6 +372,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             new() { Id = "Title",      HeaderKey = "Id3.Title",       Binding = "Id3Title",                 IsVisible = true,  DefaultWidth = 200 },
             new() { Id = "FolderPath", HeaderKey = "Id3.FolderPath",  Binding = "ContainingDirectoryName",  IsVisible = true,  DefaultWidth = 180 },
             new() { Id = "Album",      HeaderKey = "Id3.Album",       Binding = "Id3Album",                 IsVisible = true,  DefaultWidth = 160 },
+            new() { Id = "Comment",    HeaderKey = "Id3.Comment",     Binding = "Id3Comment",      IsVisible = false, DefaultWidth = 220, MinWidth = 80 },
             new() { Id = "Year",       HeaderKey = "Id3.ReleaseYear", Binding = "Id3ReleaseYear",  IsVisible = true,  DefaultWidth = 72,  MinWidth = 48 },
             new() { Id = "Duration",   HeaderKey = "Id3.Duration",    Binding = "DurationText",    IsVisible = true,  DefaultWidth = 80,  MinWidth = 48 },
             new() { Id = "Bitrate",    HeaderKey = "Id3.Bitrate",     Binding = "BitrateText",     IsVisible = true,  DefaultWidth = 80,  MinWidth = 48 },
