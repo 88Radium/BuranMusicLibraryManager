@@ -148,31 +148,48 @@ public partial class DBConnector {
     }
 
     private static List<IndexedTrackCaseGhost> DeleteCaseGhosts(IReadOnlyList<string> paths) {
-        var planned = new List<(string Path, IndexedTrackCaseGhost Ghost)>();
-        foreach (var group in paths.Where(p => p.Length > 0)
-                     .GroupBy(p => p, StringComparer.CurrentCultureIgnoreCase)) {
-            var distinct = group.Distinct(StringComparer.Ordinal).ToList();
-            if (distinct.Count < 2)
-                continue;
-
-            var living = distinct.Where(File.Exists).ToList();
-            var dead   = distinct.Where(p => !File.Exists(p)).ToList();
-            if (dead.Count == 0)
-                continue;
-
-            var survivor = living.Count > 0 ? Path.GetFileName(living[0]) : "";
-            foreach (var stale in dead)
-                planned.Add((stale, new IndexedTrackCaseGhost(Path.GetFileName(stale), survivor)));
-        }
-
-        foreach (var (path, _) in planned)
-            Execute("DELETE FROM IndexedTracks WHERE Path = $path", new SqliteParameter("$path", path));
+        var planned = PlanCaseGhostRemovals(paths, File.Exists);
+        foreach (var item in planned)
+            Execute("DELETE FROM IndexedTracks WHERE Path = $path", new SqliteParameter("$path", item.RemovedPath));
 
         return planned
             .Select(item => item.Ghost)
             .Where(ghost => ghost.SurvivingFileName.Length > 0)
             .ToList();
     }
+
+    /// <summary>
+    /// Decides which case-variant paths are stale. Does not touch the catalog.
+    /// A row is stale when another path differs only by case and this file is gone.
+    /// When both files exist, both stay. When none exist, the paths are still listed
+    /// but <see cref="IndexedTrackCaseGhost.SurvivingFileName"/> is empty.
+    /// </summary>
+    internal static List<CaseGhostPlan> PlanCaseGhostRemovals(
+        IEnumerable<string> paths,
+        Func<string, bool> fileExists) {
+        var planned = new List<CaseGhostPlan>();
+        foreach (var group in paths.Where(p => p.Length > 0)
+                     .GroupBy(p => p, StringComparer.CurrentCultureIgnoreCase)) {
+            var distinct = group.Distinct(StringComparer.Ordinal).ToList();
+            if (distinct.Count < 2)
+                continue;
+
+            var living   = distinct.Where(fileExists).ToList();
+            var dead     = distinct.Where(p => !fileExists(p)).ToList();
+            if (dead.Count == 0)
+                continue;
+
+            var survivor = living.Count > 0 ? Path.GetFileName(living[0]) : "";
+            foreach (var stale in dead)
+                planned.Add(new CaseGhostPlan(
+                    stale,
+                    new IndexedTrackCaseGhost(Path.GetFileName(stale), survivor)));
+        }
+
+        return planned;
+    }
+
+    internal readonly record struct CaseGhostPlan(string RemovedPath, IndexedTrackCaseGhost Ghost);
 
     private static DataTable LoadIndexedTracks(string column, string name, bool caseSensitive) {
         lock (DbSync) {

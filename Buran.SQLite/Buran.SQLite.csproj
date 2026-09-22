@@ -15,4 +15,8 @@
       <PackageReference Include="Microsoft.Data.Sqlite" />
     </ItemGroup>
 
+    <ItemGroup>
+      <InternalsVisibleTo Include="Buran.Tests" />
+    </ItemGroup>
+
 </Project>

@@ -16,3 +16,5 @@ jobs:
           global-json-file: global.json
       - name: Restore and compile
         run: dotnet build BuranMusicLibraryManager.sln -c Release --nologo
+      - name: Unit tests
+        run: dotnet test Buran.Tests/Buran.Tests.csproj -c Release --no-build --nologo

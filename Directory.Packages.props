@@ -5,7 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Avalonia family must stay on one version. Loader is pinned because HotAvalonia still depends on 11.0.0. -->
+    <!-- Avalonia family stays on one version. HotAvalonia 3.1.4 accepts Loader >= 11.0.0;
+         keep the loader on this same 12.x line. It is a dev-only hot-reload package. -->
     <PackageVersion Include="Avalonia" Version="12.1.2" />
     <PackageVersion Include="Avalonia.Desktop" Version="12.1.2" />
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.2" />
@@ -35,5 +36,9 @@
     <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.12" />
     <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
     <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.12" />
+
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 </Project>
