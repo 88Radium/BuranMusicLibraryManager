@@ -227,6 +227,7 @@
   "Db.Remove": "Remove",
   "Db.ShowTracks": "Show tracks",
   "Db.TracksFor": "Tracks: {0}",
+  "Db.IndexCaseGhost": "Stale index entry found for \"{0}\". The index could not be matched. The spelling appears to have changed, because \"{1}\" is the file on disk. The stale entry was removed.",
   "Db.ClearSelection": "Clear selection",
   "Db.ArtistName": "Artist name",
   "Db.LegalName": "Legal name",

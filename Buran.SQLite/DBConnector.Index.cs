@@ -11,6 +11,15 @@ public sealed record IndexedTrackHit(
     string Album,
     int? Year);
 
+/// <summary>
+/// A path row dropped because another indexed path differs only by case and that file is the one on disk.
+/// </summary>
+public sealed record IndexedTrackCaseGhost(string RemovedFileName, string SurvivingFileName);
+
+public sealed record IndexedTrackLookup(
+    IReadOnlyList<IndexedTrackHit> Hits,
+    IReadOnlyList<IndexedTrackCaseGhost> RemovedGhosts);
+
 public partial class DBConnector {
     public static void EnsureTrackIndex() {
         Execute("""
@@ -49,6 +58,8 @@ public partial class DBConnector {
         double sampleRate,
         int bitDepth) {
         EnsureTrackIndex();
+        // A case-only rename is a different key. Drop the previous spelling when that file is gone.
+        DropMissingCaseVariants(path);
         long modified = 0;
         try { modified = File.GetLastWriteTimeUtc(path).Ticks; } catch { /* ignore */ }
 
@@ -77,7 +88,22 @@ public partial class DBConnector {
             new SqliteParameter("$mod", modified));
     }
 
-    public static IReadOnlyList<IndexedTrackHit> FindIndexedTracks(string kind, string name) {
+    public static void RemoveIndexedTrack(string path) {
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+        EnsureTrackIndex();
+        Execute("DELETE FROM IndexedTracks WHERE Path = $path", new SqliteParameter("$path", path));
+    }
+
+    /// <summary>
+    /// Removes indexed paths that collide with another row only by case and whose file is no longer on disk.
+    /// </summary>
+    public static IReadOnlyList<IndexedTrackCaseGhost> PurgeMissingIndexedTrackCaseGhosts() {
+        EnsureTrackIndex();
+        return DeleteCaseGhosts(QueryPathColumn("SELECT Path FROM IndexedTracks"));
+    }
+
+    public static IndexedTrackLookup FindIndexedTracks(string kind, string name) {
         EnsureTrackIndex();
         var column = kind.ToLowerInvariant() switch {
             "artist" => "Artists",
@@ -85,18 +111,103 @@ public partial class DBConnector {
             "mood"   => "Moods",
             _        => "Artists"
         };
-        var table = QueryTable($"""
-            SELECT Path, FileName, Title, Artists, Album, Year
-            FROM IndexedTracks
-            WHERE ';' || {column} || ';' LIKE $like
-            COLLATE NOCASE
-            ORDER BY Artists, Title
-            """,
-            new SqliteParameter("$like", "%;" + name.Trim() + ";%"));
 
-        var hits = new List<IndexedTrackHit>();
+        try {
+            return new IndexedTrackLookup(ReadHits(LoadIndexedTracks(column, name, caseSensitive: false)), []);
+        }
+        catch (ConstraintException) {
+            // DataTable compares the Path key without regard to case. Two spellings of one file trip it.
+            var ghosts = DeleteCaseGhosts(QueryPathColumn(PathFilterSql(column), LikeParameter(name)));
+            if (ghosts.Count == 0)
+                return new IndexedTrackLookup(ReadHits(LoadIndexedTracks(column, name, caseSensitive: true)), []);
+
+            try {
+                return new IndexedTrackLookup(ReadHits(LoadIndexedTracks(column, name, caseSensitive: false)), ghosts);
+            }
+            catch (ConstraintException) {
+                return new IndexedTrackLookup(ReadHits(LoadIndexedTracks(column, name, caseSensitive: true)), ghosts);
+            }
+        }
+    }
+
+    private static void DropMissingCaseVariants(string path) {
+        if (string.IsNullOrWhiteSpace(path))
+            return;
+
+        var others = QueryPathColumn("""
+            SELECT Path FROM IndexedTracks
+            WHERE Path = $path COLLATE NOCASE AND Path <> $path
+            """,
+            new SqliteParameter("$path", path));
+
+        foreach (var other in others) {
+            if (File.Exists(other))
+                continue;
+            Execute("DELETE FROM IndexedTracks WHERE Path = $path", new SqliteParameter("$path", other));
+        }
+    }
+
+    private static List<IndexedTrackCaseGhost> DeleteCaseGhosts(IReadOnlyList<string> paths) {
+        var planned = new List<(string Path, IndexedTrackCaseGhost Ghost)>();
+        foreach (var group in paths.Where(p => p.Length > 0)
+                     .GroupBy(p => p, StringComparer.CurrentCultureIgnoreCase)) {
+            var distinct = group.Distinct(StringComparer.Ordinal).ToList();
+            if (distinct.Count < 2)
+                continue;
+
+            var living = distinct.Where(File.Exists).ToList();
+            var dead   = distinct.Where(p => !File.Exists(p)).ToList();
+            if (dead.Count == 0)
+                continue;
+
+            var survivor = living.Count > 0 ? Path.GetFileName(living[0]) : "";
+            foreach (var stale in dead)
+                planned.Add((stale, new IndexedTrackCaseGhost(Path.GetFileName(stale), survivor)));
+        }
+
+        foreach (var (path, _) in planned)
+            Execute("DELETE FROM IndexedTracks WHERE Path = $path", new SqliteParameter("$path", path));
+
+        return planned
+            .Select(item => item.Ghost)
+            .Where(ghost => ghost.SurvivingFileName.Length > 0)
+            .ToList();
+    }
+
+    private static DataTable LoadIndexedTracks(string column, string name, bool caseSensitive) {
+        lock (DbSync) {
+            using var connection = OpenCatalogConnection();
+            using var cmd        = new SqliteCommand(HitFilterSql(column), connection);
+            cmd.Parameters.Add(LikeParameter(name));
+            using var reader = cmd.ExecuteReader();
+            // CaseSensitive matches SQLite's binary path key. The default folds case and rejects a renamed file.
+            var table = new DataTable { CaseSensitive = caseSensitive };
+            table.Load(reader);
+            return table;
+        }
+    }
+
+    private static List<string> QueryPathColumn(string sql, params SqliteParameter[] parameters) {
+        lock (DbSync) {
+            using var connection = OpenCatalogConnection();
+            using var cmd        = new SqliteCommand(sql, connection);
+            if (parameters.Length > 0)
+                cmd.Parameters.AddRange(parameters);
+            using var reader = cmd.ExecuteReader();
+            var paths = new List<string>();
+            while (reader.Read()) {
+                if (!reader.IsDBNull(0))
+                    paths.Add(reader.GetString(0));
+            }
+
+            return paths;
+        }
+    }
+
+    private static List<IndexedTrackHit> ReadHits(DataTable table) {
+        var hits = new List<IndexedTrackHit>(table.Rows.Count);
         foreach (DataRow row in table.Rows) {
-            hits.Add(new(
+            hits.Add(new IndexedTrackHit(
                 row["Path"]?.ToString() ?? "",
                 row["FileName"]?.ToString() ?? "",
                 row["Title"]?.ToString() ?? "",
@@ -107,6 +218,24 @@ public partial class DBConnector {
 
         return hits;
     }
+
+    private static string HitFilterSql(string column) => $"""
+        SELECT Path, FileName, Title, Artists, Album, Year
+        FROM IndexedTracks
+        WHERE ';' || {column} || ';' LIKE $like
+        COLLATE NOCASE
+        ORDER BY Artists, Title
+        """;
+
+    private static string PathFilterSql(string column) => $"""
+        SELECT Path
+        FROM IndexedTracks
+        WHERE ';' || {column} || ';' LIKE $like
+        COLLATE NOCASE
+        """;
+
+    private static SqliteParameter LikeParameter(string name) =>
+        new("$like", "%;" + name.Trim() + ";%");
 
     private static string WrapList(string? raw) {
         var value = (raw ?? "").Trim().Trim(';');

@@ -140,16 +140,22 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
     [ObservableProperty] private bool _hasPlayerDock;
     [ObservableProperty] private Mp3FileObject? _focusedFile;
     [ObservableProperty] private string _filterCaption = "";
+    [ObservableProperty] private string _indexNotice = "";
     [ObservableProperty] private bool _isLoadingFiles;
 
     public bool HasFilterCaption => !string.IsNullOrEmpty(FilterCaption);
+    public bool HasIndexNotice   => !string.IsNullOrEmpty(IndexNotice);
 
     partial void OnFilterCaptionChanged(string value) =>
         OnPropertyChanged(nameof(HasFilterCaption));
 
+    partial void OnIndexNoticeChanged(string value) =>
+        OnPropertyChanged(nameof(HasIndexNotice));
+
     [RelayCommand]
     private void ClearFilter() {
         FilterCaption = "";
+        IndexNotice   = "";
         if (ModuleHub.TryRestoreLibraryFolder())
             return;
         MusicFiles.Clear();
@@ -228,11 +234,13 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             return;
         SelectedPath = folderPath.Replace("%20", " ");
         FilterCaption = includeSubfolders ? L.Get("Id3.IncludingSubfolders") : "";
+        IndexNotice   = "";
         _ = LoadPathsAsync(EnumerateAudio(SelectedPath, includeSubfolders), index: true, promptCatalog: true);
     }
 
-    public void LoadFromPaths(IReadOnlyList<string> paths, string caption) {
+    public void LoadFromPaths(IReadOnlyList<string> paths, string caption, string? notice = null) {
         FilterCaption = caption;
+        IndexNotice   = notice ?? "";
         EnsureColumnVisible("FolderPath");
         _ = LoadPathsAsync(Task.FromResult(paths.ToList()), index: false, promptCatalog: false);
     }
@@ -530,6 +538,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
 
         file.RebindToPath(newPath);
         IndexFile(file);
+        DBConnector.RemoveIndexedTrack(oldPath);
         return null;
     }
 
@@ -561,6 +570,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             return L.Format("Id3.RenameDeleteFailed", ex.Message);
         }
 
+        DBConnector.RemoveIndexedTrack(path);
         RemoveByFullPath(path);
         return null;
     }
@@ -572,6 +582,7 @@ public partial class Id3EditorTabViewModel : ViewModelBase {
             return L.Format("Id3.RenameDeleteFailed", ex.Message);
         }
 
+        DBConnector.RemoveIndexedTrack(path);
         MusicFiles.Remove(file);
         return null;
     }

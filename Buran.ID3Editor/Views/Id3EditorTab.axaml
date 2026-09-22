@@ -111,7 +111,11 @@
                 <DockPanel DockPanel.Dock="Top" Margin="8,4" IsVisible="{Binding HasFilterCaption}">
                     <Button DockPanel.Dock="Right" Classes="ghost" Content="{loc:Loc Key=Id3.ClearFilter}"
                             Command="{Binding ClearFilterCommand}" />
-                    <TextBlock Classes="muted" Text="{Binding FilterCaption}" VerticalAlignment="Center" />
+                    <StackPanel Spacing="2" VerticalAlignment="Center">
+                        <TextBlock Classes="muted" Text="{Binding FilterCaption}" />
+                        <TextBlock Classes="muted" Text="{Binding IndexNotice}" TextWrapping="Wrap"
+                                   IsVisible="{Binding HasIndexNotice}" />
+                    </StackPanel>
                 </DockPanel>
                 <DataGrid x:Name="TracksGrid" Classes="editor-list"
                           IsVisible="{Binding HasMusicFiles}"

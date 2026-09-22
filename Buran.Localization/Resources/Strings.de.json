@@ -227,6 +227,7 @@
   "Db.Remove": "Entfernen",
   "Db.ShowTracks": "Titel anzeigen",
   "Db.TracksFor": "Titel: {0}",
+  "Db.IndexCaseGhost": "Dateileiche gefunden mit Namen „{0}“. Index-Zuordnung nicht möglich. Offenbar wurde die Schreibweise geändert, da die Datei „{1}“ vorhanden ist. Dateileiche entfernt.",
   "Db.ClearSelection": "Auswahl aufheben",
   "Db.ArtistName": "Künstlername",
   "Db.LegalName": "Bürgerlicher Name",

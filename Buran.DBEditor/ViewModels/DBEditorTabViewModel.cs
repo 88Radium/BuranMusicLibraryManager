@@ -1191,12 +1191,21 @@ public partial class DBEditorTabViewModel : ObservableObject {
     }
 
     private void ShowIndexedTracks(string kind, string name) {
-        var hits  = DBConnector.FindIndexedTracks(kind, name);
-        var paths = hits.Select(h => h.Path).Where(File.Exists).ToList();
-        var host  = ModuleHub.Find<ITrackListHost>();
+        var lookup = DBConnector.FindIndexedTracks(kind, name);
+        var paths  = lookup.Hits.Select(h => h.Path).Where(File.Exists).ToList();
+        var host   = ModuleHub.Find<ITrackListHost>();
         if (host is null)
             return;
-        host.ShowTracks(paths, L.Format("Db.TracksFor", name));
+
+        string? notice = null;
+        if (lookup.RemovedGhosts.Count > 0) {
+            notice = string.Join(
+                "\n",
+                lookup.RemovedGhosts.Select(ghost =>
+                    L.Format("Db.IndexCaseGhost", ghost.RemovedFileName, ghost.SurvivingFileName)));
+        }
+
+        host.ShowTracks(paths, L.Format("Db.TracksFor", name), notice);
         ModuleHub.ShowId3Editor();
     }
 }

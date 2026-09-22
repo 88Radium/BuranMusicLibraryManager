@@ -27,9 +27,9 @@ public class Id3EditorExtension : IExtension, IMusicFolderConsumer, ITrackListHo
             vm.LoadFromFolder(folderPath, includeSubfolders);
     }
 
-    public void ShowTracks(IReadOnlyList<string> paths, string caption) {
+    public void ShowTracks(IReadOnlyList<string> paths, string caption, string? notice = null) {
         if (_view.DataContext is Id3EditorTabViewModel vm)
-            vm.LoadFromPaths(paths, caption);
+            vm.LoadFromPaths(paths, caption, notice);
     }
 
     public void IndexLibrary(IReadOnlyList<string> rootPaths) {

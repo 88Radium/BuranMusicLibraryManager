@@ -227,6 +227,7 @@
   "Db.Remove": "O'chirish",
   "Db.ShowTracks": "Treklarni ko'rsatish",
   "Db.TracksFor": "Treklar: {0}",
+  "Db.IndexCaseGhost": "Indeksda eskirgan yozuv topildi: \"{0}\". Indeksni moslab bo'lmadi. Ko'rinishidan faqat harf katta-kichikligi o'zgargan, chunki diskda \"{1}\" bor. Eskirgan yozuv olib tashlandi.",
   "Db.ClearSelection": "Tanlovni bekor qilish",
   "Db.ArtistName": "Ijrochi nomi",
   "Db.LegalName": "Fuqarolik ismi",
