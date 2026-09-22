@@ -16,15 +16,15 @@
         WindowStartupLocation="CenterOwner"
         CanResize="True">
 
-    <DockPanel Margin="16">
+    <DockPanel Margin="10">
         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right"
-                    Spacing="8" Margin="0,12,0,0">
+                    Spacing="6" Margin="0,8,0,0">
             <Button Classes="ghost" Content="{loc:Loc Key=Common.Cancel}" Command="{Binding CancelCommand}" />
             <Button Classes="accent" Content="{loc:Loc Key=Common.Apply}" Command="{Binding ApplyCommand}"
                     IsEnabled="{Binding CanApply}" />
         </StackPanel>
 
-        <Grid RowDefinitions="Auto,Auto,*,Auto,*" RowSpacing="10">
+        <Grid RowDefinitions="Auto,Auto,*,Auto,*" RowSpacing="6">
             <GroupBox Grid.Row="0" Header="{Binding ListHeader}">
                 <Grid ColumnDefinitions="*,Auto">
                     <ListBox ItemsSource="{Binding CurrentTags}" Height="120">
@@ -66,10 +66,18 @@
             </GroupBox>
 
             <GroupBox Grid.Row="2" Header="{loc:Loc Key=Bulk.SelectedFiles}">
-                <ListBox ItemsSource="{Binding SelectedFiles}">
+                <ListBox ItemsSource="{Binding FileLines}">
                     <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="fileTypes:Mp3FileObject">
-                            <TextBlock Text="{Binding FileName}" />
+                        <DataTemplate x:DataType="vm:BulkFileLine">
+                            <Grid ColumnDefinitions="180,*" ColumnSpacing="8">
+                                <TextBlock Text="{Binding FileName}"
+                                           TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Classes="muted"
+                                           Text="{Binding Current}"
+                                           TextWrapping="Wrap"
+                                           VerticalAlignment="Center" />
+                            </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>

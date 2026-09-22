@@ -206,8 +206,9 @@ Asosiy ish maydoni. Teglar va fayl nomlari mos kelishi kerak bo'lgan joy.
 **Ustunlar**
 
 - Yuqoridagi **Ustunlar**: belgi qo'yish yoki olib tashlash ustunlarni ko'rsatadi yoki yashiradi.
-- Sarlavhalarni tortish tartibni, chetini tortish kenglikni o'zgartiradi.
-- **Fayl nomi**, **Janr** va **Kayfiyat** sukut bo'yicha o'chirilgan, aks holda jadval juda keng bo'ladi.
+- Sarlavhalarni tortish tartibni, chetini tortish kenglikni o'zgartiradi. Ajratgichni ikki marta bosish chapdagi ustunni mazmuniga moslaydi.
+- Sarlavhani bosish qatorlarni saralaydi, yana bosish yo'nalishni almashtiradi. Xira strelkalar ustun saralanishini ko'rsatadi.
+- **Fayl nomi**, **Izoh**, **Janr** va **Kayfiyat** sukut bo'yicha o'chirilgan, aks holda jadval juda keng bo'ladi.
 
 **O'ng tugma → Jildni ochish**
 

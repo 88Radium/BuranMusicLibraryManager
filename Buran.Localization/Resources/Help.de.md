@@ -43,7 +43,7 @@ Die linke Spalte ist der Ordnerbaum.
 
 ## ID3-Editor
 
-Oben in der Arbeitsfläche. Kompakte Tabelle (Titel, Künstler, Ordnerpfad, Album, Jahr, Dauer, Bitrate, Samplerate, Bit-Tiefe). Spalten über „Spalten“ ein- und ausblenden; Überschriften ziehen ändert die Reihenfolge. Dateiname, Genre und Mood sind standardmäßig aus.
+Oben in der Arbeitsfläche. Kompakte Tabelle (Titel, Künstler, Ordnerpfad, Album, Jahr, Dauer, Bitrate, Samplerate, Bit-Tiefe). Spalten über „Spalten“ ein- und ausblenden; Überschriften ziehen ändert die Reihenfolge. Dateiname, Kommentar, Genre und Mood sind standardmäßig aus. Ein Doppelklick auf den Trenner zwischen zwei Überschriften setzt die Spalte links davon auf die Breite des Inhalts, mindestens so breit wie die Überschrift. Ein Klick auf die Überschrift selbst sortiert die Zeilen; das blasse Pfeilpaar daneben zeigt das an.
 
 Eine angeklickte Zeile ist der fokussierte Titel (Inspector, Reset, Doppelklick spielt). Das Häkchen in der ersten Spalte ist die Mehrfachauswahl. Fokus und Häkchen sind unabhängig.
 

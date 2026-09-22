@@ -43,7 +43,7 @@ Chap ustun — jildlar daraxti.
 
 ## ID3 tahrirchi
 
-Ish maydonining birinchi tabi. Ixcham jadval (nom, ijrochilar, jild yo'li, albom, yil, davomiylik, bitreyt, diskretlash chastotasi, bit chuqurligi). Ustunlar «Ustunlar» orqali. Fayl nomi, janr va kayfiyat sukut bo'yicha o'chirilgan.
+Ish maydonining birinchi tabi. Ixcham jadval (nom, ijrochilar, jild yo'li, albom, yil, davomiylik, bitreyt, diskretlash chastotasi, bit chuqurligi). Ustunlar «Ustunlar» orqali. Fayl nomi, izoh, janr va kayfiyat sukut bo'yicha o'chirilgan. Sarlavhalar orasidagi ajratgichni ikki marta bosish chapdagi ustunni mazmuniga moslaydi, sarlavha matnidan tor emas. Sarlavhaning o'zini bosish qatorlarni saralaydi; yonidagi xira strelkalar shuni bildiradi.
 
 Bosilgan qator — fokusdagi trek (tekshiruvchi, Tiklash, ikki marta bosish ijro etadi). Birinchi ustundagi belgi — ko'p tanlov. Fokus va belgilar mustaqil.
 

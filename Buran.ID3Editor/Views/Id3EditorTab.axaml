@@ -27,13 +27,13 @@
 
     <Grid x:Name="Id3EditorGrid" RowDefinitions="Auto,Auto,*">
 
-        <Border Grid.Row="0" Classes="toolbar" Margin="0,0,0,8">
+        <Border Grid.Row="0" Classes="toolbar" Margin="0,0,0,4">
             <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Orientation="Horizontal" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="6">
                     <TextBlock Text="{loc:Loc Key=Id3.Folder}" Classes="muted" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding SelectedPath}" Classes="path" VerticalAlignment="Center" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
                     <Button Content="{Binding EditToggleLabel}"
                             Command="{Binding ToggleEditModeCommand}"
                             Classes.accent="{Binding IsEditMode}"
@@ -75,9 +75,9 @@
             </Grid>
         </Border>
 
-        <Border Grid.Row="1" Classes="toolbar" Margin="0,0,0,8"
+        <Border Grid.Row="1" Classes="toolbar" Margin="0,0,0,4"
                 IsVisible="{Binding ShowBulkBar}">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <StackPanel Orientation="Horizontal" Spacing="6">
                 <Button Content="{loc:Loc Key=Common.Artists}"
                         Command="{Binding OpenBulkAddDialogCommand}"
                         CommandParameter="Artist"
@@ -107,8 +107,9 @@
                 <ColumnDefinition Width="*" MinWidth="160" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
+            <Grid>
             <DockPanel>
-                <DockPanel DockPanel.Dock="Top" Margin="8,4" IsVisible="{Binding HasFilterCaption}">
+                <DockPanel DockPanel.Dock="Top" Margin="4,2" IsVisible="{Binding HasFilterCaption}">
                     <Button DockPanel.Dock="Right" Classes="ghost" Content="{loc:Loc Key=Id3.ClearFilter}"
                             Command="{Binding ClearFilterCommand}" />
                     <StackPanel Spacing="2" VerticalAlignment="Center">
@@ -139,6 +140,7 @@
                         </MenuFlyout>
                     </DataGrid.ContextFlyout>
                 </DataGrid>
+            </DockPanel>
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="6"
                             IsVisible="{Binding !HasMusicFiles}">
                     <TextBlock Text="{loc:Loc Key=Id3.NoFolderLoaded}" Classes="empty-title" Opacity="0.7"
@@ -146,7 +148,7 @@
                     <TextBlock Classes="muted" TextWrapping="Wrap" Width="280" TextAlignment="Center"
                                Text="{loc:Loc Key=Id3.NoFolderHint}" />
                 </StackPanel>
-            </DockPanel>
+            </Grid>
 
             <Grid x:Name="InspectorPane" Grid.Column="1"
                   Width="{Binding InspectorPaneWidth}" MinWidth="200"
@@ -160,30 +162,46 @@
                         PointerMoved="InspectorSplitter_PointerMoved"
                         PointerReleased="InspectorSplitter_PointerReleased"
                         PointerCaptureLost="InspectorSplitter_PointerCaptureLost" />
-                <Border Grid.Column="1" Classes="toolbar" Padding="12">
+                <Border Grid.Column="1" Classes="toolbar" Padding="8,6">
                 <Panel>
                     <ScrollViewer IsVisible="{Binding FocusedFile, Converter={x:Static ObjectConverters.IsNotNull}}">
-                        <StackPanel Spacing="10" DataContext="{Binding FocusedFile}"
+                        <StackPanel Spacing="6" DataContext="{Binding FocusedFile}"
                                     x:DataType="types:Mp3FileObject">
-                            <TextBlock Classes="muted" Text="{loc:Loc Key=Id3.FocusedTrack}" />
-                            <TextBlock FontWeight="SemiBold" Text="{Binding Id3Title}" TextWrapping="Wrap" />
+                            <Grid ColumnDefinitions="108,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                                  ColumnSpacing="8" RowSpacing="4">
+                                <TextBlock Classes="muted" VerticalAlignment="Center"
+                                           Text="{loc:Loc Key=Id3.FocusedTrack}"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip.Tip="{loc:Loc Key=Id3.FocusedTrack}" />
+                                <TextBlock Grid.Column="1" FontWeight="SemiBold"
+                                           Text="{Binding Id3Title}"
+                                           TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center" />
 
-                            <TextBlock Classes="muted" Text="{loc:Loc Key=Id3.Title}" />
-                            <TextBox Text="{Binding Id3Title}" />
-                            <TextBlock Classes="muted" Text="{loc:Loc Key=Id3.Album}" />
-                            <TextBox Text="{Binding Id3Album}" />
-                            <Grid ColumnDefinitions="90,*" ColumnSpacing="8">
-                                <StackPanel>
-                                    <TextBlock Classes="muted" Text="{loc:Loc Key=Id3.ReleaseYear}" />
-                                    <TextBox Text="{Binding Id3ReleaseYear}" />
-                                </StackPanel>
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Classes="muted" Text="{loc:Loc Key=Id3.Comment}" />
-                                    <TextBox Text="{Binding Id3Comment}" />
-                                </StackPanel>
+                                <TextBlock Grid.Row="1" Classes="muted" VerticalAlignment="Center"
+                                           Text="{loc:Loc Key=Id3.Title}" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Id3Title}" />
+
+                                <TextBlock Grid.Row="2" Classes="muted" VerticalAlignment="Center"
+                                           Text="{loc:Loc Key=Id3.Album}" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Id3Album}" />
+
+                                <TextBlock Grid.Row="3" Classes="muted" VerticalAlignment="Center"
+                                           Text="{loc:Loc Key=Id3.ReleaseYear}"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip.Tip="{loc:Loc Key=Id3.ReleaseYear}" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Id3ReleaseYear}" />
+
+                                <TextBlock Grid.Row="4" Classes="muted" VerticalAlignment="Center"
+                                           Text="{loc:Loc Key=Id3.Comment}" />
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Id3Comment}" />
+
+                                <TextBlock Grid.Row="5" Classes="muted" VerticalAlignment="Center"
+                                           Text="{loc:Loc Key=Id3.Filename}"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip.Tip="{loc:Loc Key=Id3.Filename}" />
+                                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding FileName}" IsReadOnly="True" />
                             </Grid>
-                            <TextBlock Classes="muted" Text="{loc:Loc Key=Id3.Filename}" />
-                            <TextBox Text="{Binding FileName}" IsReadOnly="True" />
 
                             <TextBlock Classes="muted" Text="{loc:Loc Key=Id3.Artists}" />
                             <ItemsControl ItemsSource="{Binding Id3ArtistCollection}">
@@ -284,18 +302,18 @@
                                         CommandParameter="{Binding}" />
                             </Grid>
 
-                            <WrapPanel Margin="0,8,0,0">
-                                <Button Margin="0,0,8,8"
+                            <WrapPanel Margin="0,4,0,0">
+                                <Button Margin="0,0,4,4"
                                         Content="{loc:Loc Key=Id3.FromId3ToFilenameShort}"
                                         ToolTip.Tip="{loc:Loc Key=Id3.FromId3ToFilename}"
                                         Command="{Binding $parent[UserControl].((vm:Id3EditorTabViewModel)DataContext).FileNameFromId3Command}"
                                         CommandParameter="{Binding}" />
-                                <Button Margin="0,0,8,8"
+                                <Button Margin="0,0,4,4"
                                         Content="{loc:Loc Key=Id3.FromFilenameToId3Short}"
                                         ToolTip.Tip="{loc:Loc Key=Id3.FromFilenameToId3}"
                                         Command="{Binding $parent[UserControl].((vm:Id3EditorTabViewModel)DataContext).Id3FromFileNameCommand}"
                                         CommandParameter="{Binding}" />
-                                <Button Margin="0,0,8,8"
+                                <Button Margin="0,0,4,4"
                                         Content="{loc:Loc Key=Id3.ResetId3Short}"
                                         ToolTip.Tip="{loc:Loc Key=Id3.ResetId3}"
                                         Command="{Binding $parent[UserControl].((vm:Id3EditorTabViewModel)DataContext).ResetId3ToDefaultCommand}"

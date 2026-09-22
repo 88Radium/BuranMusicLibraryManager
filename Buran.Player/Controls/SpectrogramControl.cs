@@ -8,10 +8,10 @@ using Avalonia.Media.Imaging;
 namespace Buran.Player.Controls;
 
 public class SpectrogramControl : Control {
-    private const double LeftPad   = 52;
-    private const double RightPad  = 54;
-    private const double TopPad    = 16;
-    private const double BottomPad = 26;
+    private const double LeftPad   = 48;
+    private const double RightPad  = 50;
+    private const double TopPad    = 14;
+    private const double BottomPad = 18;
     private const double MinHz     = 20;
 
     private static readonly IBrush BackgroundBrush = new SolidColorBrush(Color.Parse("#FF070C16"));

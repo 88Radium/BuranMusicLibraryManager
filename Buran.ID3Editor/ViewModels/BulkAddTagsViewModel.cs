@@ -21,6 +21,7 @@ public partial class BulkAddTagsViewModel : ObservableObject {
         Kind          = kind;
         _files        = files.ToList();
         SelectedFiles = new ObservableCollection<Mp3FileObject>(_files);
+        FileLines     = new ObservableCollection<BulkFileLine>();
         CurrentTags   = new ObservableCollection<BulkTagItem>();
         KnownTags     = new ObservableCollection<string>();
         PreviewItems  = new ObservableCollection<TagPreviewItem>();
@@ -28,11 +29,13 @@ public partial class BulkAddTagsViewModel : ObservableObject {
         ReloadKnownTags();
         CurrentTags.CollectionChanged += (_, _) => RefreshAfterListChange();
         LoadFromSelection();
+        RebuildFileLines();
         L.WhenChanged(() => {
             OnPropertyChanged(nameof(WindowTitle));
             OnPropertyChanged(nameof(ListHeader));
             OnPropertyChanged(nameof(InputHeader));
             OnPropertyChanged(nameof(InputWatermark));
+            RebuildFileLines();
             UpdatePreview();
         });
     }
@@ -42,6 +45,7 @@ public partial class BulkAddTagsViewModel : ObservableObject {
     public CatalogSuggestionKind Kind { get; }
 
     public ObservableCollection<Mp3FileObject> SelectedFiles { get; }
+    public ObservableCollection<BulkFileLine>  FileLines     { get; }
     public ObservableCollection<BulkTagItem>   CurrentTags   { get; }
     public ObservableCollection<string>        KnownTags     { get; }
     public ObservableCollection<TagPreviewItem> PreviewItems { get; }
@@ -141,7 +145,22 @@ public partial class BulkAddTagsViewModel : ObservableObject {
         }
 
         _baselineTags = new HashSet<string>(CurrentTagNames(), StringComparer.OrdinalIgnoreCase);
+        RebuildFileLines();
         RefreshAfterListChange();
+    }
+
+    private void RebuildFileLines() {
+        FileLines.Clear();
+        foreach (var file in _files) {
+            var tags = ReadTags(file)
+                .Select(t => t.Trim())
+                .Where(t => t.Length > 0)
+                .ToList();
+            FileLines.Add(new BulkFileLine {
+                FileName = file.FileName,
+                Current  = tags.Count == 0 ? L.Get("Common.None") : string.Join(", ", tags)
+            });
+        }
     }
 
     [RelayCommand]
@@ -300,4 +319,9 @@ public partial class BulkAddTagsViewModel : ObservableObject {
             });
         }
     }
+}
+
+public sealed class BulkFileLine {
+    public required string FileName { get; init; }
+    public required string Current  { get; init; }
 }

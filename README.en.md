@@ -206,8 +206,9 @@ Main workspace. This is where you live when tags and file names should match.
 **Columns**
 
 - **Columns** at the top: tick or untick to show or hide columns.
-- Drag headers to reorder, drag the edge to resize.
-- **File name**, **Genre**, and **Mood** are off by default so the table stays usable.
+- Drag headers to reorder, drag the edge to resize. Double-click a splitter to fit the column on its left to the content.
+- Click a header to sort the rows; click again to reverse. A faint arrow pair on the header shows that it can be sorted.
+- **File name**, **Comment**, **Genre**, and **Mood** are off by default so the table stays usable.
 
 **Right-click → Open folder**
 

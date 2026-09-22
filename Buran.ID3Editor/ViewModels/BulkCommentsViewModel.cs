@@ -15,20 +15,24 @@ public partial class BulkCommentsViewModel : ObservableObject {
 
     public BulkCommentsViewModel(IEnumerable<Mp3FileObject> files) {
         _files        = files.ToList();
-        SelectedFiles = new ObservableCollection<Mp3FileObject>(_files);
-        PreviewItems  = new ObservableCollection<TagPreviewItem>();
+        SelectedFiles     = new ObservableCollection<Mp3FileObject>(_files);
+        ExistingComments  = new ObservableCollection<ExistingCommentLine>();
+        PreviewItems      = new ObservableCollection<TagPreviewItem>();
+        RebuildExistingComments();
         LoadFromSelection();
         L.WhenChanged(() => {
             OnPropertyChanged(nameof(WindowTitle));
             OnPropertyChanged(nameof(Hint));
+            RebuildExistingComments();
             UpdatePreview();
         });
     }
 
     public event EventHandler? CloseRequested;
 
-    public ObservableCollection<Mp3FileObject>  SelectedFiles { get; }
-    public ObservableCollection<TagPreviewItem> PreviewItems  { get; }
+    public ObservableCollection<Mp3FileObject>      SelectedFiles    { get; }
+    public ObservableCollection<ExistingCommentLine> ExistingComments { get; }
+    public ObservableCollection<TagPreviewItem>     PreviewItems     { get; }
 
     public string WindowTitle => L.Get("Bulk.CommentsTitle");
     public string Hint        => L.Get("Bulk.CommentsHint");
@@ -78,6 +82,17 @@ public partial class BulkCommentsViewModel : ObservableObject {
         return _files.Any(f => !string.Equals(f.Id3Comment ?? "", next, StringComparison.Ordinal));
     }
 
+    private void RebuildExistingComments() {
+        ExistingComments.Clear();
+        foreach (var file in _files) {
+            var text = file.Id3Comment ?? "";
+            ExistingComments.Add(new ExistingCommentLine {
+                FileName = file.FileName,
+                Comment  = string.IsNullOrEmpty(text) ? L.Get("Common.None") : text
+            });
+        }
+    }
+
     private void UpdatePreview() {
         PreviewItems.Clear();
         var next = NewComment ?? "";
@@ -90,4 +105,9 @@ public partial class BulkCommentsViewModel : ObservableObject {
             });
         }
     }
+}
+
+public sealed class ExistingCommentLine {
+    public required string FileName { get; init; }
+    public required string Comment  { get; init; }
 }

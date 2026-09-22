@@ -21,7 +21,7 @@
             <RowDefinition Height="*" MinHeight="120" />
         </Grid.RowDefinitions>
 
-        <ContentControl x:Name="ChromeHost" MinHeight="160"
+        <ContentControl x:Name="ChromeHost" MinHeight="96"
                         IsVisible="{Binding !IsDocked}" />
 
         <GridSplitter Grid.Row="1" ResizeDirection="Rows" ResizeBehavior="PreviousAndNext"
@@ -32,15 +32,15 @@
         <Grid Grid.Row="2" ColumnDefinitions="*,6,*">
             <GroupBox Header="{loc:Loc Key=Player.FolderQueue}">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
                         <Button Content="{loc:Loc Key=Player.AddToPlaylist}"
                                 Command="{Binding AddFolderSelectionToPlaylistCommand}"
                                 IsEnabled="{Binding HasFolderTracks}" />
                     </StackPanel>
-                    <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"
+                    <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,4"
                                Text="{loc:Loc Key=Player.NoFolderTracks}"
                                IsVisible="{Binding !HasFolderTracks}" />
-                    <ListBox ItemsSource="{Binding FolderTracks}"
+                    <ListBox Classes="track-list" ItemsSource="{Binding FolderTracks}"
                              SelectedItem="{Binding SelectedFolderTrack}"
                              DoubleTapped="FolderTracks_DoubleTapped">
                         <ListBox.ItemTemplate>
@@ -61,7 +61,7 @@
 
             <GroupBox Grid.Column="2" Header="{loc:Loc Key=Player.Playlists}">
                 <DockPanel>
-                    <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,8">
+                    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="0,0,0,4">
                         <ComboBox HorizontalAlignment="Stretch"
                                   ItemsSource="{Binding Playlists}"
                                   SelectedItem="{Binding SelectedPlaylist}">
@@ -75,23 +75,23 @@
                                  Text="{Binding SelectedPlaylistName}"
                                  IsEnabled="{Binding HasPlaylists}" />
                         <WrapPanel Orientation="Horizontal">
-                            <Button Margin="0,0,8,8" Content="{loc:Loc Key=Player.NewPlaylist}" Command="{Binding NewPlaylistCommand}" />
-                            <Button Margin="0,0,8,8" Content="{loc:Loc Key=Player.DeletePlaylist}" Command="{Binding DeletePlaylistCommand}"
+                            <Button Margin="0,0,4,4" Content="{loc:Loc Key=Player.NewPlaylist}" Command="{Binding NewPlaylistCommand}" />
+                            <Button Margin="0,0,4,4" Content="{loc:Loc Key=Player.DeletePlaylist}" Command="{Binding DeletePlaylistCommand}"
                                     IsEnabled="{Binding HasPlaylists}" />
-                            <Button Margin="0,0,8,8" Content="{loc:Loc Key=Player.ImportM3u}" Command="{Binding ImportM3uCommand}" />
-                            <Button Margin="0,0,8,8" Content="{loc:Loc Key=Player.ExportM3u}" Command="{Binding ExportM3uCommand}"
+                            <Button Margin="0,0,4,4" Content="{loc:Loc Key=Player.ImportM3u}" Command="{Binding ImportM3uCommand}" />
+                            <Button Margin="0,0,4,4" Content="{loc:Loc Key=Player.ExportM3u}" Command="{Binding ExportM3uCommand}"
                                     IsEnabled="{Binding HasPlaylistTracks}" />
                         </WrapPanel>
                     </StackPanel>
-                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
                         <Button Content="{loc:Loc Key=Common.Remove}"
                                 Command="{Binding RemovePlaylistTrackCommand}"
                                 IsEnabled="{Binding SelectedPlaylistTrack, Converter={x:Static ObjectConverters.IsNotNull}}" />
                     </StackPanel>
-                    <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,8"
+                    <TextBlock DockPanel.Dock="Top" Classes="muted" Margin="0,0,0,4"
                                Text="{loc:Loc Key=Player.NoPlaylistTracks}"
                                IsVisible="{Binding !HasPlaylistTracks}" />
-                    <ListBox ItemsSource="{Binding PlaylistTracks}"
+                    <ListBox Classes="track-list" ItemsSource="{Binding PlaylistTracks}"
                              SelectedItem="{Binding SelectedPlaylistTrack}"
                              DoubleTapped="PlaylistTracks_DoubleTapped">
                         <ListBox.ItemTemplate>
