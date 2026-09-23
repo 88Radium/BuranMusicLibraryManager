@@ -186,6 +186,14 @@
         <Setter Property="MinHeight" Value="0" />
     </Style>
 
+    <Style Selector="ListBox.editor-list TextBox">
+        <Setter Property="ContextFlyout" Value="{x:Null}" />
+    </Style>
+
+    <Style Selector="ListBox.editor-list ComboBox">
+        <Setter Property="ContextFlyout" Value="{x:Null}" />
+    </Style>
+
     <Style Selector="ListBox.track-list ListBoxItem">
         <Setter Property="Padding" Value="6,1" />
         <Setter Property="MinHeight" Value="0" />

@@ -134,7 +134,7 @@ Search filters artists, alternative names, and keywords. Clear search resets it.
 
 ### Artists
 
-List of preferred name and legal name. Right-click: Remove, Block, Clear selection, Show tracks (indexed tracks including folder path).
+List of preferred name and legal name. Right-click the whole row (including the name field): Remove, Block, Clear selection, Show tracks (indexed tracks including folder path).
 
 Add at the bottom: preferred name (optional legal name), attach an alternative to an existing artist, or Block. Typing in the field filters (e.g. “E”).
 
@@ -153,7 +153,7 @@ Only with an artist selected. Members of this group, or groups this artist belon
 The same controls, separate lists. Moods are feelings (`Happy`, `Dark`), not substitute genres.
 
 - Checkbox: assign to the selected artist.
-- Right-click: Remove, Block, Clear selection, Filter by selection, clear the filter, Show tracks.
+- Right-click the whole row (including the name field): Remove, Block, Clear selection, Filter by selection, clear the filter, Show tracks.
 - Alternative spellings of the selected entry.
 - At the bottom: create a preferred name, attach an alternative, block.
 
