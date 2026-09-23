@@ -134,7 +134,7 @@ Suche filtert Künstler, Alternativnamen und Schlüsselwörter. Suche leeren set
 
 ### Künstler
 
-Liste mit bevorzugtem Namen und bürgerlichem Namen. Rechtsklick: Entfernen, Blockieren, Auswahl aufheben, Titel anzeigen (indizierte Titel inkl. Ordnerpfad).
+Liste mit bevorzugtem Namen und bürgerlichem Namen. Rechtsklick auf die ganze Zeile (auch im Namensfeld): Entfernen, Blockieren, Auswahl aufheben, Titel anzeigen (indizierte Titel inkl. Ordnerpfad).
 
 Unten hinzufügen: bevorzugter Name (optional bürgerlicher Name), Alternativname einem vorhandenen Künstler zuordnen, oder Blockieren. Tippen ins Feld filtert (z. B. „E“).
 
@@ -153,7 +153,7 @@ Nur mit ausgewähltem Künstler. Mitglieder dieser Gruppe bzw. Gruppen, zu denen
 Gleiche Bedienung, getrennte Listen. Moods sind Stimmungen (`Happy`, `Dark`), keine Ersatz-Genres.
 
 - Häkchen: dem ausgewählten Künstler zuordnen.
-- Rechtsklick: Entfernen, Blockieren, Auswahl aufheben, Nach Auswahl filtern, Filter aufheben, Titel anzeigen.
+- Rechtsklick auf die ganze Zeile (auch im Namensfeld): Entfernen, Blockieren, Auswahl aufheben, Nach Auswahl filtern, Filter aufheben, Titel anzeigen.
 - Alternative Schreibweisen des ausgewählten Eintrags.
 - Unten: bevorzugten Namen anlegen, Alternativname zuordnen, Blockieren.
 

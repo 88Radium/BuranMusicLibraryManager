@@ -134,7 +134,7 @@ Qidiruv ijrochilar, muqobil nomlar va kalit so'zlarni filtrlaydi. Qidiruvni toza
 
 ### Ijrochilar
 
-Afzal nom va fuqarolik ismi ro'yxati. O'ng tugma: O'chirish, Bloklash, Tanlovni bekor qilish, Treklarni ko'rsatish (indekslangan treklar, jild yo'li bilan).
+Afzal nom va fuqarolik ismi ro'yxati. Butun qatorga o'ng tugma (nom maydonida ham): O'chirish, Bloklash, Tanlovni bekor qilish, Treklarni ko'rsatish (indekslangan treklar, jild yo'li bilan).
 
 Pastda qo'shish: afzal nom (ixtiyoriy fuqarolik ismi), muqobilni mavjud ijrochiga bog'lash yoki Bloklash. Maydonga yozish filtrlaydi (masalan «E»).
 
@@ -153,7 +153,7 @@ Faqat ijrochi tanlanganda. Shu guruh a'zolari yoki ijrochi tegishli guruhlar. No
 Bir xil boshqaruv, alohida ro'yxatlar. Kayfiyatlar — his-tuyg'u (`Happy`, `Dark`), janr o'rnini bosmaydi.
 
 - Belgi: tanlangan ijrochiga biriktirish.
-- O'ng tugma: O'chirish, Bloklash, Tanlovni bekor qilish, Tanlov bo'yicha filtrlash, filtrni olib tashlash, Treklarni ko'rsatish.
+- Butun qatorga o'ng tugma (nom maydonida ham): O'chirish, Bloklash, Tanlovni bekor qilish, Tanlov bo'yicha filtrlash, filtrni olib tashlash, Treklarni ko'rsatish.
 - Tanlangan yozuvning muqobil yozuvlari.
 - Pastda: afzal nom yaratish, muqobil bog'lash, bloklash.
 

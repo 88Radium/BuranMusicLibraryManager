@@ -343,7 +343,7 @@ Zweiter Reiter. Hier liegt der **gesamte Katalog**: anlegen, umbenennen, als Alt
 - Unten **bevorzugten Namen** eintragen, optional bürgerlichen Namen, **Hinzufügen**.
 - **Alternativname:** getippten Namen einem vorhandenen Künstler zuordnen. Ins Feld tippen filtert (z. B. `E` → Eminem).
 - **Blockieren:** getippten Namen ausblenden. Steht er schon im Katalog, wird er entfernt. Bei einem bevorzugten Namen werden auch seine Alternativen blockiert.
-- Rechtsklick: **Entfernen**, **Blockieren**, **Auswahl aufheben**, **Titel anzeigen** (indizierte Stücke im ID3-Editor).
+- Rechtsklick auf die ganze Zeile (auch im Namensfeld): **Entfernen**, **Blockieren**, **Auswahl aufheben**, **Titel anzeigen** (indizierte Stücke im ID3-Editor).
 
 #### Alternative Namen
 
@@ -358,7 +358,7 @@ Nur mit ausgewähltem Künstler. Mitglieder dieser Gruppe bzw. Gruppen, zu denen
 Gleiche Bedienung, getrennte Listen. Moods sind Stimmungen (`Happy`, `Dark`), keine Ersatz-Genres.
 
 - Häkchen: Genre oder Mood dem **ausgewählten Künstler** zuordnen (welches Repertoire hat dieser Act).
-- Rechtsklick: Entfernen, Blockieren, Auswahl aufheben, **Nach Auswahl filtern** (Künstlerliste), Filter aufheben, **Titel anzeigen**.
+- Rechtsklick auf die ganze Zeile (auch im Namensfeld): Entfernen, Blockieren, Auswahl aufheben, **Nach Auswahl filtern** (Künstlerliste), Filter aufheben, **Titel anzeigen**.
 - Alternative Schreibweisen: Varianten des ausgewählten Eintrags (`Danc` → `Dance`).
 - Unten: bevorzugten Namen anlegen, Alternativname zuordnen, Blockieren.
 

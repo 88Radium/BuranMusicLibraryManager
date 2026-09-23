@@ -342,7 +342,7 @@ Second tab. This is the **full catalog**: create, rename, attach as alternative,
 - At the bottom, type a **preferred name**, optionally a legal name, **Add**.
 - **Alternative name:** attach the typed name to an existing artist. Typing in the field filters (e.g. `E` → Eminem).
 - **Block:** hide the typed name. If it is already in the catalog, it is removed. Blocking a preferred name also blocks its alternatives.
-- Right-click: **Remove**, **Block**, **Clear selection**, **Show tracks** (indexed pieces in the ID3 editor).
+- Right-click the whole row (including the name field): **Remove**, **Block**, **Clear selection**, **Show tracks** (indexed pieces in the ID3 editor).
 
 #### Alternative names
 
@@ -357,7 +357,7 @@ Only with a selected artist. Members of this group, or groups this artist belong
 Same controls, separate lists. Moods are feelings (`Happy`, `Dark`), not substitute genres.
 
 - Checkbox: assign the genre or mood to the **selected artist** (what repertoire this act has).
-- Right-click: Remove, Block, Clear selection, **Filter by selection** (artist list), clear filter, **Show tracks**.
+- Right-click the whole row (including the name field): Remove, Block, Clear selection, **Filter by selection** (artist list), clear filter, **Show tracks**.
 - Alternative spellings: variants of the selected entry (`Danc` → `Dance`).
 - At the bottom: create a preferred name, attach an alternative, block.
 

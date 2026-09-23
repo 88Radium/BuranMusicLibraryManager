@@ -342,7 +342,7 @@ Ikkinchi tab. Bu yerda **butun katalog**: yaratish, qayta nomlash, muqobil qilis
 - Pastda **afzal nom** yozing, ixtiyoriy fuqarolik ismi, **Qo'shish**.
 - **Muqobil nom:** yozilgan nomni mavjud ijrochiga bog'lash. Maydonga yozish filtrlaydi (masalan `E` → Eminem).
 - **Bloklash:** yozilgan nomni yashirish. Katalogda bo'lsa, o'chiriladi. Afzal nomni bloklash uning muqobillarini ham bloklaydi.
-- O'ng tugma: **O'chirish**, **Bloklash**, **Tanlovni bekor qilish**, **Treklarni ko'rsatish** (ID3 tahrirchidagi indekslangan treklar).
+- Butun qatorga o'ng tugma (nom maydonida ham): **O'chirish**, **Bloklash**, **Tanlovni bekor qilish**, **Treklarni ko'rsatish** (ID3 tahrirchidagi indekslangan treklar).
 
 #### Muqobil nomlar
 
@@ -357,7 +357,7 @@ Faqat ijrochi tanlanganda. Shu guruh a'zolari yoki ijrochi tegishli guruhlar (`E
 Bir xil boshqaruv, alohida ro'yxatlar. Kayfiyatlar — his-tuyg'u (`Happy`, `Dark`), janr o'rnini bosmaydi.
 
 - Belgi: janr yoki kayfiyatni **tanlangan ijrochiga** biriktirish (shu act repertuari).
-- O'ng tugma: O'chirish, Bloklash, Tanlovni bekor qilish, **Tanlov bo'yicha filtrlash** (ijrochilar ro'yxati), filtrni olib tashlash, **Treklarni ko'rsatish**.
+- Butun qatorga o'ng tugma (nom maydonida ham): O'chirish, Bloklash, Tanlovni bekor qilish, **Tanlov bo'yicha filtrlash** (ijrochilar ro'yxati), filtrni olib tashlash, **Treklarni ko'rsatish**.
 - Muqobil yozuvlar: tanlangan yozuv variantlari (`Danc` → `Dance`).
 - Pastda: afzal nom yaratish, muqobil bog'lash, bloklash.
 
