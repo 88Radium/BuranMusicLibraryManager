@@ -39,6 +39,17 @@
   "Settings.Font.large": "Groß",
   "Settings.Version": "Version {0}",
 
+  "Update.Check": "Nach Updates suchen",
+  "Update.CheckTip": "Prüft auf GitHub, ob ein neuer Installer für dieses System vorliegt",
+  "Update.Available": "Version {0} ist für {1} verfügbar (installiert: {2}). {3} herunterladen?",
+  "Update.AvailableNoAsset": "Version {0} liegt auf GitHub (installiert: {1}), für {2} gibt es noch keinen Installer.",
+  "Update.Current": "Das ist die aktuelle Version für {0} ({1}).",
+  "Update.Failed": "Die Update-Prüfung hat GitHub nicht erreicht.",
+  "Update.Os.Windows": "Windows",
+  "Update.Os.Linux": "Linux",
+  "Update.Os.Mac": "macOS",
+  "Update.Os.Other": "dieses System",
+
   "Help.Title": "Anleitung",
   "Help.Open": "Anleitung",
   "Help.OpenTip": "Alle Funktionen der Anwendung",

@@ -39,6 +39,17 @@
   "Settings.Font.large": "Large",
   "Settings.Version": "Version {0}",
 
+  "Update.Check": "Check for updates",
+  "Update.CheckTip": "Ask GitHub whether a newer installer exists for this system",
+  "Update.Available": "Version {0} is available for {1} (installed: {2}). Download {3}?",
+  "Update.AvailableNoAsset": "Version {0} is on GitHub (installed: {1}), but there is no installer for {2} yet.",
+  "Update.Current": "This is the latest version for {0} ({1}).",
+  "Update.Failed": "The update check could not reach GitHub.",
+  "Update.Os.Windows": "Windows",
+  "Update.Os.Linux": "Linux",
+  "Update.Os.Mac": "macOS",
+  "Update.Os.Other": "this system",
+
   "Help.Title": "User guide",
   "Help.Open": "User guide",
   "Help.OpenTip": "All functions of the application",

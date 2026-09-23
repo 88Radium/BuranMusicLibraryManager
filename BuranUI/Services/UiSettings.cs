@@ -15,6 +15,7 @@ public class UiSettings {
     public bool    PlayerOnTop       { get; set; }
     public bool    IncludeSubfolders { get; set; }
     public string  Id3Columns        { get; set; } = "";
+    public string? DismissedUpdateVersion { get; set; }
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 

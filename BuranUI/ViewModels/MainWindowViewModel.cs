@@ -1,10 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Buran.Interfaces;
 using Buran.Localization;
+using Buran.Types;
 using BuranUI.Models;
 using BuranUI.Services;
 using BuranUI.Views;
@@ -42,6 +45,9 @@ public partial class MainWindowViewModel : ViewModelBase {
     [ObservableProperty] private LanguageOption _selectedLanguage = LanguageOption.All[0];
     [ObservableProperty] private FontSizeOption _selectedFontSize = FontSizeOption.All[1];
     [ObservableProperty] private bool           _playerOnTop;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CheckForUpdatesCommand))]
+    private bool _isCheckingUpdates;
 
     public bool HasPlayerDock => PlayerDock is not null;
 
@@ -97,5 +103,114 @@ public partial class MainWindowViewModel : ViewModelBase {
             await dialog.ShowDialog(owner);
         else
             dialog.Show();
+    }
+
+    public async Task NotifyIfUpdateAvailableAsync() {
+        if (IsCheckingUpdates)
+            return;
+
+        IsCheckingUpdates = true;
+        try {
+            var result = await RunCheckAsync();
+            if (result.Kind != UpdateKind.Available)
+                return;
+            if (string.Equals(_settings.DismissedUpdateVersion, result.RemoteDisplay, StringComparison.Ordinal))
+                return;
+            await OfferDownloadAsync(result);
+        }
+        catch {
+            // Offline or GitHub down: the next start tries again.
+        }
+        finally {
+            IsCheckingUpdates = false;
+        }
+    }
+
+    private bool CanCheckForUpdates() => !IsCheckingUpdates;
+
+    [RelayCommand(CanExecute = nameof(CanCheckForUpdates))]
+    private async Task CheckForUpdates() {
+        if (IsCheckingUpdates)
+            return;
+
+        IsCheckingUpdates = true;
+        try {
+            var result = await RunCheckAsync();
+            switch (result.Kind) {
+                case UpdateKind.Available:
+                    await OfferDownloadAsync(result);
+                    break;
+                case UpdateKind.NewerWithoutInstaller:
+                    await BuranMessageBox.Show(L.Format(
+                        "Update.AvailableNoAsset",
+                        result.RemoteDisplay,
+                        result.InstalledDisplay,
+                        OsLabel(result.Platform)));
+                    break;
+                case UpdateKind.UpToDate:
+                    await BuranMessageBox.Show(L.Format(
+                        "Update.Current",
+                        OsLabel(result.Platform),
+                        result.InstalledDisplay));
+                    break;
+                default:
+                    await BuranMessageBox.Show(L.Get("Update.Failed"));
+                    break;
+            }
+        }
+        catch {
+            await BuranMessageBox.Show(L.Get("Update.Failed"));
+        }
+        finally {
+            IsCheckingUpdates = false;
+        }
+    }
+
+    private static async Task<UpdateDecision> RunCheckAsync() {
+        var installed = UpdateCheck.ParseVersionOrZero(AppVersion.Display);
+        var platform  = HostPlatform.Detect();
+        var release   = await GitHubUpdateClient.FetchLatestAsync();
+        if (release is null)
+            return new UpdateDecision { Kind = UpdateKind.Failed, Installed = installed, Platform = platform };
+
+        return UpdateCheck.Decide(
+            installed,
+            release.TagName,
+            release.Prerelease,
+            release.Draft,
+            release.Assets,
+            platform);
+    }
+
+    private async Task OfferDownloadAsync(UpdateDecision result) {
+        var open = await BuranMessageBox.AskYesNo(L.Format(
+            "Update.Available",
+            result.RemoteDisplay,
+            OsLabel(result.Platform),
+            result.InstalledDisplay,
+            result.Asset?.Name));
+        _settings.DismissedUpdateVersion = result.RemoteDisplay;
+        _settings.Save();
+        if (open && result.Asset is not null)
+            await OpenUrl(result.Asset.Url);
+    }
+
+    private static string OsLabel(HostPlatform platform) => platform.Os switch {
+        HostOsKind.Windows => L.Get("Update.Os.Windows"),
+        HostOsKind.Linux   => L.Get("Update.Os.Linux"),
+        HostOsKind.MacOs   => L.Get("Update.Os.Mac"),
+        _                  => L.Get("Update.Os.Other")
+    };
+
+    private static async Task OpenUrl(string url) {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return;
+
+        var lifetime = Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
+        var top = lifetime?.MainWindow is { } window ? TopLevel.GetTopLevel(window) : null;
+        if (top?.Launcher is not null && await top.Launcher.LaunchUriAsync(uri))
+            return;
+
+        Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
     }
 }

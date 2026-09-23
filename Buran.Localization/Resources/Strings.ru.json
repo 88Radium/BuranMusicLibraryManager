@@ -39,6 +39,17 @@
   "Settings.Font.large": "Крупный",
   "Settings.Version": "Версия {0}",
 
+  "Update.Check": "Проверить обновления",
+  "Update.CheckTip": "Спросить GitHub, есть ли новый установщик для этой системы",
+  "Update.Available": "Версия {0} доступна для {1} (установлена: {2}). Скачать {3}?",
+  "Update.AvailableNoAsset": "Версия {0} есть на GitHub (установлена: {1}), но установщика для {2} пока нет.",
+  "Update.Current": "Это актуальная версия для {0} ({1}).",
+  "Update.Failed": "Проверка обновлений не смогла связаться с GitHub.",
+  "Update.Os.Windows": "Windows",
+  "Update.Os.Linux": "Linux",
+  "Update.Os.Mac": "macOS",
+  "Update.Os.Other": "этой системы",
+
   "Help.Title": "Руководство",
   "Help.Open": "Руководство",
   "Help.OpenTip": "Все функции приложения",

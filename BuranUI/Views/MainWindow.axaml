@@ -88,6 +88,11 @@
                                         ToolTip.Tip="{loc:Loc Key=Help.OpenTip}"
                                         Command="{Binding OpenHelpCommand}" />
 
+                                <Button Classes="ghost" HorizontalAlignment="Stretch"
+                                        Content="{loc:Loc Key=Update.Check}"
+                                        ToolTip.Tip="{loc:Loc Key=Update.CheckTip}"
+                                        Command="{Binding CheckForUpdatesCommand}" />
+
                                 <TextBlock Classes="muted"
                                            HorizontalAlignment="Center"
                                            Text="{Binding VersionText}" />

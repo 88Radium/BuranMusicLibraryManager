@@ -28,6 +28,7 @@ Oben rechts öffnet „Einstellungen“ ein Menü.
 - Transparenz: Deckkraft des Hauptfensters (ab 40 %).
 - Anleitung: dieses Handbuch.
 - Version: installierte Versionsnummer (auch auf dem Startbildschirm).
+- Nach Updates suchen: fragt GitHub nach dem neuesten Release und wählt den Installer für Windows (Setup) oder Linux (RPM auf Fedora/Bazzite, DEB auf Debian/Ubuntu). Beim Start läuft die Prüfung still; ein Hinweis kommt nur, wenn etwas Neues da ist.
 
 ## Bibliothek
 

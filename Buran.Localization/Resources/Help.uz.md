@@ -28,6 +28,7 @@ Yuqori o'ngdagi «Sozlamalar» menyuni ochadi.
 - Shaffoflik: asosiy oyna shaffofligi (40 % dan).
 - Qo'llanma: shu qo'llanma.
 - Versiya: o'rnatilgan versiya raqami (start ekranida ham).
+- Yangilanishlarni tekshirish: GitHubdan so'nggi relizni so'raydi va Windows (setup) yoki Linux (Fedora/Bazzite da RPM, Debian/Ubuntu da DEB) o'rnatuvchisini tanlaydi. Ishga tushganda tekshiruv jim; faqat yangisi bo'lsa ogohlantirish chiqadi.
 
 ## Kutubxona
 
