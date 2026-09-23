@@ -141,7 +141,8 @@ Yuqori o'ngda, **Sozlamalar** tugmasi.
 | **Shrift o'lchami** | Kichik / o'rtacha / katta. | Uzun teg ro'yxatlari va 4K monitorlar. | Ro'yxatni oching, o'lchamni tanlang. |
 | **Shaffoflik** | Oyna shaffofligi (40 % dan). | Ish stolini ko'rsatish. | Slayder. |
 | **Qo'llanma** | Ichki qo'llanmani ochadi. | Shu funksiya ko'rinishi, GitHub siz. | **Qo'llanma** tugmasi. |
-| **Versiya** | O'rnatilgan versiya raqamini ko'rsatadi. | Paket yangimi, tekshirish. | Faqat ko'rsatish, sozlamalar menyusi pastda va start ekranida. |
+| **Yangilanishlarni tekshirish** | GitHubdan so'nggi relizni so'raydi va shu tizim uchun o'rnatuvchini tanlaydi. | Windows: setup.exe. Linux: Fedora/Bazzite da RPM, Debian/Ubuntu da DEB. | Sozlamalar menyusidagi tugma. Ishga tushganda jim; faqat yangisi bo'lsa ogohlantirish. |
+| **Versiya** | O'rnatilgan versiya raqamini ko'rsatadi. | Qaysi paket ishlayotganini ko'rish. | Sozlamalar menyusi pastda va start ekranida. |
 
 ### Kutubxona
 
@@ -408,6 +409,8 @@ SQLite fayli tarixan `CerberusMusicManager.db` deb ataladi. Ilovani o'chirish bu
 - Windows `setup.exe` va portativ `.zip`
 
 Versiya oshirilmagan oddiy kod pushlari faqat kompilyatsiya qiladi (yashil **Build** belgisi). O'rnatuvchilar versiya yangi bo'lsa, `packaging/` yoki paket workflow o'zgarsa, yoki **Actions → Package → Run workflow** ni qo'lda ishga tushirsangiz paydo bo'ladi.
+
+Ilova ishga tushganda GitHubdan shu tizim uchun yangiroq o'rnatuvchi bor-yo'qligini so'raydi.
 
 ## O'zingiz yiging
 

@@ -28,6 +28,7 @@ The Settings button in the top-right opens a menu.
 - Transparency: opacity of the main window (from 40 %).
 - User guide: this handbook.
 - Version: installed version number (also on the splash screen).
+- Check for updates: asks GitHub for the latest release and picks the installer for Windows (setup) or Linux (RPM on Fedora/Bazzite, DEB on Debian/Ubuntu). At startup the check is silent; a prompt appears only when something newer is available.
 
 ## Library
 

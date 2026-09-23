@@ -142,7 +142,8 @@ Oben rechts, Knopf **Einstellungen**.
 | **Schriftgröße** | Klein / Mittel / Groß. | Lange Tag-Listen und 4K-Monitore. | Ausklappen, Größe wählen. |
 | **Transparenz** | Deckkraft des Fensters (ab 40 %). | Desktop durchscheinen lassen. | Schieberegler. |
 | **Anleitung** | Öffnet das eingebaute Handbuch. | Dieselbe Funktionsübersicht, ohne GitHub. | Knopf **Anleitung**. |
-| **Version** | Zeigt die installierte Versionsnummer. | Prüfen, ob das Paket aktuell ist. | Nur Anzeige, unten im Einstellungsmenü und auf dem Startbildschirm. |
+| **Nach Updates suchen** | Fragt GitHub nach dem neuesten Release und wählt den Installer für dieses System. | Windows: Setup.exe. Linux: RPM auf Fedora/Bazzite, DEB auf Debian/Ubuntu. | Knopf im Einstellungsmenü. Beim Start still; Hinweis nur wenn etwas Neues da ist. |
+| **Version** | Zeigt die installierte Versionsnummer. | Sehen, welches Paket läuft. | Unten im Einstellungsmenü und auf dem Startbildschirm. |
 
 ### Bibliothek
 
@@ -409,6 +410,8 @@ Jedes Release mit neuer Versionsnummer in `Directory.Build.props` erzeugt nach e
 - Windows `setup.exe` und portable `.zip`
 
 Reine Code-Pushes ohne Versionsbump kompilieren nur (grüner Haken **Build**). Installer entstehen, wenn die Version neu ist, sich `packaging/` bzw. der Package-Workflow ändert, oder du unter **Actions → Package → Run workflow** von Hand startest.
+
+Die App prüft beim Start auf GitHub, ob ein neuer Installer für das laufende System vorliegt.
 
 ## Selbst bauen
 

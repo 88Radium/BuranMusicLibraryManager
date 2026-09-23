@@ -39,6 +39,17 @@
   "Settings.Font.large": "Katta",
   "Settings.Version": "Versiya {0}",
 
+  "Update.Check": "Yangilanishlarni tekshirish",
+  "Update.CheckTip": "GitHubdan shu tizim uchun yangi o'rnatuvchi bor-yo'qligini so'rash",
+  "Update.Available": "{1} uchun {0} versiyasi mavjud (o'rnatilgan: {2}). {3} yuklab olinsinmi?",
+  "Update.AvailableNoAsset": "GitHubda {0} versiyasi bor (o'rnatilgan: {1}), lekin {2} uchun o'rnatuvchi hali yo'q.",
+  "Update.Current": "Bu {0} uchun oxirgi versiya ({1}).",
+  "Update.Failed": "Yangilanish tekshiruvi GitHubga ulanolmadi.",
+  "Update.Os.Windows": "Windows",
+  "Update.Os.Linux": "Linux",
+  "Update.Os.Mac": "macOS",
+  "Update.Os.Other": "shu tizim",
+
   "Help.Title": "Qo'llanma",
   "Help.Open": "Qo'llanma",
   "Help.OpenTip": "Ilovaning barcha funksiyalari",

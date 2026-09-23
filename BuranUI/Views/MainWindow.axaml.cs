@@ -27,7 +27,15 @@ public partial class MainWindow : Window {
 
         DataContextChanged += OnDataContextChanged;
         ModuleHub.ActivateId3Editor += (_, _) => SelectId3Tab();
+        Opened += OnOpened;
         ApplyPlayerPlacement();
+    }
+
+    private void OnOpened(object? sender, EventArgs e) {
+        if (Design.IsDesignMode)
+            return;
+        if (DataContext is MainWindowViewModel vm)
+            _ = vm.NotifyIfUpdateAvailableAsync();
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e) {

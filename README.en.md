@@ -141,7 +141,8 @@ Top right, **Settings**.
 | **Font size** | Small / Medium / Large. | Long tag lists and 4K monitors. | Open the list, pick a size. |
 | **Transparency** | Window opacity (from 40 %). | Let the desktop show through. | Slider. |
 | **Manual** | Opens the in-app handbook. | The same feature overview, without GitHub. | **Manual** button. |
-| **Version** | Shows the installed version number. | Check whether the package is current. | Display only, at the bottom of the settings menu and on the splash screen. |
+| **Check for updates** | Asks GitHub for the latest release and picks the installer for this system. | Windows: setup.exe. Linux: RPM on Fedora/Bazzite, DEB on Debian/Ubuntu. | Button in the settings menu. Silent at startup; a prompt only when something newer is available. |
+| **Version** | Shows the installed version number. | See which package is running. | At the bottom of the settings menu and on the splash screen. |
 
 ### Library
 
@@ -408,6 +409,8 @@ Each release with a new version number in `Directory.Build.props` builds, after 
 - Windows `setup.exe` and portable `.zip`
 
 Plain code pushes without a version bump only compile (green **Build** check). Installers are produced when the version is new, when `packaging/` or the package workflow changes, or when you run **Actions → Package → Run workflow** by hand.
+
+At startup the app asks GitHub whether a newer installer exists for the running system.
 
 ## Build it yourself
 
